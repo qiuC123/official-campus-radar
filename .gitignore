@@ -1,0 +1,23 @@
+# Python bytecode and virtual environments
+__pycache__/
+*.py[cod]
+.venv/
+
+# Local Django state and environment-specific secrets
+db.sqlite3
+*.sqlite3
+.env
+.env.*
+!.env.example
+
+# Test and coverage artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Generated static files and editor/OS metadata
+staticfiles/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
