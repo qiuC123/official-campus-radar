@@ -187,11 +187,56 @@ replay results, inferred paths and fields, and raw samples are unchanged. No
 browser, network, replay, page, or endpoint request was made for this
 correction, preserving the recorded total of 25 replay requests.
 
+These generated `body` and `success.expect` drafts require the Phase 02 T1
+JSON API supplement to be integrated before the runtime collector can consume
+them. T2 intentionally cannot change or import `radar/` under its hard scope.
+A combined T1+T2 contract test is therefore deferred to the integration branch
+where both supplements are present.
+
+## Offline final-review corrections
+
+Further offline review produced bounded implementation corrections:
+
+- Semantic unique identifiers (`jobId`, `postId`, and `positionId`) now outrank
+  a generic unique `id`, even when only the generic value has a recognized
+  numeric/UUID shape. The retained live Ctrip config remains
+  `position_key="id"` because its captured sample contains `id` and no
+  `jobId`; live evidence was not rewritten from the offline fixture.
+- Candidate identity now includes `list_path`, retaining every qualifying
+  array for a request variant. One five-call replay ladder is captured once and
+  re-evaluated independently for all retained paths without extra requests.
+- `offset` and `pageOffset` are no longer treated as page indexes. Offset/size
+  pairs remain non-executable candidates with an explicit unsupported/manual
+  review note because T1 supports only `page_index`; a complete true page-index
+  pair takes precedence if offset metadata also exists.
+- Candidate presentation now sorts by confidence descending, with campus
+  filter score used only as a tie-breaker. The existing Ctrip candidate
+  sections were mechanically reordered to confidence `50`, `20`, then `15`;
+  their captured facts, configs, replay rows, and samples are unchanged.
+- Target URLs containing userinfo are rejected without echoing credentials.
+  Captured request URLs containing userinfo are stripped in retained capture
+  facts, reports, and configs; safe and credential-bearing observations remain
+  distinct during deduplication. Unsafe candidates are marked non-integrable
+  and refused at the replay boundary before a session is created.
+- Captured `Authorization`, `Proxy-Authorization`, and `X-API-Key` values are
+  redacted from retained results and reported by `header.*` path. Such
+  candidates receive zero replay calls; credential headers are defensively
+  absent from all five replay profiles and refused by the requester before
+  session creation. Anonymous Cookie and signature-header ladder behavior is
+  unchanged.
+
+Each behavior was reproduced with a focused failing offline test before its
+minimal production fix. No live artifact was regenerated, and no browser,
+network, page, replay, or endpoint request occurred during these corrections;
+the recorded five Ctrip page opens, 25 total replays, and 10 cumulative
+`getEmployeeStory` replays remain unchanged.
+
 ## Artifacts
 
 - `work/discovery-ctrip.md` — final CTA-assisted Ctrip evidence report; it
   supersedes the earlier incomplete root-page artifact, with only its config
-  schema corrected offline as documented above.
+  schema and candidate-section presentation order corrected offline as
+  documented above.
 - `work/discovery-tencent.md` — Tencent discovery evidence report, with only
   its success config key corrected offline as documented above.
 - `work/phase-02-02-api-discovery-tool-report.md` — this assessment.
@@ -201,10 +246,22 @@ correction, preserving the recorded total of 25 replay requests.
 - Focused adapter-contract RED: 4 selected tests failed on the expected
   `value`/`expect` and missing POST `body` mismatches before production code
   changed; focused GREEN after the minimal fix: 4 passed.
-- `python.exe -m pytest tools/tests -v`: 36 passed, 2 subtests passed.
+- Fix Round 4 focused RED/GREEN cases cover semantic identity precedence,
+  multi-array replay reuse and its five-call bound, offset pagination safety,
+  confidence-first ordering, URL-userinfo refusal and deduplication safety, and
+  credential-header redaction/refusal at analysis, profile, and requester
+  boundaries.
+- All final commands below used the verified Python 3.13.14 interpreter at
+  `C:\Users\Mayn\AppData\Local\Programs\Python\Python313\python.exe`.
+- `python.exe -m pytest tools/tests -v`: 50 passed, 10 subtests passed.
 - `python.exe manage.py test radar.tests`: 131 passed; 0 failures.
 - `python.exe manage.py check`: 0 issues.
 - `python.exe manage.py makemigrations --check --dry-run`: No changes detected.
 - `python.exe -m compileall -q tools`: exit 0.
 - `python.exe tools/discover_api.py --help`: exit 0 with the expected CLI and
   compliance notice.
+- An earlier unqualified `python.exe` attempt resolved to the unrelated
+  Python 3.11 installation at `D:\python\python3.11\python.exe`, which does not
+  have Django installed. That was an environment-only interpreter-selection
+  failure; the entire gate was rerun from the beginning with the verified
+  interpreter above.

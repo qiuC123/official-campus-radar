@@ -12,6 +12,7 @@ CTRIP_PAYLOAD = {
         "total": 2,
         "recruitJobAdList": [
             {
+                "id": "3034975730101809152",
                 "jobId": "2034975730101809152",
                 "jobTitle": "后端研发工程师",
                 "cityName": "上海",
@@ -19,6 +20,7 @@ CTRIP_PAYLOAD = {
                 "kindName": "校园招聘",
             },
             {
+                "id": "3034975730101809153",
                 "jobId": "2034975730101809153",
                 "jobTitle": "客户端研发工程师",
                 "cityName": "北京",
@@ -49,6 +51,15 @@ TENCENT_PAYLOAD = {
                 "RequireWorkYearsName": "不限",
             },
         ],
+    },
+}
+
+MULTI_ARRAY_PAYLOAD = {
+    "Code": 200,
+    "Data": {
+        "Count": 2,
+        "Posts": TENCENT_PAYLOAD["Data"]["Posts"],
+        "AlternatePosts": TENCENT_PAYLOAD["Data"]["Posts"],
     },
 }
 
@@ -158,7 +169,7 @@ class PureInferenceTests(unittest.TestCase):
 
         self.assertEqual(parameters, {"pageIndex": "1", "pageSize": "10"})
 
-    def test_infers_ctrip_field_map_and_unique_long_numeric_identity(self):
+    def test_semantic_job_id_wins_over_generic_unique_long_id(self):
         infer_field_map = self.require_function("infer_field_map")
         rows = CTRIP_PAYLOAD["retValue"]["recruitJobAdList"]
 
@@ -167,6 +178,17 @@ class PureInferenceTests(unittest.TestCase):
         self.assertEqual(field_map["title"], "jobTitle")
         self.assertEqual(field_map["location"], "cityName")
         self.assertEqual(field_map["updated_at"], "publishDate")
+        self.assertEqual(field_map["position_key"], "jobId")
+
+    def test_semantic_job_id_wins_even_when_only_generic_id_has_numeric_shape(self):
+        infer_field_map = self.require_function("infer_field_map")
+        rows = [
+            {"id": "3034975730101809152", "jobId": "campus-job-alpha"},
+            {"id": "3034975730101809153", "jobId": "campus-job-beta"},
+        ]
+
+        field_map = infer_field_map(rows)
+
         self.assertEqual(field_map["position_key"], "jobId")
 
     def test_replay_header_ladder_has_five_bounded_compliance_levels(self):
@@ -180,6 +202,9 @@ class PureInferenceTests(unittest.TestCase):
             "Cookie": "session=browser-cookie",
             "X-Signature": "generated-signature",
             "X-Trace-Id": "trace-id",
+            "Authorization": "Bearer browser-token",
+            "Proxy-Authorization": "Basic proxy-token",
+            "X-API-Key": "browser-api-key",
             "Referer": "https://careers.example/",
         }
 
@@ -211,6 +236,10 @@ class PureInferenceTests(unittest.TestCase):
             profiles[4].headers["user-agent"],
             "OfficialCampusRadar/0.1 (local low-frequency collector)",
         )
+        for profile in profiles:
+            self.assertNotIn("authorization", profile.headers)
+            self.assertNotIn("proxy-authorization", profile.headers)
+            self.assertNotIn("x-api-key", profile.headers)
 
     def test_sample_fields_keep_recruitment_discriminator_values(self):
         select_sample_fields = self.require_function("select_sample_fields")
@@ -313,9 +342,82 @@ class PureConfigurationAndReportingTests(unittest.TestCase):
         self.assertNotIn("body", draft)
         self.assertEqual(draft["pagination"]["page_param"], "pageIndex")
         self.assertEqual(draft["pagination"]["size_param"], "pageSize")
+        self.assertNotIn("pagination_candidates", draft)
+        self.assertNotIn("pagination_note", draft)
         self.assertEqual(draft["list_path"], "Data.Posts")
         self.assertEqual(draft["total_path"], "Data.Count")
         self.assertEqual(draft["success"], {"path": "Code", "expect": 200})
+
+    def test_offset_pagination_requires_manual_review_instead_of_page_index(self):
+        build_config_draft = self.require_function("build_config_draft")
+
+        draft = build_config_draft(
+            "https://careers.example/api/jobs?offset=20&limit=20",
+            "GET",
+            None,
+            TENCENT_PAYLOAD,
+            "Data.Posts",
+        )
+
+        self.assertNotIn("pagination", draft)
+        self.assertEqual(
+            draft["pagination_candidates"],
+            {"offset": "20", "limit": "20"},
+        )
+        self.assertEqual(
+            draft["pagination_note"],
+            (
+                "Offset-based pagination is unsupported by the Phase 02 T1 "
+                "page_index adapter; manual review is required."
+            ),
+        )
+
+    def test_page_offset_is_also_treated_as_unsupported_offset_semantics(self):
+        build_config_draft = self.require_function("build_config_draft")
+
+        draft = build_config_draft(
+            "https://careers.example/api/jobs?pageOffset=20&pageSize=20",
+            "GET",
+            None,
+            TENCENT_PAYLOAD,
+            "Data.Posts",
+        )
+
+        self.assertNotIn("pagination", draft)
+        self.assertEqual(
+            draft["pagination_candidates"],
+            {"pageOffset": "20", "pageSize": "20"},
+        )
+        self.assertIn("unsupported", draft["pagination_note"])
+        self.assertIn("manual review", draft["pagination_note"])
+
+    def test_page_index_pair_wins_when_offset_metadata_coexists(self):
+        build_config_draft = self.require_function("build_config_draft")
+
+        draft = build_config_draft(
+            (
+                "https://careers.example/api/jobs?pageIndex=3&pageSize=20"
+                "&offset=40"
+            ),
+            "GET",
+            None,
+            TENCENT_PAYLOAD,
+            "Data.Posts",
+        )
+
+        self.assertEqual(
+            draft["pagination"],
+            {
+                "mode": "page_index",
+                "page_param": "pageIndex",
+                "size_param": "pageSize",
+                "page_size": 20,
+                "start_page": 3,
+                "max_pages": 10,
+            },
+        )
+        self.assertNotIn("pagination_candidates", draft)
+        self.assertNotIn("pagination_note", draft)
 
     def test_detects_suspicious_query_and_nested_body_keys(self):
         find_suspicious_request_inputs = self.require_function(
@@ -594,6 +696,26 @@ class PureConfigurationAndReportingTests(unittest.TestCase):
                 default_scroll=False,
                 default_click=None,
             )
+
+    def test_rejects_target_url_userinfo_without_echoing_credentials(self):
+        parse_targets_document = self.require_function("parse_targets_document")
+
+        urls = (
+            "https://frontend-user:frontend-password@careers.example/jobs",
+            "https://frontend-user:frontend-password@",
+        )
+        for url in urls:
+            with self.subTest(url=url):
+                with self.assertRaisesRegex(ValueError, "userinfo") as raised:
+                    parse_targets_document(
+                        [url],
+                        default_wait=8,
+                        default_scroll=False,
+                        default_click=None,
+                    )
+
+                self.assertNotIn("frontend-user", str(raised.exception))
+                self.assertNotIn("frontend-password", str(raised.exception))
 
     def test_cli_requires_exactly_one_url_source(self):
         build_parser = self.require_function("build_parser")
@@ -988,6 +1110,219 @@ class OfflineBoundaryTests(unittest.TestCase):
             {"", "campus"},
         )
 
+    def test_candidates_are_ordered_by_confidence_before_campus_tiebreaker(self):
+        analyze_captured_target = self.require_function("analyze_captured_target")
+        endpoint = "https://careers.example/api/jobs"
+        low_confidence_payload = {
+            "Code": 200,
+            "Data": {
+                "Count": 1,
+                "Posts": [{"title": "Campus role", "city": "Shenzhen"}],
+            },
+        }
+
+        def exchange(attr_id, payload):
+            return {
+                "request_url": (
+                    f"{endpoint}?pageIndex=1&pageSize=10&attrId={attr_id}"
+                ),
+                "method": "GET",
+                "request_headers": {"Accept": "application/json"},
+                "request_body": None,
+                "request_json": None,
+                "response_status": 200,
+                "content_type": "application/json",
+                "response_json": payload,
+            }
+
+        candidates = analyze_captured_target(
+            {
+                "exchanges": [
+                    exchange("", TENCENT_PAYLOAD),
+                    exchange("campus", low_confidence_payload),
+                ]
+            }
+        )
+
+        self.assertEqual(
+            [candidate["config"]["params"]["attrId"] for candidate in candidates],
+            ["", "campus"],
+        )
+        self.assertGreater(candidates[0]["confidence"], candidates[1]["confidence"])
+
+    def test_target_output_remains_confidence_sorted_after_endpoint_grouping(self):
+        run_target_sequence = self.require_function("run_target_sequence")
+        TargetSpec = load_function("TargetSpec")
+        self.assertIsNotNone(TargetSpec)
+        shared_endpoint = "https://careers.example/api/shared-jobs"
+        medium_payload = {
+            "Code": 200,
+            "Data": {
+                "Count": 1,
+                "Posts": [
+                    {
+                        "jobTitle": "Medium-confidence role",
+                        "cityName": "Shanghai",
+                        "publishDate": "2026-08-21",
+                    }
+                ],
+            },
+        }
+        low_payload = {
+            "Code": 200,
+            "Data": {
+                "Count": 1,
+                "Posts": [{"title": "Campus role", "city": "Shenzhen"}],
+            },
+        }
+
+        def exchange(url, payload):
+            return {
+                "request_url": url,
+                "method": "GET",
+                "request_headers": {"Accept": "application/json"},
+                "request_body": None,
+                "request_json": None,
+                "response_status": 200,
+                "content_type": "application/json",
+                "response_json": payload,
+            }
+
+        capture = {
+            "entry_url": "https://careers.example/jobs",
+            "final_url": "https://careers.example/jobs",
+            "page_status": 200,
+            "block_reason": None,
+            "error": None,
+            "exchanges": [
+                exchange(
+                    f"{shared_endpoint}?pageIndex=1&pageSize=10&attrId=",
+                    TENCENT_PAYLOAD,
+                ),
+                exchange(
+                    "https://careers.example/api/medium?pageIndex=1&pageSize=10",
+                    medium_payload,
+                ),
+                exchange(
+                    f"{shared_endpoint}?pageIndex=1&pageSize=10&attrId=campus",
+                    low_payload,
+                ),
+            ],
+        }
+
+        results = run_target_sequence(
+            [TargetSpec("https://careers.example/jobs")],
+            capture_func=lambda target: capture,
+            requester=lambda **kwargs: {
+                "http_status": 200,
+                "payload": TENCENT_PAYLOAD,
+                "note": "HTTP 200 JSON",
+            },
+            sleep_fn=lambda seconds: None,
+        )
+        confidences = [
+            candidate["confidence"] for candidate in results[0]["candidates"]
+        ]
+
+        self.assertEqual(confidences, sorted(confidences, reverse=True))
+
+    def test_capture_analysis_preserves_every_qualifying_array_for_variant(self):
+        analyze_captured_target = self.require_function("analyze_captured_target")
+        capture = {
+            "exchanges": [
+                {
+                    "request_url": (
+                        "https://careers.example/api/jobs?pageIndex=1&pageSize=10"
+                    ),
+                    "method": "GET",
+                    "request_headers": {"Accept": "application/json"},
+                    "request_body": None,
+                    "request_json": None,
+                    "response_status": 200,
+                    "content_type": "application/json",
+                    "response_json": MULTI_ARRAY_PAYLOAD,
+                }
+            ]
+        }
+
+        candidates = analyze_captured_target(capture)
+
+        self.assertEqual(
+            {candidate["list_path"] for candidate in candidates},
+            {"Data.Posts", "Data.AlternatePosts"},
+        )
+
+    def test_same_variant_list_paths_reuse_five_replay_observations(self):
+        run_target_sequence = self.require_function("run_target_sequence")
+        TargetSpec = load_function("TargetSpec")
+        self.assertIsNotNone(TargetSpec)
+        capture = {
+            "entry_url": "https://careers.example/jobs",
+            "final_url": "https://careers.example/jobs",
+            "page_status": 200,
+            "block_reason": None,
+            "error": None,
+            "exchanges": [
+                {
+                    "request_url": (
+                        "https://careers.example/api/jobs?pageIndex=1&pageSize=10"
+                    ),
+                    "method": "GET",
+                    "request_headers": {"Accept": "application/json"},
+                    "request_body": None,
+                    "request_json": None,
+                    "response_status": 200,
+                    "content_type": "application/json",
+                    "response_json": MULTI_ARRAY_PAYLOAD,
+                }
+            ],
+        }
+        replay_payload = {
+            "Code": 200,
+            "Data": {
+                "Count": 2,
+                "Posts": TENCENT_PAYLOAD["Data"]["Posts"],
+                "AlternatePosts": [],
+            },
+        }
+        requester_calls = []
+
+        def requester(**kwargs):
+            requester_calls.append(kwargs)
+            return {
+                "http_status": 200,
+                "payload": replay_payload,
+                "note": "HTTP 200 JSON",
+            }
+
+        results = run_target_sequence(
+            [TargetSpec("https://careers.example/jobs")],
+            capture_func=lambda target: capture,
+            requester=requester,
+            sleep_fn=lambda seconds: None,
+        )
+        by_path = {
+            candidate["list_path"]: candidate
+            for candidate in results[0]["candidates"]
+        }
+
+        self.assertEqual(len(requester_calls), 5)
+        self.assertEqual(set(by_path), {"Data.Posts", "Data.AlternatePosts"})
+        self.assertEqual(by_path["Data.Posts"]["verdict"]["status"], "可接入")
+        self.assertEqual(
+            by_path["Data.AlternatePosts"]["verdict"]["status"],
+            "不可接入",
+        )
+        self.assertTrue(
+            all(len(candidate["replays"]) == 5 for candidate in by_path.values())
+        )
+        self.assertTrue(
+            all(
+                candidate["endpoint_replay_budget_used"] == 5
+                for candidate in by_path.values()
+            )
+        )
+
     def test_endpoint_budget_replays_only_campus_preferred_material_variant(self):
         run_target_sequence = self.require_function("run_target_sequence")
         TargetSpec = load_function("TargetSpec")
@@ -1336,6 +1671,247 @@ class OfflineBoundaryTests(unittest.TestCase):
         self.assertNotIn(secret, str(candidate["config"]))
         self.assertNotIn(secret, report)
         self.assertIn("[REDACTED]", report)
+
+    def test_credential_headers_are_redacted_and_never_replayed(self):
+        render_markdown_report = self.require_function("render_markdown_report")
+        run_target_sequence = self.require_function("run_target_sequence")
+        TargetSpec = load_function("TargetSpec")
+        self.assertIsNotNone(TargetSpec)
+        credential_headers = (
+            ("Authorization", "header.authorization"),
+            ("Proxy-Authorization", "header.proxy-authorization"),
+            ("X-API-Key", "header.x-api-key"),
+        )
+
+        for header_name, suspicious_path in credential_headers:
+            with self.subTest(header_name=header_name):
+                secret = f"captured-{header_name.casefold()}-secret"
+                capture = {
+                    "entry_url": "https://careers.example/jobs",
+                    "final_url": "https://careers.example/jobs",
+                    "page_status": 200,
+                    "block_reason": None,
+                    "error": None,
+                    "exchanges": [
+                        {
+                            "request_url": (
+                                "https://careers.example/api/jobs"
+                                "?pageIndex=1&pageSize=10"
+                            ),
+                            "method": "GET",
+                            "request_headers": {
+                                "Accept": "application/json",
+                                "Cookie": "anonymous-preference=campus",
+                                header_name: secret,
+                            },
+                            "request_body": None,
+                            "request_json": None,
+                            "response_status": 200,
+                            "content_type": "application/json",
+                            "response_json": TENCENT_PAYLOAD,
+                        }
+                    ],
+                }
+                requester_calls = []
+
+                def requester(**kwargs):
+                    requester_calls.append(kwargs)
+                    return {
+                        "http_status": 200,
+                        "payload": TENCENT_PAYLOAD,
+                        "note": "HTTP 200 JSON",
+                    }
+
+                results = run_target_sequence(
+                    [TargetSpec("https://careers.example/jobs")],
+                    capture_func=lambda target: capture,
+                    requester=requester,
+                    sleep_fn=lambda seconds: None,
+                )
+                candidate = results[0]["candidates"][0]
+                report = render_markdown_report(
+                    results,
+                    generated_at="2026-08-21T10:00:00+08:00",
+                )
+
+                self.assertEqual(requester_calls, [])
+                self.assertEqual(candidate["verdict"]["status"], "不可接入")
+                self.assertIn(suspicious_path, candidate["suspicious_inputs"])
+                self.assertEqual(
+                    candidate["request_headers"][header_name],
+                    "[REDACTED]",
+                )
+                self.assertEqual(candidate["endpoint_replay_budget_used"], 0)
+                self.assertNotIn(secret, str(candidate))
+                self.assertNotIn(secret, str(results))
+                self.assertNotIn(secret, report)
+                self.assertIn(suspicious_path, report)
+
+    def test_userinfo_capture_is_redacted_and_never_replayed(self):
+        render_markdown_report = self.require_function("render_markdown_report")
+        run_target_sequence = self.require_function("run_target_sequence")
+        TargetSpec = load_function("TargetSpec")
+        self.assertIsNotNone(TargetSpec)
+        username = "frontend-user"
+        password = "frontend-password"
+        capture = {
+            "entry_url": "https://careers.example/jobs",
+            "final_url": "https://careers.example/jobs",
+            "page_status": 200,
+            "block_reason": None,
+            "error": None,
+            "exchanges": [
+                {
+                    "request_url": (
+                        f"https://{username}:{password}@careers.example/api/jobs"
+                        "?pageIndex=1&pageSize=10"
+                    ),
+                    "method": "GET",
+                    "request_headers": {"Accept": "application/json"},
+                    "request_body": None,
+                    "request_json": None,
+                    "response_status": 200,
+                    "content_type": "application/json",
+                    "response_json": TENCENT_PAYLOAD,
+                }
+            ],
+        }
+        requester_calls = []
+
+        def requester(**kwargs):
+            requester_calls.append(kwargs)
+            return {
+                "http_status": 200,
+                "payload": TENCENT_PAYLOAD,
+                "note": "HTTP 200 JSON",
+            }
+
+        results = run_target_sequence(
+            [TargetSpec("https://careers.example/jobs")],
+            capture_func=lambda target: capture,
+            requester=requester,
+            sleep_fn=lambda seconds: None,
+        )
+        candidate = results[0]["candidates"][0]
+        report = render_markdown_report(
+            results,
+            generated_at="2026-08-21T10:00:00+08:00",
+        )
+
+        self.assertEqual(requester_calls, [])
+        self.assertEqual(candidate["verdict"]["status"], "不可接入")
+        self.assertIn("url.userinfo", candidate["suspicious_inputs"])
+        self.assertNotIn(username, str(candidate))
+        self.assertNotIn(password, str(candidate))
+        self.assertNotIn(username, report)
+        self.assertNotIn(password, report)
+        self.assertIn("url.userinfo", report)
+
+    def test_safe_and_userinfo_variants_remain_distinct_without_credential_leak(self):
+        run_target_sequence = self.require_function("run_target_sequence")
+        TargetSpec = load_function("TargetSpec")
+        self.assertIsNotNone(TargetSpec)
+        username = "captured-user"
+        password = "captured-password"
+        safe_url = (
+            "https://careers.example/api/jobs?pageIndex=1&pageSize=10"
+        )
+        credential_url = (
+            f"https://{username}:{password}@careers.example/api/jobs"
+            "?pageIndex=1&pageSize=10"
+        )
+
+        def exchange(request_url):
+            return {
+                "request_url": request_url,
+                "method": "GET",
+                "request_headers": {"Accept": "application/json"},
+                "request_body": None,
+                "request_json": None,
+                "response_status": 200,
+                "content_type": "application/json",
+                "response_json": TENCENT_PAYLOAD,
+            }
+
+        capture = {
+            "entry_url": "https://careers.example/jobs",
+            "final_url": "https://careers.example/jobs",
+            "page_status": 200,
+            "block_reason": None,
+            "error": None,
+            "exchanges": [exchange(safe_url), exchange(credential_url)],
+        }
+        requester_calls = []
+
+        def requester(**kwargs):
+            requester_calls.append(kwargs)
+            return {
+                "http_status": 200,
+                "payload": TENCENT_PAYLOAD,
+                "note": "HTTP 200 JSON",
+            }
+
+        results = run_target_sequence(
+            [TargetSpec("https://careers.example/jobs")],
+            capture_func=lambda target: capture,
+            requester=requester,
+            sleep_fn=lambda seconds: None,
+        )
+        candidates = results[0]["candidates"]
+        unsafe_candidates = [
+            candidate
+            for candidate in candidates
+            if "url.userinfo" in candidate["suspicious_inputs"]
+        ]
+
+        self.assertEqual(len(candidates), 2)
+        self.assertEqual(len(unsafe_candidates), 1)
+        self.assertEqual(len(requester_calls), 5)
+        self.assertEqual(unsafe_candidates[0]["replays"], [])
+        self.assertEqual(
+            unsafe_candidates[0]["verdict"]["status"],
+            "不可接入",
+        )
+        self.assertNotIn(username, str(results))
+        self.assertNotIn(password, str(results))
+
+    def test_request_boundary_refuses_url_userinfo_before_session_creation(self):
+        requests_requester = self.require_function("_requests_requester")
+
+        with mock.patch("requests.Session") as session:
+            result = requests_requester(
+                method="GET",
+                url="https://frontend-user:frontend-password@careers.example/jobs",
+                headers={"Accept": "application/json"},
+                request_json=None,
+                request_body=None,
+            )
+
+        session.assert_not_called()
+        self.assertIsNone(result["http_status"])
+        self.assertIn("refused", result["note"])
+
+    def test_request_boundary_refuses_credential_headers_before_session_creation(self):
+        requests_requester = self.require_function("_requests_requester")
+
+        for header_name in (
+            "Authorization",
+            "Proxy-Authorization",
+            "X-API-Key",
+        ):
+            with self.subTest(header_name=header_name):
+                with mock.patch("requests.Session") as session:
+                    result = requests_requester(
+                        method="GET",
+                        url="https://careers.example/api/jobs",
+                        headers={header_name: "captured-secret"},
+                        request_json=None,
+                        request_body=None,
+                    )
+
+                session.assert_not_called()
+                self.assertIsNone(result["http_status"])
+                self.assertIn("refused", result["note"])
 
     def test_target_sequence_is_serial_and_delays_at_least_three_seconds(self):
         run_target_sequence = self.require_function("run_target_sequence")

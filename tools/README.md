@@ -65,20 +65,30 @@ reported without a Python traceback.
 ## What the report means
 
 The tool records request/response metadata, retains JSON response bodies only
-up to 2 MiB, ranks arrays that look like job records, infers total/success and
-pagination paths, proposes a field map, and samples up to five raw records.
-Capture omissions (including oversized, malformed, or unreadable JSON) appear
-in the report. Recruitment-discriminator values such as `kindName` and
-`RequireWorkYearsName` remain in samples for human review.
+up to 2 MiB, ranks arrays that look like job records, displays candidates by
+confidence descending (using campus-filter evidence only as a tie-breaker),
+infers total/success and pagination paths, proposes a field map, and samples up
+to five raw records. Capture omissions (including oversized, malformed, or
+unreadable JSON) appear in the report. Recruitment-discriminator values such
+as `kindName` and `RequireWorkYearsName` remain in samples for human review.
 
 Pagination-only observations are collapsed, while materially different query
-or body filters remain as separate candidates. Within the shared six-request
-budget for an endpoint, one preferred safe variant receives the full five-step
-replay ladder: captured headers, removal of signature-like headers, Cookie,
+or body filters and every qualifying list path remain as separate candidates.
+Within one invocation's shared six-request budget for an endpoint, one
+preferred safe request variant receives the full five-step replay ladder:
+captured non-credential headers, removal of signature-like headers, Cookie,
 both groups, and finally only `accept`, `content-type`, and the transparent
-low-frequency user agent. Other material variants remain visible and are
-marked as not replayed. Only a non-empty equivalent result under the minimal
-compliant headers is labeled `可接入`.
+low-frequency user agent. The same five bounded responses are evaluated
+independently for every retained list path of that request variant without
+additional requests. Other material variants remain visible and are marked as
+not replayed. Only a non-empty equivalent result under the minimal compliant
+headers is labeled `可接入`.
+
+Offset-style pairs such as `offset`/`limit` or `pageOffset`/`pageSize` are
+retained as `pagination_candidates` with an unsupported/manual-review note;
+they are not emitted as executable `page_index` pagination. A complete true
+`pageIndex`/`pageSize` pair remains executable even when offset metadata also
+appears.
 
 Query or nested body keys matching signature/credential indicators such as
 `sign`, `token`, `payload`, `nonce`, `trace`, or `w-` are reported by path.
@@ -87,14 +97,39 @@ variant is conservatively marked non-integrable without replay, field removal,
 or reverse engineering. Human review must still confirm campus scope and add
 the adapter's notice metadata.
 
+Captured `Authorization`, `Proxy-Authorization`, and `X-API-Key` headers are
+credential-bearing inputs, not replay-ladder signature evidence. Their values
+are redacted in retained results, their `header.*` paths are reported, and the
+candidate is marked non-integrable without replay. Credential headers are also
+removed defensively from every generated header profile, and the requester
+refuses them before creating a session. This does not change the anonymous
+Cookie baseline or the prescribed signature-header ladder.
+
+Target URLs containing URL userinfo are rejected without echoing the embedded
+username or password. If userinfo appears in a captured request URL, it is
+removed from retained capture facts, the candidate URL, and configuration; the
+candidate is marked non-integrable, and the replay boundary refuses it before
+creating a session. Safe and userinfo-bearing observations remain distinct so
+deduplication cannot discard the unsafe marker.
+
+## Phase 02 integration boundary
+
+Generated POST drafts place fixed JSON under `body`, and generated success
+checks use `success.expect`. Those drafts require the Phase 02 T1 JSON API
+supplement to be integrated before they can be consumed by the runtime
+collector. T2 intentionally neither changes nor imports `radar/`; its hard
+scope keeps discovery tooling separate from production application code. A
+combined T1+T2 contract test is therefore deferred to the integration branch,
+where both supplements are present.
+
 Discovery is deliberately low-frequency and non-evasive:
 
 - Each target opens one headless Chromium page once.
 - Targets run serially with at least three seconds between them; the tool never
   performs same-domain concurrency.
 - Pagination observations are de-duplicated without discarding material filter
-  variants; one full five-request ladder stays within the endpoint-wide hard
-  limit of six replay requests.
+  variants or qualifying list paths; one full five-request ladder stays within
+  the per-invocation endpoint budget of six replay requests.
 - The tool does not log in, accept credentials, submit forms, bypass CAPTCHA,
   use stealth or proxies, scan paths, brute-force parameters, or reproduce
   frontend signatures. A login wall, CAPTCHA, abnormal status, or empty blocked

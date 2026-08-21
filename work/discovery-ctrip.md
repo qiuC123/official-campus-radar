@@ -15,6 +15,97 @@ Candidate APIs below are discovery facts, not integration claims.
 
 ### Candidate 1
 
+- Request: `POST https://careers.ctrip.com/api/hrrecruit/getJobAd`
+- Response: `200` / `application/json;charset=UTF-8`
+- Candidate list path: `retValue.recruitJobAdList`
+- Total path: `retValue.total`
+- Confidence score: `50`
+- Shared endpoint replay budget: `5 / 6`
+- Captured request header names: `:authority, :method, :path, :scheme, accept, accept-encoding, content-length, content-type, cookie, origin, priority, referer, sec-ch-ua, sec-ch-ua-mobile, sec-ch-ua-platform, sec-fetch-dest, sec-fetch-mode, sec-fetch-site, user-agent, w-payload-source` (values redacted)
+- Replay verdict: **可接入** — 最简合规头返回等效非空候选列表；签名头非必需
+- Suspicious query/body paths: `none`
+
+#### Replay verification
+
+| Level | HTTP | Equivalent non-empty list | Note |
+| --- | ---: | :---: | --- |
+| 完整头 + Cookie（基线） | 200 | yes | HTTP 200，候选列表路径仍存在且非空 |
+| 去掉疑似签名头 | 200 | yes | HTTP 200，候选列表路径仍存在且非空 |
+| 去掉 Cookie | 200 | yes | HTTP 200，候选列表路径仍存在且非空 |
+| 同时去掉两者 | 200 | yes | HTTP 200，候选列表路径仍存在且非空 |
+| 最简合规头 | 200 | yes | HTTP 200，候选列表路径仍存在且非空 |
+
+#### Parser configuration draft
+
+The draft contains observed/inferred API fields only. Human review must add notice metadata and confirm campus scope.
+
+```json
+{
+  "endpoint": "https://careers.ctrip.com/api/hrrecruit/getJobAd",
+  "method": "POST",
+  "body": {
+    "condition": {
+      "fromId": [],
+      "keyword": "",
+      "kind": [],
+      "country": [],
+      "city": [],
+      "bucode": [],
+      "jobFamilyCode": [],
+      "jobFamilyGroupCode": [],
+      "category": 2
+    },
+    "pager": {
+      "index": "1",
+      "size": "10"
+    },
+    "head": {
+      "language": "zh_CN",
+      "version": "1"
+    }
+  },
+  "list_path": "retValue.recruitJobAdList",
+  "field_map": {
+    "position_key": "id",
+    "title": "jobTitle",
+    "location": "cityName",
+    "updated_at": "publishDate"
+  },
+  "pagination": {
+    "mode": "page_index",
+    "page_param": "pager.index",
+    "size_param": "pager.size",
+    "page_size": 10,
+    "start_page": 1,
+    "max_pages": 10
+  },
+  "total_path": "retValue.total",
+  "success": {
+    "path": "retCode",
+    "expect": "201"
+  }
+}
+```
+
+#### Job samples (raw key values)
+
+Sample 1:
+
+```json
+{
+  "id": "29572971",
+  "jobTitle": "测试职位（请勿投递）(MJ036531)",
+  "publishDate": "2026-08-20",
+  "cityName": "上海",
+  "internalId": null,
+  "kind": "1",
+  "kindName": "应届校招生",
+  "atsApiType": "Moka"
+}
+```
+
+### Candidate 2
+
 - Request: `POST https://careers.ctrip.com/api/hrrecruit/listActiveNews`
 - Response: `200` / `application/json;charset=UTF-8`
 - Candidate list path: `retValue.recruitNewsList`
@@ -142,97 +233,6 @@ Sample 5:
   "recruitDomain": "School",
   "title": "选择携程的N个理由——技术篇",
   "updateTime": "2026-02-28"
-}
-```
-
-### Candidate 2
-
-- Request: `POST https://careers.ctrip.com/api/hrrecruit/getJobAd`
-- Response: `200` / `application/json;charset=UTF-8`
-- Candidate list path: `retValue.recruitJobAdList`
-- Total path: `retValue.total`
-- Confidence score: `50`
-- Shared endpoint replay budget: `5 / 6`
-- Captured request header names: `:authority, :method, :path, :scheme, accept, accept-encoding, content-length, content-type, cookie, origin, priority, referer, sec-ch-ua, sec-ch-ua-mobile, sec-ch-ua-platform, sec-fetch-dest, sec-fetch-mode, sec-fetch-site, user-agent, w-payload-source` (values redacted)
-- Replay verdict: **可接入** — 最简合规头返回等效非空候选列表；签名头非必需
-- Suspicious query/body paths: `none`
-
-#### Replay verification
-
-| Level | HTTP | Equivalent non-empty list | Note |
-| --- | ---: | :---: | --- |
-| 完整头 + Cookie（基线） | 200 | yes | HTTP 200，候选列表路径仍存在且非空 |
-| 去掉疑似签名头 | 200 | yes | HTTP 200，候选列表路径仍存在且非空 |
-| 去掉 Cookie | 200 | yes | HTTP 200，候选列表路径仍存在且非空 |
-| 同时去掉两者 | 200 | yes | HTTP 200，候选列表路径仍存在且非空 |
-| 最简合规头 | 200 | yes | HTTP 200，候选列表路径仍存在且非空 |
-
-#### Parser configuration draft
-
-The draft contains observed/inferred API fields only. Human review must add notice metadata and confirm campus scope.
-
-```json
-{
-  "endpoint": "https://careers.ctrip.com/api/hrrecruit/getJobAd",
-  "method": "POST",
-  "body": {
-    "condition": {
-      "fromId": [],
-      "keyword": "",
-      "kind": [],
-      "country": [],
-      "city": [],
-      "bucode": [],
-      "jobFamilyCode": [],
-      "jobFamilyGroupCode": [],
-      "category": 2
-    },
-    "pager": {
-      "index": "1",
-      "size": "10"
-    },
-    "head": {
-      "language": "zh_CN",
-      "version": "1"
-    }
-  },
-  "list_path": "retValue.recruitJobAdList",
-  "field_map": {
-    "position_key": "id",
-    "title": "jobTitle",
-    "location": "cityName",
-    "updated_at": "publishDate"
-  },
-  "pagination": {
-    "mode": "page_index",
-    "page_param": "pager.index",
-    "size_param": "pager.size",
-    "page_size": 10,
-    "start_page": 1,
-    "max_pages": 10
-  },
-  "total_path": "retValue.total",
-  "success": {
-    "path": "retCode",
-    "expect": "201"
-  }
-}
-```
-
-#### Job samples (raw key values)
-
-Sample 1:
-
-```json
-{
-  "id": "29572971",
-  "jobTitle": "测试职位（请勿投递）(MJ036531)",
-  "publishDate": "2026-08-20",
-  "cityName": "上海",
-  "internalId": null,
-  "kind": "1",
-  "kindName": "应届校招生",
-  "atsApiType": "Moka"
 }
 ```
 

@@ -32,6 +32,13 @@ SIGNATURE_HEADER = re.compile(
     r"sign|token|payload|nonce|trace|w-",
     re.IGNORECASE,
 )
+CREDENTIAL_HEADER_NAMES = frozenset(
+    {
+        "authorization",
+        "proxy-authorization",
+        "x-api-key",
+    }
+)
 DISCRIMINATOR_KEY = re.compile(
     r"kind|campus|graduate|school|workyears?|experience|intern|recruit|attr|type",
     re.IGNORECASE,
@@ -233,9 +240,13 @@ def _pagination_role(key: str) -> str | None:
         return "size"
     if normalized.endswith(("pagesize", "pagelimit")):
         return "size"
-    if normalized in {"page", "index", "offset", "pageindex", "pageoffset"}:
+    if normalized in {"offset", "pageoffset"} or normalized.endswith(
+        "pageoffset"
+    ):
+        return "offset"
+    if normalized in {"page", "index", "pageindex"}:
         return "page"
-    if normalized.endswith(("pageindex", "pageoffset")):
+    if normalized.endswith("pageindex"):
         return "page"
     return None
 
@@ -342,7 +353,9 @@ def _identity_score(key: str, values: list[object]) -> int:
     )
     normalized = re.sub(r"[^a-z0-9]", "", key.lower())
     key_score = 0
-    if normalized in {"jobid", "postid", "positionid", "id", "jobkey", "postkey"}:
+    if normalized in {"jobid", "postid", "positionid"}:
+        key_score = 400
+    elif normalized in {"id", "jobkey", "postkey"}:
         key_score = 100
     elif normalized.endswith(("id", "key", "code")):
         key_score = 50
@@ -384,6 +397,26 @@ def infer_field_map(
     return result
 
 
+def _credential_header_name(key: object) -> str | None:
+    normalized = str(key).strip().casefold()
+    return normalized if normalized in CREDENTIAL_HEADER_NAMES else None
+
+
+def redact_request_headers(
+    request_headers: dict[object, object],
+) -> dict[str, object]:
+    """Redact captured credential-header values before retaining a candidate."""
+
+    return {
+        str(key): (
+            REDACTED_VALUE
+            if _credential_header_name(key)
+            else copy.deepcopy(value)
+        )
+        for key, value in request_headers.items()
+    }
+
+
 def build_replay_header_profiles(
     captured_headers: dict[str, str],
 ) -> list[ReplayHeaderProfile]:
@@ -392,7 +425,9 @@ def build_replay_header_profiles(
     full = {
         str(key).strip().lower(): str(value)
         for key, value in captured_headers.items()
-        if str(key).strip() and not str(key).startswith(":")
+        if str(key).strip()
+        and not str(key).startswith(":")
+        and not _credential_header_name(key)
     }
     without_signature = {
         key: value for key, value in full.items() if not SIGNATURE_HEADER.search(key)
@@ -472,6 +507,18 @@ def _query_params(request_url: str) -> dict[str, object]:
     return result
 
 
+def _url_has_userinfo(request_url: str) -> bool:
+    parsed = urlsplit(request_url)
+    return parsed.username is not None or parsed.password is not None
+
+
+def _netloc_without_userinfo(request_url: str) -> str:
+    parsed = urlsplit(request_url)
+    if _url_has_userinfo(request_url):
+        return parsed.netloc.rsplit("@", 1)[-1]
+    return parsed.netloc
+
+
 def _find_suspicious_body_keys(
     value: object,
     path: str,
@@ -492,17 +539,25 @@ def _find_suspicious_body_keys(
 def find_suspicious_request_inputs(
     request_url: str,
     request_body: object | None,
+    request_headers: object | None = None,
 ) -> list[str]:
-    """Return query/body paths whose keys look signed or credential-like."""
+    """Return URL/header/query/body paths that look signed or credential-like."""
 
-    found = [
+    found = ["url.userinfo"] if _url_has_userinfo(request_url) else []
+    if isinstance(request_headers, dict):
+        found.extend(
+            f"header.{normalized}"
+            for key in request_headers
+            if (normalized := _credential_header_name(key)) is not None
+        )
+    found.extend(
         f"query.{key}"
         for key, _value in parse_qsl(
             urlsplit(request_url).query,
             keep_blank_values=True,
         )
         if SIGNATURE_HEADER.search(key)
-    ]
+    )
     _find_suspicious_body_keys(request_body, "body", found)
     return found
 
@@ -532,7 +587,13 @@ def redact_request_url(request_url: str) -> str:
         doseq=True,
     )
     return urlunsplit(
-        (parsed.scheme, parsed.netloc, parsed.path, redacted_query, parsed.fragment)
+        (
+            parsed.scheme,
+            _netloc_without_userinfo(request_url),
+            parsed.path,
+            redacted_query,
+            parsed.fragment,
+        )
     )
 
 
@@ -555,7 +616,15 @@ def build_config_draft(
     """Build an adapter-shaped, evidence-based parser configuration draft."""
 
     parsed = urlsplit(request_url)
-    endpoint = urlunsplit((parsed.scheme, parsed.netloc, parsed.path, "", ""))
+    endpoint = urlunsplit(
+        (
+            parsed.scheme,
+            _netloc_without_userinfo(request_url),
+            parsed.path,
+            "",
+            "",
+        )
+    )
     normalized_method = method.upper()
     request_values: object
     if normalized_method == "GET":
@@ -582,6 +651,14 @@ def build_config_draft(
         ),
         None,
     )
+    offset_param = next(
+        (
+            path
+            for path in pagination_fields
+            if _pagination_role(path.rsplit(".", 1)[-1]) == "offset"
+        ),
+        None,
+    )
 
     raw_rows = _json_path_value(response_payload, list_path)
     rows = [row for row in raw_rows if isinstance(row, dict)] if isinstance(raw_rows, list) else []
@@ -601,6 +678,12 @@ def build_config_draft(
             "start_page": _integer_or_default(pagination_fields[page_param], 1),
             "max_pages": 10,
         }
+    elif offset_param is not None and size_param is not None:
+        draft["pagination_candidates"] = pagination_fields
+        draft["pagination_note"] = (
+            "Offset-based pagination is unsupported by the Phase 02 T1 "
+            "page_index adapter; manual review is required."
+        )
     elif pagination_fields:
         draft["pagination_candidates"] = pagination_fields
 
@@ -618,7 +701,13 @@ def endpoint_identity(method: str, request_url: str) -> tuple[str, str]:
 
     parsed = urlsplit(request_url)
     endpoint = urlunsplit(
-        (parsed.scheme.lower(), parsed.netloc.lower(), parsed.path, "", "")
+        (
+            parsed.scheme.lower(),
+            _netloc_without_userinfo(request_url).lower(),
+            parsed.path,
+            "",
+            "",
+        )
     )
     return method.upper(), endpoint
 
@@ -801,6 +890,8 @@ def classify_replay_results(
 def _validated_url(value: object) -> str:
     url = str(value or "").strip()
     parsed = urlsplit(url)
+    if parsed.username is not None or parsed.password is not None:
+        raise ValueError("target URL must not contain userinfo or credentials")
     if parsed.scheme not in {"http", "https"} or not parsed.hostname:
         raise ValueError(f"target URL must be an absolute HTTP(S) URL: {url!r}")
     return url
@@ -1017,7 +1108,7 @@ def render_markdown_report(
                         f"— {_markdown_cell(verdict.get('reason', ''))}"
                     ),
                     (
-                        "- Suspicious query/body paths: `"
+                        "- Suspicious URL/header/query/body paths: `"
                         f"{', '.join(candidate.get('suspicious_inputs', [])) or 'none'}`"
                     ),
                     "",
@@ -1086,7 +1177,10 @@ def render_markdown_report(
 def analyze_captured_target(capture: dict[str, object]) -> list[dict[str, object]]:
     """Turn captures into ranked candidates without discarding filter variants."""
 
-    best_by_variant: dict[tuple[str, str, str], dict[str, object]] = {}
+    best_by_variant: dict[
+        tuple[str, str, str, tuple[str, ...], str],
+        dict[str, object],
+    ] = {}
     exchanges = capture.get("exchanges", [])
     if not isinstance(exchanges, list):
         return []
@@ -1099,9 +1193,13 @@ def analyze_captured_target(capture: dict[str, object]) -> list[dict[str, object
         if response_payload is None or not request_url:
             continue
         for candidate_array in find_candidate_arrays(response_payload):
+            request_headers = exchange.get("request_headers", {})
+            if not isinstance(request_headers, dict):
+                request_headers = {}
             suspicious_inputs = find_suspicious_request_inputs(
                 request_url,
                 exchange.get("request_json"),
+                request_headers,
             )
             redacted_json = redact_suspicious_values(exchange.get("request_json"))
             config = build_config_draft(
@@ -1114,16 +1212,13 @@ def analyze_captured_target(capture: dict[str, object]) -> list[dict[str, object
             field_map = config.get("field_map", {})
             if not isinstance(field_map, dict):
                 field_map = {}
-            request_headers = exchange.get("request_headers", {})
-            if not isinstance(request_headers, dict):
-                request_headers = {}
             candidate: dict[str, object] = {
                 "method": method,
                 "request_url": redact_request_url(request_url),
-                "request_headers": copy.deepcopy(request_headers),
+                "request_headers": redact_request_headers(request_headers),
                 "request_body": redacted_json,
                 "request_json": redacted_json,
-                "_replay_url": request_url,
+                "_replay_url": redact_request_url(request_url),
                 "_replay_body": exchange.get("request_body"),
                 "_replay_json": copy.deepcopy(exchange.get("request_json")),
                 "suspicious_inputs": suspicious_inputs,
@@ -1152,10 +1247,14 @@ def analyze_captured_target(capture: dict[str, object]) -> list[dict[str, object
                     for row in candidate_array.rows[:5]
                 ],
             }
-            identity = request_variant_identity(
-                method,
-                request_url,
-                exchange.get("request_json"),
+            identity = (
+                *request_variant_identity(
+                    method,
+                    request_url,
+                    exchange.get("request_json"),
+                ),
+                tuple(sorted(suspicious_inputs)),
+                candidate_array.path,
             )
             current = best_by_variant.get(identity)
             if current is None or candidate_array.score > int(
@@ -1165,9 +1264,10 @@ def analyze_captured_target(capture: dict[str, object]) -> list[dict[str, object
     return sorted(
         best_by_variant.values(),
         key=lambda candidate: (
-            -int(candidate.get("campus_filter_score", 0)),
             -int(candidate.get("confidence", 0)),
+            -int(candidate.get("campus_filter_score", 0)),
             str(candidate.get("request_url", "")),
+            str(candidate.get("list_path", "")),
         ),
     )
 
@@ -1192,14 +1292,14 @@ def _evaluate_replay_payload(
     return True, f"HTTP {http_status}，候选列表路径仍存在且非空"
 
 
-def execute_replay_ladder(
+def _execute_replay_observations(
     candidate: dict[str, object],
     *,
     requester: Callable[..., dict[str, object]],
     request_budget: int = REPLAY_LADDER_REQUESTS,
     sleep_fn: Callable[[float], object] = time.sleep,
 ) -> list[dict[str, object]]:
-    """Execute the fixed five-request ladder sequentially for one endpoint."""
+    """Issue one fixed ladder and retain bounded responses for path evaluation."""
 
     if candidate.get("suspicious_inputs"):
         return []
@@ -1215,7 +1315,7 @@ def execute_replay_ladder(
             "replay ladder requires 5 requests but only "
             f"{request_budget} remain in the endpoint budget"
         )
-    results: list[dict[str, object]] = []
+    observations: list[dict[str, object]] = []
     for index, profile in enumerate(profiles):
         response = requester(
             method=str(candidate.get("method", "GET")),
@@ -1224,26 +1324,93 @@ def execute_replay_ladder(
             request_json=candidate.get("_replay_json", candidate.get("request_json")),
             request_body=candidate.get("_replay_body", candidate.get("request_body")),
         )
-        http_status = response.get("http_status")
+        observations.append(
+            {
+                "name": profile.name,
+                "http_status": response.get("http_status"),
+                "payload": response.get("payload"),
+                "response_note": str(response.get("note", "")).strip(),
+            }
+        )
+        if index + 1 < len(profiles):
+            sleep_fn(1.0)
+    return observations
+
+
+def _evaluate_replay_observations(
+    observations: list[dict[str, object]],
+    list_path: str,
+) -> list[dict[str, object]]:
+    results: list[dict[str, object]] = []
+    for observation in observations:
+        http_status = observation.get("http_status")
+        payload = observation.get("payload")
         equivalent, note = _evaluate_replay_payload(
             http_status,
-            response.get("payload"),
-            str(candidate.get("list_path", "")),
+            payload,
+            list_path,
         )
-        response_note = str(response.get("note", "")).strip()
-        if response_note and response.get("payload") is None:
+        response_note = str(observation.get("response_note", "")).strip()
+        if response_note and payload is None:
             note = response_note
         results.append(
             {
-                "name": profile.name,
+                "name": observation.get("name", ""),
                 "http_status": http_status,
                 "equivalent": equivalent,
                 "note": note,
             }
         )
-        if index + 1 < len(profiles):
-            sleep_fn(1.0)
     return results
+
+
+def execute_replay_ladder(
+    candidate: dict[str, object],
+    *,
+    requester: Callable[..., dict[str, object]],
+    request_budget: int = REPLAY_LADDER_REQUESTS,
+    sleep_fn: Callable[[float], object] = time.sleep,
+) -> list[dict[str, object]]:
+    """Execute the fixed five-request ladder sequentially for one list path."""
+
+    observations = _execute_replay_observations(
+        candidate,
+        requester=requester,
+        request_budget=request_budget,
+        sleep_fn=sleep_fn,
+    )
+    return _evaluate_replay_observations(
+        observations,
+        str(candidate.get("list_path", "")),
+    )
+
+
+def _sanitized_capture_result(capture: dict[str, object]) -> dict[str, object]:
+    """Copy capture facts while removing credentials from returned results."""
+
+    result = copy.deepcopy(capture)
+    for url_key in ("entry_url", "final_url"):
+        value = result.get(url_key)
+        if isinstance(value, str):
+            result[url_key] = redact_request_url(value)
+    exchanges = result.get("exchanges", [])
+    if not isinstance(exchanges, list):
+        return result
+    for exchange in exchanges:
+        if not isinstance(exchange, dict):
+            continue
+        request_url = exchange.get("request_url")
+        if isinstance(request_url, str):
+            exchange["request_url"] = redact_request_url(request_url)
+        request_headers = exchange.get("request_headers")
+        if isinstance(request_headers, dict):
+            exchange["request_headers"] = redact_request_headers(request_headers)
+        request_json = exchange.get("request_json")
+        redacted_json = redact_suspicious_values(request_json)
+        exchange["request_json"] = redacted_json
+        if request_json != redacted_json:
+            exchange["request_body"] = REDACTED_VALUE
+    return result
 
 
 def run_target_sequence(
@@ -1261,7 +1428,7 @@ def run_target_sequence(
         if index:
             sleep_fn(3.0)
         capture = capture_func(target)
-        target_result = dict(capture)
+        target_result = _sanitized_capture_result(capture)
         candidates: list[dict[str, object]] = []
         if not capture.get("block_reason") and not capture.get("error"):
             grouped: dict[tuple[str, str], list[dict[str, object]]] = {}
@@ -1274,48 +1441,91 @@ def run_target_sequence(
             for endpoint_key, endpoint_candidates in grouped.items():
                 replay_used = endpoint_replay_usage.get(endpoint_key, 0)
                 ladder_attempted = replay_used > 0
+                variants: dict[
+                    tuple[str, str, str, tuple[str, ...]],
+                    list[dict[str, object]],
+                ] = {}
                 for candidate in endpoint_candidates:
-                    if candidate.get("suspicious_inputs"):
-                        candidate["replays"] = []
-                        candidate["verdict"] = {
-                            "status": "不可接入",
-                            "reason": (
-                                "查询或请求正文含疑似签名/凭据字段；"
-                                "未发出重放请求，也未尝试移除或逆向"
+                    suspicious_inputs = candidate.get("suspicious_inputs", [])
+                    if not isinstance(suspicious_inputs, list):
+                        suspicious_inputs = []
+                    variant_key = (
+                        *request_variant_identity(
+                            str(candidate.get("method", "GET")),
+                            str(
+                                candidate.get(
+                                    "_replay_url",
+                                    candidate.get("request_url", ""),
+                                )
                             ),
-                        }
+                            candidate.get(
+                                "_replay_json",
+                                candidate.get("request_json"),
+                            ),
+                        ),
+                        tuple(sorted(str(path) for path in suspicious_inputs)),
+                    )
+                    variants.setdefault(variant_key, []).append(candidate)
+                for variant_candidates in variants.values():
+                    representative = variant_candidates[0]
+                    if representative.get("suspicious_inputs"):
+                        for candidate in variant_candidates:
+                            candidate["replays"] = []
+                            candidate["verdict"] = {
+                                "status": "不可接入",
+                                "reason": (
+                                    "URL、查询或请求正文含疑似签名/凭据字段；"
+                                    "未发出重放请求，也未尝试移除或逆向"
+                                ),
+                            }
                     elif (
                         not ladder_attempted
                         and MAX_REPLAYS_PER_ENDPOINT - replay_used
                         >= REPLAY_LADDER_REQUESTS
                     ):
                         remaining_budget = MAX_REPLAYS_PER_ENDPOINT - replay_used
-                        replays = execute_replay_ladder(
-                            candidate,
+                        observations = _execute_replay_observations(
+                            representative,
                             requester=requester,
                             request_budget=remaining_budget,
                             sleep_fn=sleep_fn,
                         )
-                        replay_used += len(replays)
+                        replay_used += len(observations)
                         endpoint_replay_usage[endpoint_key] = replay_used
                         ladder_attempted = True
-                        candidate["replays"] = replays
-                        candidate["verdict"] = classify_replay_results(replays)
+                        for candidate in variant_candidates:
+                            replays = _evaluate_replay_observations(
+                                observations,
+                                str(candidate.get("list_path", "")),
+                            )
+                            candidate["replays"] = replays
+                            candidate["verdict"] = classify_replay_results(
+                                replays
+                            )
                     else:
-                        candidate["replays"] = []
-                        candidate["verdict"] = {
-                            "status": "未重放",
-                            "reason": (
-                                "共享端点预算只允许一个完整五级重放梯度；"
-                                "该过滤变体已保留但未发出请求"
-                            ),
-                        }
+                        for candidate in variant_candidates:
+                            candidate["replays"] = []
+                            candidate["verdict"] = {
+                                "status": "未重放",
+                                "reason": (
+                                    "共享端点预算只允许一个完整五级重放梯度；"
+                                    "该过滤变体已保留但未发出请求"
+                                ),
+                            }
                 for candidate in endpoint_candidates:
                     candidate["endpoint_replay_budget_used"] = replay_used
                     candidate["endpoint_replay_budget_limit"] = (
                         MAX_REPLAYS_PER_ENDPOINT
                     )
                     candidates.append(candidate)
+            candidates.sort(
+                key=lambda candidate: (
+                    -int(candidate.get("confidence", 0)),
+                    -int(candidate.get("campus_filter_score", 0)),
+                    str(candidate.get("request_url", "")),
+                    str(candidate.get("list_path", "")),
+                )
+            )
         target_result["candidates"] = candidates
         results.append(target_result)
     return results
@@ -1508,6 +1718,19 @@ def _requests_requester(
     request_body: object,
 ) -> dict[str, object]:
     """Perform one bounded, non-redirecting replay request."""
+
+    if _url_has_userinfo(url):
+        return {
+            "http_status": None,
+            "payload": None,
+            "note": "request refused: URL userinfo or credentials are prohibited",
+        }
+    if any(_credential_header_name(key) for key in headers):
+        return {
+            "http_status": None,
+            "payload": None,
+            "note": "request refused: credential-bearing headers are prohibited",
+        }
 
     import requests
 
