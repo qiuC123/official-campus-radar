@@ -77,8 +77,16 @@ class JsonApiSourceAdapter:
         if method not in {"GET", "POST"}:
             raise ValueError("JSON API method must be GET or POST")
 
-        if not str(config.get("list_path", "")).strip():
+        list_path = str(config.get("list_path", "")).strip()
+        if not list_path:
             raise ValueError("JSON API list_path is required")
+        if list_path == "_radar" or list_path.startswith("_radar."):
+            raise ValueError("JSON API list_path cannot use the reserved _radar key")
+        if any(not part for part in list_path.split(".")):
+            raise ValueError("JSON API list_path must be a dotted object path")
+
+        if not isinstance(config.get("params", {}), dict):
+            raise ValueError("JSON API params must be an object")
 
         field_map = config.get("field_map")
         if not isinstance(field_map, dict):
@@ -86,6 +94,19 @@ class JsonApiSourceAdapter:
         for name in ("position_key", "title"):
             if not str(field_map.get(name, "")).strip():
                 raise ValueError(f"JSON API field_map.{name} is required")
+
+        valid_values = config.get("valid_values", {})
+        if not isinstance(valid_values, dict):
+            raise ValueError("JSON API valid_values must be an object")
+        for name, allowed_values in valid_values.items():
+            if not str(field_map.get(name, "")).strip():
+                raise ValueError(
+                    f"JSON API valid_values.{name} requires a field_map path"
+                )
+            if not isinstance(allowed_values, list) or not allowed_values:
+                raise ValueError(
+                    f"JSON API valid_values.{name} must be a non-empty list"
+                )
 
         notice = config.get("notice")
         if not isinstance(notice, dict):
@@ -144,6 +165,18 @@ class JsonApiSourceAdapter:
         page_size = pagination.get("page_size")
         if not isinstance(page_size, int) or isinstance(page_size, bool) or page_size <= 0:
             raise ValueError("JSON API pagination.page_size must be a positive integer")
+        for name in ("page_param", "size_param"):
+            if not str(pagination.get(name, "")).strip():
+                raise ValueError(f"JSON API pagination.{name} is required")
+        start_page = pagination.get("start_page", 1)
+        if (
+            not isinstance(start_page, int)
+            or isinstance(start_page, bool)
+            or start_page < 0
+        ):
+            raise ValueError(
+                "JSON API pagination.start_page must be a non-negative integer"
+            )
 
         delay = config.get("request_delay_seconds", 1)
         if (
@@ -161,8 +194,8 @@ class JsonApiSourceAdapter:
         endpoint = str(config["endpoint"]).strip()
         method = str(config.get("method", "GET")).upper()
         pagination = config["pagination"]
-        page_param = str(pagination.get("page_param", "pageIndex"))
-        size_param = str(pagination.get("size_param", "pageSize"))
+        page_param = str(pagination["page_param"]).strip()
+        size_param = str(pagination["size_param"]).strip()
         page_size = pagination["page_size"]
         start_page = pagination.get("start_page", 1)
         max_pages = pagination["max_pages"]
@@ -170,8 +203,6 @@ class JsonApiSourceAdapter:
         list_path = str(config["list_path"]).strip()
         total_path = str(config.get("total_path", "")).strip()
         base_params = config.get("params", {})
-        if not isinstance(base_params, dict):
-            raise ValueError("JSON API params must be an object")
 
         session = requests.Session()
         headers = {"User-Agent": self.user_agent}
@@ -186,6 +217,7 @@ class JsonApiSourceAdapter:
             request_values[page_param] = start_page + offset
             request_values[size_param] = page_size
             request_kwargs = {
+                "allow_redirects": False,
                 "headers": headers,
                 "timeout": self.timeout_seconds,
             }
@@ -193,13 +225,18 @@ class JsonApiSourceAdapter:
                 request_kwargs["params"] = request_values
             else:
                 request_kwargs["json"] = request_values
+            session.cookies.clear()
             response = session.request(method, endpoint, **request_kwargs)
             last_response = response
-            if response.status_code >= 400:
+            if response.status_code >= 300:
                 raise requests.HTTPError(f"HTTP {response.status_code}")
             payload = response.json()
             if not isinstance(payload, dict):
                 raise ValueError("JSON API response must be an object")
+            if "_radar" in payload:
+                raise ValueError(
+                    "JSON API response contains the reserved _radar metadata key"
+                )
             page_positions = _path_value(payload, list_path, missing)
             if page_positions is missing or not isinstance(page_positions, list):
                 raise ValueError(

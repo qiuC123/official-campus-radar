@@ -290,7 +290,8 @@ class HtmlSourceAdapter:
                     field_evidence=field_evidence,
                     positions_complete=bool(
                         config.get("positions_complete", False)
-                    ),
+                    )
+                    and (not position_selector or bool(position_nodes)),
                 )
             )
         return candidates

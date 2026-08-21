@@ -6,10 +6,14 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from django.test import SimpleTestCase
+import requests
+from django.test import SimpleTestCase, TestCase
 
 from radar.collectors.json_api import JsonApiSourceAdapter
 from radar.collectors.registry import AdapterRegistry
+from radar.models import OfficialSource, Organization, RecruitmentNotice, SourceVersion
+from radar.services.admission import transition_source
+from radar.services.publication import publish_candidates
 
 
 BASE_CONFIG = {
@@ -100,6 +104,8 @@ class JsonApiConfigurationTests(SimpleTestCase):
             ({"endpoint": "https://untrusted.example/api/jobs"}, "official domain"),
             ({"method": "PUT"}, "method"),
             ({"list_path": ""}, "list_path"),
+            ({"list_path": "_radar.positions"}, "reserved"),
+            ({"params": []}, "params"),
             (
                 {
                     "field_map": {
@@ -137,6 +143,37 @@ class JsonApiConfigurationTests(SimpleTestCase):
                 },
                 "max_pages",
             ),
+            (
+                {
+                    "pagination": {
+                        **BASE_CONFIG["pagination"],
+                        "start_page": -1,
+                    }
+                },
+                "start_page",
+            ),
+            (
+                {
+                    "pagination": {
+                        **BASE_CONFIG["pagination"],
+                        "page_param": "",
+                    }
+                },
+                "page_param",
+            ),
+            (
+                {
+                    "pagination": {
+                        **BASE_CONFIG["pagination"],
+                        "size_param": "",
+                    }
+                },
+                "size_param",
+            ),
+            ({"valid_values": []}, "valid_values"),
+            ({"valid_values": {"unknown": [True]}}, "valid_values.unknown"),
+            ({"valid_values": {"is_valid": "True"}}, "valid_values.is_valid"),
+            ({"valid_values": {"is_valid": []}}, "valid_values.is_valid"),
             ({"request_delay_seconds": -1}, "request_delay_seconds"),
         ]
         for patch, message in cases:
@@ -193,6 +230,55 @@ class JsonApiFetchTests(SimpleTestCase):
         fetch = getattr(JsonApiSourceAdapter(), "fetch", None)
         self.assertIsNotNone(fetch, "JsonApiSourceAdapter.fetch must exist")
         return fetch(make_source(config))
+
+    @patch("radar.collectors.json_api.requests.Session")
+    def test_fetch_clears_session_cookies_before_each_page(
+        self, session_type: Mock
+    ) -> None:
+        session = session_type.return_value
+        session.request.side_effect = [
+            json_response(
+                {"Data": {"Count": 2, "Posts": [{"PostId": "1"}]}}
+            ),
+            json_response(
+                {"Data": {"Count": 2, "Posts": [{"PostId": "2"}]}}
+            ),
+        ]
+
+        self.fetch(BASE_CONFIG)
+
+        self.assertEqual(session.request.call_count, 2)
+        self.assertEqual(session.cookies.clear.call_count, 2)
+        for call in session.request.call_args_list:
+            self.assertNotIn("Cookie", call.kwargs["headers"])
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_fetch_does_not_follow_redirects(self, request: Mock) -> None:
+        response = json_response(
+            {"Data": {"Count": 0, "Posts": []}},
+            status_code=302,
+        )
+        response.headers["Location"] = "https://untrusted.example/api/jobs"
+        request.return_value = response
+
+        with self.assertRaisesRegex(requests.HTTPError, "HTTP 302"):
+            self.fetch(BASE_CONFIG)
+
+        self.assertFalse(request.call_args.kwargs["allow_redirects"])
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_fetch_rejects_an_upstream_reserved_metadata_key(
+        self, request: Mock
+    ) -> None:
+        request.return_value = json_response(
+            {
+                "_radar": {"upstream": True},
+                "Data": {"Count": 0, "Posts": []},
+            }
+        )
+
+        with self.assertRaisesRegex(ValueError, "reserved"):
+            self.fetch(BASE_CONFIG)
 
     @patch("radar.collectors.json_api.time.sleep")
     @patch("radar.collectors.json_api.requests.Session.request")
@@ -439,3 +525,81 @@ class JsonApiExtractionTests(SimpleTestCase):
 
         self.assertIsNone(parse_date("2026/08/20"))
         self.assertIsNone(parse_date("not-a-date"))
+
+
+class JsonApiPublicationIntegrationTests(TestCase):
+    def setUp(self) -> None:
+        organization = Organization.objects.create(
+            name="Example API Organization",
+            company_type="internet",
+            industry="technology",
+            official_domain="careers.example.test",
+        )
+        self.source = OfficialSource.objects.create(
+            organization=organization,
+            source_type=OfficialSource.SourceType.API,
+            source_url=BASE_CONFIG["endpoint"],
+            admission_evidence="official API reviewed offline",
+            adapter_name="json_api",
+            parser_config=copy.deepcopy(BASE_CONFIG),
+        )
+        transition_source(
+            self.source,
+            to_state=OfficialSource.AdmissionState.VERIFIED,
+            actor_label="test-owner",
+            reason="official domain verified",
+            evidence="offline endpoint review",
+        )
+        transition_source(
+            self.source,
+            to_state=OfficialSource.AdmissionState.ENABLED,
+            actor_label="test-owner",
+            reason="adapter contract verified",
+            evidence="offline fixture passed",
+        )
+        self.source.refresh_from_db()
+        self.payload = json.loads(
+            (
+                Path(__file__).parent / "fixtures" / "json_api_page.json"
+            ).read_text(encoding="utf-8")
+        )
+
+    def publish_payload(self, payload: dict):
+        adapter = JsonApiSourceAdapter()
+        with patch(
+            "radar.collectors.json_api.requests.Session.request",
+            return_value=json_response(payload),
+        ):
+            page = adapter.fetch(self.source)
+        version = SourceVersion.objects.create(
+            source=self.source,
+            canonical_url=page.canonical_url,
+            content_hash=page.content_hash,
+        )
+        result = publish_candidates(
+            self.source,
+            adapter.extract(self.source, page),
+            version,
+        )[0]
+        return result, version
+
+    def test_adapter_output_satisfies_existing_formal_evidence_gates(self) -> None:
+        result, version = self.publish_payload(self.payload)
+
+        self.assertEqual(result.action, "created")
+        version.is_applied = True
+        version.save(update_fields=["is_applied"])
+        notice = RecruitmentNotice.objects.formal().get(pk=result.notice_id)
+        self.assertEqual(notice.source, self.source)
+        self.assertEqual(notice.positions.filter(is_current=True).count(), 2)
+
+    def test_existing_gate_rejects_an_untrusted_application_url(self) -> None:
+        payload = copy.deepcopy(self.payload)
+        payload["Data"]["Posts"][0]["PostURL"] = (
+            "https://untrusted.example/jobs/1"
+        )
+
+        result, _version = self.publish_payload(payload)
+
+        self.assertEqual(result.action, "rejected")
+        self.assertIn("untrusted_application_url", result.reasons)

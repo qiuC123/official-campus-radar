@@ -22,6 +22,26 @@ class HtmlCollectionTests(TestCase):
         )
         self.fixture_text = (Path(__file__).parent / "fixtures" / "official_notice.html").read_text(encoding="utf-8")
 
+    @staticmethod
+    def multi_position_config() -> dict:
+        return {
+            "notice_selector": "article.job",
+            "notice_id_attribute": "data-notice-id",
+            "notice_url_selector": "a.notice",
+            "title_selector": "h2",
+            "recruitment_type_selector": ".type",
+            "target_audience_selector": ".audience",
+            "published_on_selector": ".published",
+            "deadline_selector": ".deadline",
+            "excerpt_selector": ".description",
+            "position_selector": ".position",
+            "position_id_attribute": "data-position-id",
+            "position_title_selector": ".position-title",
+            "location_selector": ".location",
+            "application_selector": "a.apply",
+            "positions_complete": True,
+        }
+
     def test_fetches_fixture_and_extracts_one_candidate(self) -> None:
         adapter = HtmlSourceAdapter()
         with patch("radar.collectors.html.requests.Session.get") as get:
@@ -58,23 +78,7 @@ class HtmlCollectionTests(TestCase):
         self.assertEqual(FetchRun.objects.count(), 0)
 
     def test_extracts_multiple_position_nodes_under_one_notice(self) -> None:
-        self.source.parser_config = {
-            "notice_selector": "article.job",
-            "notice_id_attribute": "data-notice-id",
-            "notice_url_selector": "a.notice",
-            "title_selector": "h2",
-            "recruitment_type_selector": ".type",
-            "target_audience_selector": ".audience",
-            "published_on_selector": ".published",
-            "deadline_selector": ".deadline",
-            "excerpt_selector": ".description",
-            "position_selector": ".position",
-            "position_id_attribute": "data-position-id",
-            "position_title_selector": ".position-title",
-            "location_selector": ".location",
-            "application_selector": "a.apply",
-            "positions_complete": True,
-        }
+        self.source.parser_config = self.multi_position_config()
         page = FetchedPage(
             self.source.source_url,
             """
@@ -132,3 +136,69 @@ class HtmlCollectionTests(TestCase):
         self.assertIn("position-1", candidate.positions[0].locator)
         self.assertIn("position-2", candidate.positions[1].locator)
         self.assertTrue(candidate.positions_complete)
+
+    def test_zero_position_selector_matches_fail_closed(self) -> None:
+        self.source.parser_config = self.multi_position_config()
+        page = FetchedPage(
+            self.source.source_url,
+            """
+            <article class="job" data-notice-id="notice-2027">
+              <a class="notice" href="/notices/2027">notice</a>
+              <h2>2027 Campus</h2><span class="type">campus_recruitment</span>
+              <span class="audience">2027 graduates</span>
+              <time class="published">2026-08-01</time>
+              <time class="deadline">2026-09-01</time>
+              <p class="description">Selector no longer matches</p>
+            </article>
+            """,
+            "e" * 64,
+            200,
+            None,
+        )
+
+        candidate = HtmlSourceAdapter().extract(self.source, page)[0]
+
+        self.assertEqual(candidate.positions, ())
+        self.assertFalse(candidate.positions_complete)
+
+    def test_multi_position_identity_can_come_from_a_child_selector(self) -> None:
+        self.source.parser_config = self.multi_position_config()
+        self.source.parser_config.pop("position_id_attribute")
+        self.source.parser_config["position_id_selector"] = ".position-id"
+        page = FetchedPage(
+            self.source.source_url,
+            """
+            <article class="job" data-notice-id="notice-2027">
+              <a class="notice" href="/notices/2027">notice</a>
+              <h2>2027 Campus</h2><span class="type">campus_recruitment</span>
+              <span class="audience">2027 graduates</span>
+              <time class="published">2026-08-01</time>
+              <time class="deadline">2026-09-01</time>
+              <p class="description">Two open roles</p>
+              <div class="position">
+                <span class="position-id">position-1</span>
+                <span class="position-title">Engineer</span>
+                <span class="location">Beijing</span>
+              </div>
+              <div class="position">
+                <span class="position-id">position-2</span>
+                <span class="position-title">Designer</span>
+                <span class="location">Shanghai</span>
+              </div>
+            </article>
+            """,
+            "d" * 64,
+            200,
+            None,
+        )
+
+        candidate = HtmlSourceAdapter().extract(self.source, page)[0]
+
+        self.assertEqual(
+            [position.position_key for position in candidate.positions],
+            ["position-1", "position-2"],
+        )
+        self.assertNotEqual(
+            candidate.positions[0].locator,
+            candidate.positions[1].locator,
+        )
