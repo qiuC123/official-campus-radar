@@ -3,11 +3,12 @@ import hashlib
 import json
 import re
 import time
+import warnings
 from datetime import date
 from urllib.parse import urlparse
 
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
 
 from radar.collectors.base import (
     FieldEvidenceValue,
@@ -17,6 +18,14 @@ from radar.collectors.base import (
 )
 from radar.models import OfficialSource
 from radar.services.normalization import canonicalize_url
+
+
+SUPPORTED_HTML_FIELDS = {
+    "title",
+    "location",
+    "raw_text",
+    "application_url",
+}
 
 
 def _path_value(payload: object, path: str, default: object = None) -> object:
@@ -38,6 +47,18 @@ def _set_path(payload: dict, path: str, value: object) -> None:
             current[part] = child
         current = child
     current[parts[-1]] = value
+
+
+def _path_has_non_dict_intermediate(payload: dict, path: str) -> bool:
+    current = payload
+    for part in path.split(".")[:-1]:
+        if part not in current:
+            return False
+        child = current[part]
+        if not isinstance(child, dict):
+            return True
+        current = child
+    return False
 
 
 def _canonical_json(value: object) -> str:
@@ -66,6 +87,11 @@ class JsonApiSourceAdapter:
             raise ValueError("JSON API endpoint is required")
         if parsed_endpoint.scheme != "https":
             raise ValueError("JSON API endpoint must use HTTPS")
+        if (
+            parsed_endpoint.username is not None
+            or parsed_endpoint.password is not None
+        ):
+            raise ValueError("JSON API endpoint must not contain userinfo")
         official_domain = source.organization.official_domain.strip().lower()
         endpoint_host = (parsed_endpoint.hostname or "").lower()
         if not official_domain or not (
@@ -95,8 +121,12 @@ class JsonApiSourceAdapter:
         if any(not part for part in list_path.split(".")):
             raise ValueError("JSON API list_path must be a dotted object path")
 
-        if not isinstance(config.get("params", {}), dict):
+        params = config.get("params", {})
+        if not isinstance(params, dict):
             raise ValueError("JSON API params must be an object")
+        body = config.get("body") if "body" in config else None
+        if "body" in config and not isinstance(body, dict):
+            raise ValueError("JSON API body must be an object")
 
         field_map = config.get("field_map")
         if not isinstance(field_map, dict):
@@ -104,6 +134,24 @@ class JsonApiSourceAdapter:
         for name in ("position_key", "title"):
             if not str(field_map.get(name, "")).strip():
                 raise ValueError(f"JSON API field_map.{name} is required")
+
+        html_fields = config.get("html_fields", [])
+        if not isinstance(html_fields, list):
+            raise ValueError("JSON API html_fields must be a list")
+        seen_html_fields: set[str] = set()
+        for configured_name in html_fields:
+            name = str(configured_name).strip()
+            if not name or name not in SUPPORTED_HTML_FIELDS:
+                raise ValueError(
+                    "JSON API html_fields entries must be supported position roles"
+                )
+            if name in seen_html_fields:
+                raise ValueError("JSON API html_fields entries must be unique")
+            if not str(field_map.get(name, "")).strip():
+                raise ValueError(
+                    f"JSON API field_map.{name} is required by html_fields"
+                )
+            seen_html_fields.add(name)
 
         valid_values = config.get("valid_values", {})
         if not isinstance(valid_values, dict):
@@ -175,9 +223,21 @@ class JsonApiSourceAdapter:
         page_size = pagination.get("page_size")
         if not isinstance(page_size, int) or isinstance(page_size, bool) or page_size <= 0:
             raise ValueError("JSON API pagination.page_size must be a positive integer")
+        request_template = (
+            params if method == "GET" else body if body is not None else params
+        )
         for name in ("page_param", "size_param"):
-            if not str(pagination.get(name, "")).strip():
+            path = str(pagination.get(name, "")).strip()
+            if not path:
                 raise ValueError(f"JSON API pagination.{name} is required")
+            if any(not part for part in path.split(".")):
+                raise ValueError(
+                    f"JSON API pagination.{name} must be a dotted object path"
+                )
+            if _path_has_non_dict_intermediate(request_template, path):
+                raise ValueError(
+                    f"JSON API pagination.{name} collides with the request template"
+                )
         start_page = pagination.get("start_page", 1)
         if (
             not isinstance(start_page, int)
@@ -192,10 +252,10 @@ class JsonApiSourceAdapter:
         if (
             not isinstance(delay, (int, float))
             or isinstance(delay, bool)
-            or delay < 0
+            or delay <= 0
         ):
             raise ValueError(
-                "JSON API request_delay_seconds must be a non-negative number"
+                "JSON API request_delay_seconds must be a positive number"
             )
 
     def fetch(self, source: OfficialSource) -> FetchedPage:
@@ -219,6 +279,7 @@ class JsonApiSourceAdapter:
         )
 
         session = requests.Session()
+        session.trust_env = False
         headers = {"User-Agent": self.user_agent}
         positions: list[object] = []
         aggregate_document: dict | None = None
@@ -277,12 +338,18 @@ class JsonApiSourceAdapter:
             if total_path:
                 raw_total = _path_value(payload, total_path, missing)
                 if raw_total is not missing:
-                    try:
+                    if isinstance(raw_total, int) and not isinstance(
+                        raw_total, bool
+                    ):
+                        total = raw_total
+                    elif isinstance(raw_total, str) and re.fullmatch(
+                        r"(?:0|-?[1-9][0-9]*)", raw_total
+                    ):
                         total = int(raw_total)
-                    except (TypeError, ValueError) as error:
+                    else:
                         raise ValueError(
                             f"JSON API total_path {total_path!r} must resolve to an integer"
-                        ) from error
+                        )
                     if total < 0:
                         raise ValueError("JSON API total count cannot be negative")
             if total is not None and len(positions) >= total:
@@ -355,10 +422,12 @@ class JsonApiSourceAdapter:
         raw_value = cls._raw_text(value)
         if field_name not in html_fields:
             return raw_value
-        return BeautifulSoup(raw_value, "html.parser").get_text(
-            separator="\n",
-            strip=True,
-        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", MarkupResemblesLocatorWarning)
+            return BeautifulSoup(raw_value, "html.parser").get_text(
+                separator="\n",
+                strip=True,
+            )
 
     def extract(
         self, source: OfficialSource, page: FetchedPage
@@ -462,6 +531,7 @@ class JsonApiSourceAdapter:
                     self._raw_text(raw_title),
                     f"{base_locator}.{title_path}",
                     title,
+                    excerpt=title if "title" in html_fields else None,
                 )
             }
             if location_path:
@@ -469,19 +539,27 @@ class JsonApiSourceAdapter:
                     self._raw_text(raw_location),
                     f"{base_locator}.{location_path}",
                     location,
+                    excerpt=location if "location" in html_fields else None,
                 )
             if raw_text_path:
                 position_evidence["raw_text"] = FieldEvidenceValue(
                     self._raw_text(raw_description),
                     f"{base_locator}.{raw_text_path}",
                     description,
-                    excerpt=description,
+                    excerpt=(
+                        description if "raw_text" in html_fields else None
+                    ),
                 )
             if application_path and application_url:
                 position_evidence["application_link"] = FieldEvidenceValue(
                     self._raw_text(raw_application_url),
                     f"{base_locator}.{application_path}",
                     application_url,
+                    excerpt=(
+                        application_url
+                        if "application_url" in html_fields
+                        else None
+                    ),
                 )
             positions.append(
                 PositionCandidate(

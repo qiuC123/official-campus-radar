@@ -1,12 +1,14 @@
 import copy
 import importlib
 import json
+import warnings
 from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import requests
+from bs4 import MarkupResemblesLocatorWarning
 from django.test import SimpleTestCase, TestCase
 
 from radar.collectors.json_api import JsonApiSourceAdapter
@@ -55,7 +57,7 @@ BASE_CONFIG = {
         "is_valid": "IsValid",
     },
     "valid_values": {"is_valid": ["True", True]},
-    "request_delay_seconds": 0,
+    "request_delay_seconds": 0.25,
 }
 
 CTRIP_CONFIG = {
@@ -108,7 +110,7 @@ CTRIP_CONFIG = {
     "valid_values": {
         "recruit_kind": ["应届校招生", "Fresh Graduates"]
     },
-    "request_delay_seconds": 0,
+    "request_delay_seconds": 0.25,
 }
 
 
@@ -165,6 +167,21 @@ class JsonApiConfigurationTests(SimpleTestCase):
         self.assertIsNotNone(adapter, "JsonApiSourceAdapter must exist")
         self.assertIsNone(adapter.validate_source_config(make_source(BASE_CONFIG)))
 
+    def test_endpoint_rejects_userinfo(self) -> None:
+        endpoints = [
+            "https://user@careers.example.test/api/jobs",
+            "https://:pass@careers.example.test/api/jobs",
+            "https://@careers.example.test/api/jobs",
+            "https://:@careers.example.test/api/jobs",
+        ]
+        for endpoint in endpoints:
+            with self.subTest(endpoint=endpoint):
+                config = merge_config({"endpoint": endpoint})
+                with self.assertRaisesRegex(ValueError, "userinfo"):
+                    JsonApiSourceAdapter.validate_source_config(
+                        make_source(config)
+                    )
+
     def test_success_config_must_be_an_object(self) -> None:
         config = merge_config({"success": "Code == 200"})
 
@@ -183,6 +200,84 @@ class JsonApiConfigurationTests(SimpleTestCase):
         config = merge_config({"success": {"path": "Code"}})
 
         with self.assertRaisesRegex(ValueError, "success.expect"):
+            JsonApiSourceAdapter.validate_source_config(make_source(config))
+
+    def test_body_config_must_be_an_object(self) -> None:
+        config = merge_config({"method": "POST", "body": []})
+
+        with self.assertRaisesRegex(ValueError, "body"):
+            JsonApiSourceAdapter.validate_source_config(make_source(config))
+
+    def test_html_fields_config_must_be_a_list(self) -> None:
+        config = merge_config({"html_fields": "raw_text"})
+
+        with self.assertRaisesRegex(ValueError, "html_fields"):
+            JsonApiSourceAdapter.validate_source_config(make_source(config))
+
+    def test_html_fields_roles_must_be_unique_nonempty_and_supported(
+        self,
+    ) -> None:
+        cases = [
+            ["title", "title"],
+            ["  "],
+            ["deadline"],
+        ]
+        for html_fields in cases:
+            with self.subTest(html_fields=html_fields):
+                config = merge_config({"html_fields": html_fields})
+                with self.assertRaisesRegex(ValueError, "html_fields"):
+                    JsonApiSourceAdapter.validate_source_config(
+                        make_source(config)
+                    )
+
+    def test_html_fields_roles_require_mapped_field_paths(self) -> None:
+        config = copy.deepcopy(BASE_CONFIG)
+        config["html_fields"] = ["location"]
+        config["field_map"]["location"] = "  "
+
+        with self.assertRaisesRegex(ValueError, "field_map.location"):
+            JsonApiSourceAdapter.validate_source_config(make_source(config))
+
+    def test_pagination_paths_reject_empty_segments(self) -> None:
+        config = copy.deepcopy(BASE_CONFIG)
+        config["pagination"]["page_param"] = "pager..index"
+
+        with self.assertRaisesRegex(ValueError, "pagination.page_param"):
+            JsonApiSourceAdapter.validate_source_config(make_source(config))
+
+    def test_pagination_paths_reject_selected_template_collisions(self) -> None:
+        cases = []
+
+        get_config = copy.deepcopy(BASE_CONFIG)
+        get_config["params"] = {"pager": 1}
+        get_config["pagination"]["page_param"] = "pager.index"
+        cases.append(("get_params", get_config))
+
+        post_body_config = copy.deepcopy(BASE_CONFIG)
+        post_body_config["method"] = "POST"
+        post_body_config["body"] = {"pager": "fixed"}
+        post_body_config["pagination"]["page_param"] = "pager.index"
+        cases.append(("post_body", post_body_config))
+
+        post_legacy_config = copy.deepcopy(BASE_CONFIG)
+        post_legacy_config["method"] = "POST"
+        post_legacy_config["params"] = {"pager": []}
+        post_legacy_config["pagination"]["page_param"] = "pager.index"
+        cases.append(("post_legacy_params", post_legacy_config))
+
+        for name, config in cases:
+            with self.subTest(name=name):
+                with self.assertRaisesRegex(
+                    ValueError, "pagination.page_param"
+                ):
+                    JsonApiSourceAdapter.validate_source_config(
+                        make_source(config)
+                    )
+
+    def test_request_delay_must_be_positive(self) -> None:
+        config = merge_config({"request_delay_seconds": 0})
+
+        with self.assertRaisesRegex(ValueError, "request_delay_seconds"):
             JsonApiSourceAdapter.validate_source_config(make_source(config))
 
     def test_invalid_configuration_names_the_broken_contract(self) -> None:
@@ -322,6 +417,19 @@ class JsonApiFetchTests(SimpleTestCase):
         return fetch(make_source(config))
 
     @patch("radar.collectors.json_api.requests.Session")
+    def test_fetch_ignores_environment_proxy_and_auth_configuration(
+        self, session_type: Mock
+    ) -> None:
+        session = session_type.return_value
+        session.request.return_value = json_response(
+            {"Data": {"Count": 0, "Posts": []}}
+        )
+
+        self.fetch(BASE_CONFIG)
+
+        self.assertIs(session.trust_env, False)
+
+    @patch("radar.collectors.json_api.requests.Session")
     def test_fetch_clears_session_cookies_before_each_page(
         self, session_type: Mock
     ) -> None:
@@ -447,12 +555,40 @@ class JsonApiFetchTests(SimpleTestCase):
         self.assertTrue(document["_radar"]["positions_complete"])
         self.assertEqual(page.canonical_url, BASE_CONFIG["endpoint"])
         self.assertEqual(request.call_count, 2)
-        sleep.assert_called_once_with(0)
+        sleep.assert_called_once_with(0.25)
         first_call = request.call_args_list[0]
         self.assertEqual(first_call.args[:2], ("GET", BASE_CONFIG["endpoint"]))
         self.assertEqual(first_call.kwargs["params"]["pageIndex"], 1)
         self.assertEqual(first_call.kwargs["params"]["pageSize"], 2)
         self.assertNotIn("json", first_call.kwargs)
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_fetch_rejects_non_integer_totals(self, request: Mock) -> None:
+        invalid_totals = [True, False, 1.0, 1.5, "01", "+1", "1.0", " 1 "]
+        for raw_total in invalid_totals:
+            with self.subTest(raw_total=raw_total):
+                request.return_value = json_response(
+                    {
+                        "Data": {
+                            "Count": raw_total,
+                            "Posts": [{"PostId": "1"}],
+                        }
+                    }
+                )
+                with self.assertRaisesRegex(ValueError, "total_path"):
+                    self.fetch(BASE_CONFIG)
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_fetch_accepts_a_canonical_integer_string_total(
+        self, request: Mock
+    ) -> None:
+        request.return_value = json_response(
+            {"Data": {"Count": "1", "Posts": [{"PostId": "1"}]}}
+        )
+
+        page = self.fetch(BASE_CONFIG)
+
+        self.assertTrue(json.loads(page.body)["_radar"]["positions_complete"])
 
     @patch("radar.collectors.json_api.time.sleep")
     @patch("radar.collectors.json_api.requests.Session.request")
@@ -472,7 +608,7 @@ class JsonApiFetchTests(SimpleTestCase):
         self.assertEqual(document["Data"]["Posts"], [{"PostId": "1"}])
         self.assertTrue(document["_radar"]["positions_complete"])
         self.assertEqual(request.call_count, 2)
-        sleep.assert_called_once_with(0)
+        sleep.assert_called_once_with(0.25)
 
     @patch("radar.collectors.json_api.time.sleep")
     @patch("radar.collectors.json_api.requests.Session.request")
@@ -806,6 +942,100 @@ class JsonApiExtractionTests(SimpleTestCase):
         )
 
     @patch("radar.collectors.json_api.requests.Session.request")
+    def test_all_supported_html_fields_expose_clean_evidence_excerpts(
+        self, request: Mock
+    ) -> None:
+        config = copy.deepcopy(BASE_CONFIG)
+        config["html_fields"] = [
+            "title",
+            "location",
+            "raw_text",
+            "application_url",
+        ]
+        payload = load_json_fixture("json_api_page.json")
+        first_row = payload["Data"]["Posts"][0]
+        first_row["RecruitPostName"] = "<h2>AI 产品经理</h2>"
+        first_row["LocationName"] = "<span>深圳</span>"
+        first_row["Responsibility"] = (
+            "<p>Campus role.</p><p>Build products.</p>"
+        )
+        first_row["PostURL"] = (
+            "<a>https://careers.example.test/jobs/html-role</a>"
+        )
+        request.return_value = json_response(payload)
+        source = make_source(config)
+        adapter = JsonApiSourceAdapter()
+
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.simplefilter("always")
+            position = adapter.extract(
+                source, adapter.fetch(source)
+            )[0].positions[0]
+
+        self.assertEqual(position.title, "AI 产品经理")
+        self.assertEqual(position.location_text, "深圳")
+        self.assertEqual(position.raw_text, "Campus role.\nBuild products.")
+        self.assertEqual(
+            position.application_url,
+            "https://careers.example.test/jobs/html-role",
+        )
+        expected_evidence = {
+            "position_title": (
+                "<h2>AI 产品经理</h2>",
+                "AI 产品经理",
+                "AI 产品经理",
+            ),
+            "location": ("<span>深圳</span>", "深圳", "深圳"),
+            "raw_text": (
+                "<p>Campus role.</p><p>Build products.</p>",
+                "Campus role.\nBuild products.",
+                "Campus role.\nBuild products.",
+            ),
+            "application_link": (
+                "<a>https://careers.example.test/jobs/html-role</a>",
+                "https://careers.example.test/jobs/html-role",
+                "https://careers.example.test/jobs/html-role",
+            ),
+        }
+        for field_name, expected in expected_evidence.items():
+            with self.subTest(field_name=field_name):
+                evidence = position.field_evidence[field_name]
+                self.assertEqual(
+                    (evidence.raw_value, evidence.parsed_value, evidence.excerpt),
+                    expected,
+                )
+        self.assertFalse(
+            any(
+                isinstance(warning.message, MarkupResemblesLocatorWarning)
+                for warning in caught_warnings
+            )
+        )
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_non_html_application_url_keeps_raw_evidence_excerpt_semantics(
+        self, request: Mock
+    ) -> None:
+        payload = load_json_fixture("json_api_page.json")
+        raw_url = (
+            "HTTPS://CAREERS.EXAMPLE.TEST/jobs/2034975730101809152#apply"
+        )
+        payload["Data"]["Posts"][0]["PostURL"] = raw_url
+        request.return_value = json_response(payload)
+        adapter = JsonApiSourceAdapter()
+
+        position = adapter.extract(
+            make_source(BASE_CONFIG), adapter.fetch(make_source(BASE_CONFIG))
+        )[0].positions[0]
+
+        evidence = position.field_evidence["application_link"]
+        self.assertEqual(evidence.raw_value, raw_url)
+        self.assertEqual(
+            evidence.parsed_value,
+            "https://careers.example.test/jobs/2034975730101809152",
+        )
+        self.assertIsNone(evidence.excerpt)
+
+    @patch("radar.collectors.json_api.requests.Session.request")
     def test_tencent_fixture_uses_the_same_config_driven_extraction(
         self, request: Mock
     ) -> None:
@@ -994,6 +1224,54 @@ class JsonApiPublicationIntegrationTests(TestCase):
                         "Campus graduates.\nApply before 2027-08-31."
                     ),
                 }
+            ],
+        )
+
+    def test_html_title_and_location_evidence_persist_clean_excerpts(
+        self,
+    ) -> None:
+        config = copy.deepcopy(BASE_CONFIG)
+        config["html_fields"] = ["title", "location"]
+        self.source.parser_config = config
+        self.source.save(update_fields=["parser_config"])
+        payload = copy.deepcopy(self.payload)
+        payload["Data"]["Posts"][0]["RecruitPostName"] = (
+            "<strong>Campus Product Manager</strong>"
+        )
+        payload["Data"]["Posts"][0]["LocationName"] = "<span>深圳</span>"
+
+        result, version = self.publish_payload(payload)
+
+        evidence_rows = list(
+            Evidence.objects.filter(
+                source_version=version,
+                position__position_key="2034975730101809152",
+                field_name__in=("position_title", "location"),
+            )
+            .order_by("field_name")
+            .values(
+                "field_name",
+                "raw_value",
+                "parsed_value",
+                "excerpt",
+            )
+        )
+        self.assertEqual(result.action, "created")
+        self.assertEqual(
+            evidence_rows,
+            [
+                {
+                    "field_name": "location",
+                    "raw_value": "<span>深圳</span>",
+                    "parsed_value": "深圳",
+                    "excerpt": "深圳",
+                },
+                {
+                    "field_name": "position_title",
+                    "raw_value": "<strong>Campus Product Manager</strong>",
+                    "parsed_value": "Campus Product Manager",
+                    "excerpt": "Campus Product Manager",
+                },
             ],
         )
 

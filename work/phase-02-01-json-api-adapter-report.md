@@ -74,3 +74,36 @@ OK
 ```
 
 测试数为 146，大于验收要求的 101；测试配置中的网络守卫测试也通过。新增离线端到端测试证明 JSON 适配器候选可以通过既有 formal/evidence 门控，同时外域申请链接仍被既有 URL 门控拒绝。
+
+## Fix Round 2：配置、证据与传输边界加固
+
+- 配置准入现在要求 `body` 为对象；`html_fields` 为无重复、非空且受支持的岗位角色列表（`title`、`location`、`raw_text`、`application_url`），每个角色必须有非空 `field_map` 路径。
+- 分页参数路径拒绝空点号段，并在实际选中的请求模板（GET `params`、POST `body`、POST 旧版 `params` 回退）中拒绝标量中间节点碰撞；旧版 POST 回退仍保留。
+- 所有配置为 HTML 的岗位角色均保留原始 HTML `raw_value`，同时提供清洗后的 `parsed_value` 与持久化 excerpt。excerpt 覆盖仅在相应角色出现在 `html_fields` 时启用，未配置 HTML 的 URL 证据仍沿用原始值 excerpt 语义。
+- endpoint 拒绝包括空用户名/密码形式在内的 URL userinfo；请求 Session 设置 `trust_env=False`，不继承环境代理、认证或 Cookie 配置。
+- `request_delay_seconds` 必须严格为正数，离线测试配置使用 `0.25` 秒并验证分页 sleep 参数。`total_path` 只接受非布尔整数或规范整数字符串，拒绝浮点数、前导零、正号与外围空白。
+
+最新隔离验证结果：
+
+```text
+python.exe manage.py test radar.tests.test_json_api_adapter -v 2
+Found 52 test(s).
+Ran 52 tests in 0.613s
+OK
+
+python.exe manage.py test radar.tests -v 2
+Found 160 test(s).
+Ran 160 tests in 2.615s
+OK
+
+python.exe manage.py check
+System check identified no issues (0 silenced).
+
+python.exe manage.py makemigrations --check --dry-run
+No changes detected
+
+git diff --check
+exit 0（仅 Git 的既有 LF/CRLF 工作副本提示）
+```
+
+本轮未修改模型、迁移、准入状态机、发布/formal 门控、HTML 适配器或前端。
