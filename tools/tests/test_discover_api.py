@@ -1,6 +1,9 @@
 import importlib
 import io
+import sys
+import types
 import unittest
+from unittest import mock
 
 
 CTRIP_PAYLOAD = {
@@ -725,6 +728,178 @@ class OfflineBoundaryTests(unittest.TestCase):
         self.assertTrue(callable(function), f"{name} must be implemented")
         return function
 
+    def _capture_with_scroll_guard_violation(
+        self,
+        *,
+        violation_step,
+        click_selector,
+    ):
+        capture_target = self.require_function("capture_target")
+        TargetSpec = load_function("TargetSpec")
+        self.assertIsNotNone(TargetSpec)
+        events = []
+
+        class FakePlaywrightError(Exception):
+            pass
+
+        class FakePlaywrightTimeoutError(Exception):
+            pass
+
+        class FakeNavigation:
+            status = 200
+
+        class FakeLocator:
+            def __init__(self, selector):
+                self.selector = selector
+
+            @property
+            def first(self):
+                return self
+
+            def wait_for(self, **kwargs):
+                events.append("click-wait")
+
+            def evaluate(self, script):
+                events.append("click-metadata")
+                return {
+                    "tag_name": "button",
+                    "type": "button",
+                    "inside_form": False,
+                    "target": "",
+                }
+
+            def click(self, **kwargs):
+                events.append("click")
+
+            def inner_text(self, **kwargs):
+                return "Campus jobs"
+
+        class FakePage:
+            def __init__(self, context):
+                self.context = context
+                self.url = "https://careers.example/jobs"
+                self.handlers = {}
+                self.scroll_count = 0
+
+            def on(self, event, callback):
+                self.handlers[event] = callback
+
+            def goto(self, url, **kwargs):
+                self.url = url
+                return FakeNavigation()
+
+            def wait_for_timeout(self, milliseconds):
+                if milliseconds == 750:
+                    events.append("scroll-wait")
+                    if violation_step == "wait" and self.scroll_count == 1:
+                        self.context.binding(
+                            None,
+                            "window.open during scroll wait",
+                        )
+
+            def evaluate(self, script):
+                self.scroll_count += 1
+                events.append("scroll")
+                if violation_step == "evaluate" and self.scroll_count == 1:
+                    self.context.binding(
+                        None,
+                        "window.open during scroll evaluation",
+                    )
+
+            def locator(self, selector):
+                return FakeLocator(selector)
+
+        class FakeContext:
+            def __init__(self):
+                self.binding = None
+                self.handlers = {}
+                self.page = FakePage(self)
+
+            def expose_binding(self, name, callback):
+                self.binding = callback
+
+            def add_init_script(self, **kwargs):
+                pass
+
+            def new_page(self):
+                return self.page
+
+            def on(self, event, callback):
+                self.handlers[event] = callback
+
+        class FakeBrowser:
+            def __init__(self):
+                self.context = FakeContext()
+
+            def new_context(self):
+                return self.context
+
+            def close(self):
+                pass
+
+        class FakeChromium:
+            def launch(self, **kwargs):
+                return FakeBrowser()
+
+        class FakePlaywright:
+            chromium = FakeChromium()
+
+        class FakePlaywrightManager:
+            def __enter__(self):
+                return FakePlaywright()
+
+            def __exit__(self, exc_type, exc_value, traceback):
+                return False
+
+        sync_api = types.ModuleType("playwright.sync_api")
+        sync_api.Error = FakePlaywrightError
+        sync_api.TimeoutError = FakePlaywrightTimeoutError
+        sync_api.sync_playwright = lambda: FakePlaywrightManager()
+        playwright_package = types.ModuleType("playwright")
+        playwright_package.__path__ = []
+        playwright_package.sync_api = sync_api
+
+        with mock.patch.dict(
+            sys.modules,
+            {
+                "playwright": playwright_package,
+                "playwright.sync_api": sync_api,
+            },
+        ):
+            result = capture_target(
+                TargetSpec(
+                    "https://careers.example/jobs",
+                    wait_seconds=0,
+                    scroll=True,
+                    click_selector=click_selector,
+                )
+            )
+        return result, events
+
+    def test_scroll_violation_stops_remaining_scrolls_and_click(self):
+        result, events = self._capture_with_scroll_guard_violation(
+            violation_step="evaluate",
+            click_selector="#campus-filter",
+        )
+
+        self.assertIn("window.open during scroll evaluation", result["error"])
+        self.assertEqual(events.count("scroll"), 1)
+        self.assertEqual(events.count("scroll-wait"), 0)
+        self.assertNotIn("click-wait", events)
+        self.assertNotIn("click-metadata", events)
+        self.assertNotIn("click", events)
+
+    def test_scroll_wait_violation_without_click_is_reported(self):
+        result, events = self._capture_with_scroll_guard_violation(
+            violation_step="wait",
+            click_selector=None,
+        )
+
+        self.assertIn("window.open during scroll wait", result["error"])
+        self.assertEqual(events.count("scroll"), 1)
+        self.assertEqual(events.count("scroll-wait"), 1)
+        self.assertNotIn("click", events)
+
     def test_capture_analysis_deduplicates_paginated_endpoint_responses(self):
         analyze_captured_target = self.require_function("analyze_captured_target")
         capture = {
@@ -840,28 +1015,29 @@ class OfflineBoundaryTests(unittest.TestCase):
                 exchange("pageIndex=1&pageSize=10&attrId=campus"),
             ],
         }
-        replayed_filters = []
+        replay_request_urls = []
 
-        def replay_candidate(candidate):
-            replayed_filters.append(candidate["config"]["params"]["attrId"])
-            return [
-                {"name": "完整头 + Cookie（基线）", "equivalent": True},
-                {"name": "去掉疑似签名头", "equivalent": True},
-                {"name": "去掉 Cookie", "equivalent": True},
-                {"name": "同时去掉两者", "equivalent": True},
-                {"name": "最简合规头", "equivalent": True},
-            ]
+        def requester(**kwargs):
+            replay_request_urls.append(kwargs["url"])
+            return {
+                "http_status": 200,
+                "payload": TENCENT_PAYLOAD,
+                "note": "HTTP 200 JSON",
+            }
 
         results = run_target_sequence(
             [TargetSpec("https://careers.tencent.com/search.html")],
             capture_func=lambda target: capture,
-            replay_func=replay_candidate,
+            requester=requester,
             sleep_fn=lambda seconds: None,
         )
 
         candidates = results[0]["candidates"]
         self.assertEqual(len(candidates), 2)
-        self.assertEqual(replayed_filters, ["campus"])
+        self.assertEqual(len(replay_request_urls), 5)
+        self.assertTrue(
+            all("attrId=campus" in url for url in replay_request_urls)
+        )
         self.assertLessEqual(
             sum(len(candidate["replays"]) for candidate in candidates),
             6,
@@ -884,6 +1060,71 @@ class OfflineBoundaryTests(unittest.TestCase):
         self.assertIn('"attrId": ""', report)
         self.assertIn('"attrId": "campus"', report)
         self.assertIn("5 / 6", report)
+
+    def test_replay_budget_is_shared_across_targets_for_same_endpoint(self):
+        run_target_sequence = self.require_function("run_target_sequence")
+        TargetSpec = load_function("TargetSpec")
+        self.assertIsNotNone(TargetSpec)
+        endpoint = "https://careers.tencent.com/tencentcareer/api/post/Query"
+        targets = [
+            TargetSpec("https://careers.tencent.com/search-one.html"),
+            TargetSpec("https://careers.tencent.com/search-two.html"),
+        ]
+
+        def capture_target(target):
+            return {
+                "entry_url": target.url,
+                "final_url": target.url,
+                "page_status": 200,
+                "block_reason": None,
+                "error": None,
+                "exchanges": [
+                    {
+                        "request_url": (
+                            f"{endpoint}?pageIndex=1&pageSize=10&attrId=campus"
+                        ),
+                        "method": "GET",
+                        "request_headers": {"Accept": "application/json"},
+                        "request_body": None,
+                        "request_json": None,
+                        "response_status": 200,
+                        "content_type": "application/json",
+                        "response_json": TENCENT_PAYLOAD,
+                    }
+                ],
+            }
+
+        requester_calls = []
+
+        def requester(**kwargs):
+            requester_calls.append(kwargs)
+            return {
+                "http_status": 200,
+                "payload": TENCENT_PAYLOAD,
+                "note": "HTTP 200 JSON",
+            }
+
+        results = run_target_sequence(
+            targets,
+            capture_func=capture_target,
+            requester=requester,
+            sleep_fn=lambda seconds: None,
+        )
+        candidates = [result["candidates"][0] for result in results]
+
+        self.assertEqual(len(requester_calls), 5)
+        self.assertEqual([len(candidate["replays"]) for candidate in candidates], [5, 0])
+        self.assertEqual(
+            [candidate["verdict"]["status"] for candidate in candidates],
+            ["可接入", "未重放"],
+        )
+        self.assertEqual(
+            [candidate["endpoint_replay_budget_used"] for candidate in candidates],
+            [5, 5],
+        )
+        self.assertTrue(
+            all(candidate["endpoint_replay_budget_limit"] == 6 for candidate in candidates)
+        )
 
     def test_replay_ladder_uses_exactly_five_sequential_requests(self):
         execute_replay_ladder = self.require_function("execute_replay_ladder")
@@ -928,6 +1169,90 @@ class OfflineBoundaryTests(unittest.TestCase):
             calls[-1]["headers"]["user-agent"],
             "OfficialCampusRadar/0.1 (local low-frequency collector)",
         )
+
+    def test_replay_ladder_rejects_insufficient_budget_before_requester(self):
+        execute_replay_ladder = self.require_function("execute_replay_ladder")
+        DiscoveryError = load_function("DiscoveryError")
+        self.assertIsNotNone(DiscoveryError)
+        requester_calls = []
+        sleeps = []
+        candidate = {
+            "method": "GET",
+            "request_url": (
+                "https://careers.tencent.com/tencentcareer/api/post/Query"
+                "?pageIndex=1&pageSize=10"
+            ),
+            "request_headers": {"Accept": "application/json"},
+            "request_body": None,
+            "request_json": None,
+            "list_path": "Data.Posts",
+        }
+
+        def requester(**kwargs):
+            requester_calls.append(kwargs)
+            return {
+                "http_status": 200,
+                "payload": TENCENT_PAYLOAD,
+                "note": "HTTP 200 JSON",
+            }
+
+        with self.assertRaisesRegex(DiscoveryError, "requires 5 requests"):
+            execute_replay_ladder(
+                candidate,
+                requester=requester,
+                request_budget=4,
+                sleep_fn=sleeps.append,
+            )
+
+        self.assertEqual(requester_calls, [])
+        self.assertEqual(sleeps, [])
+
+    def test_replay_ladder_rejects_oversized_plan_before_requester(self):
+        execute_replay_ladder = self.require_function("execute_replay_ladder")
+        DiscoveryError = load_function("DiscoveryError")
+        ReplayHeaderProfile = load_function("ReplayHeaderProfile")
+        self.assertIsNotNone(DiscoveryError)
+        self.assertIsNotNone(ReplayHeaderProfile)
+        requester_calls = []
+        sleeps = []
+        candidate = {
+            "method": "GET",
+            "request_url": "https://careers.example/api/jobs?page=1",
+            "request_headers": {"Accept": "application/json"},
+            "request_body": None,
+            "request_json": None,
+            "list_path": "Data.Posts",
+        }
+        oversized_plan = [
+            ReplayHeaderProfile(f"profile-{index}", {})
+            for index in range(7)
+        ]
+
+        def requester(**kwargs):
+            requester_calls.append(kwargs)
+            return {
+                "http_status": 200,
+                "payload": TENCENT_PAYLOAD,
+                "note": "HTTP 200 JSON",
+            }
+
+        with mock.patch(
+            "tools.discover_api.build_replay_header_profiles",
+            return_value=oversized_plan,
+        ):
+            with self.assertRaisesRegex(
+                DiscoveryError,
+                "exactly 5 requests",
+            ):
+                execute_replay_ladder(
+                    candidate,
+                    requester=requester,
+                    request_budget=6,
+                    sleep_fn=sleeps.append,
+                )
+
+        self.assertEqual(requester_calls, [])
+        self.assertEqual(sleeps, [])
 
     def test_suspicious_request_variant_is_redacted_and_never_replayed(self):
         analyze_captured_target = self.require_function("analyze_captured_target")
@@ -976,16 +1301,20 @@ class OfflineBoundaryTests(unittest.TestCase):
             requester=direct_requester,
             sleep_fn=lambda seconds: None,
         )
-        replayed = []
+        sequence_requester_calls = []
 
-        def replay_candidate(candidate):
-            replayed.append(candidate)
-            return []
+        def sequence_requester(**kwargs):
+            sequence_requester_calls.append(kwargs)
+            return {
+                "http_status": 200,
+                "payload": TENCENT_PAYLOAD,
+                "note": "HTTP 200 JSON",
+            }
 
         results = run_target_sequence(
             [TargetSpec("https://careers.tencent.com/search.html")],
             capture_func=lambda target: capture,
-            replay_func=replay_candidate,
+            requester=sequence_requester,
             sleep_fn=lambda seconds: None,
         )
         candidate = results[0]["candidates"][0]
@@ -996,7 +1325,7 @@ class OfflineBoundaryTests(unittest.TestCase):
 
         self.assertEqual(direct_replays, [])
         self.assertEqual(direct_calls, [])
-        self.assertEqual(replayed, [])
+        self.assertEqual(sequence_requester_calls, [])
         self.assertEqual(candidate["verdict"]["status"], "不可接入")
         self.assertIn("签名", candidate["verdict"]["reason"])
         self.assertEqual(candidate["endpoint_replay_budget_used"], 0)
@@ -1027,14 +1356,18 @@ class OfflineBoundaryTests(unittest.TestCase):
                 "exchanges": [],
             }
 
-        def replay_candidate(candidate):
-            events.append("replay")
-            return []
+        def requester(**kwargs):
+            events.append("request")
+            return {
+                "http_status": 200,
+                "payload": TENCENT_PAYLOAD,
+                "note": "HTTP 200 JSON",
+            }
 
         results = run_target_sequence(
             targets,
             capture_func=capture_target,
-            replay_func=replay_candidate,
+            requester=requester,
             sleep_fn=sleeps.append,
         )
 

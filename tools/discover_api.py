@@ -1196,6 +1196,7 @@ def execute_replay_ladder(
     candidate: dict[str, object],
     *,
     requester: Callable[..., dict[str, object]],
+    request_budget: int = REPLAY_LADDER_REQUESTS,
     sleep_fn: Callable[[float], object] = time.sleep,
 ) -> list[dict[str, object]]:
     """Execute the fixed five-request ladder sequentially for one endpoint."""
@@ -1207,6 +1208,13 @@ def execute_replay_ladder(
     if not isinstance(raw_headers, dict):
         raw_headers = {}
     profiles = build_replay_header_profiles(raw_headers)
+    if len(profiles) != REPLAY_LADDER_REQUESTS:
+        raise DiscoveryError("replay ladder must contain exactly 5 requests")
+    if request_budget < REPLAY_LADDER_REQUESTS:
+        raise DiscoveryError(
+            "replay ladder requires 5 requests but only "
+            f"{request_budget} remain in the endpoint budget"
+        )
     results: list[dict[str, object]] = []
     for index, profile in enumerate(profiles):
         response = requester(
@@ -1242,12 +1250,13 @@ def run_target_sequence(
     targets: list[TargetSpec],
     *,
     capture_func: Callable[[TargetSpec], dict[str, object]],
-    replay_func: Callable[[dict[str, object]], list[dict[str, object]]],
+    requester: Callable[..., dict[str, object]],
     sleep_fn: Callable[[float], object] = time.sleep,
 ) -> list[dict[str, object]]:
     """Process targets serially, opening each once and spacing targets by three seconds."""
 
     results: list[dict[str, object]] = []
+    endpoint_replay_usage: dict[tuple[str, str], int] = {}
     for index, target in enumerate(targets):
         if index:
             sleep_fn(3.0)
@@ -1262,9 +1271,9 @@ def run_target_sequence(
                     str(raw_candidate.get("request_url", "")),
                 )
                 grouped.setdefault(key, []).append(dict(raw_candidate))
-            for endpoint_candidates in grouped.values():
-                replay_used = 0
-                ladder_attempted = False
+            for endpoint_key, endpoint_candidates in grouped.items():
+                replay_used = endpoint_replay_usage.get(endpoint_key, 0)
+                ladder_attempted = replay_used > 0
                 for candidate in endpoint_candidates:
                     if candidate.get("suspicious_inputs"):
                         candidate["replays"] = []
@@ -1280,12 +1289,15 @@ def run_target_sequence(
                         and MAX_REPLAYS_PER_ENDPOINT - replay_used
                         >= REPLAY_LADDER_REQUESTS
                     ):
-                        replays = replay_func(candidate)
-                        if len(replays) > MAX_REPLAYS_PER_ENDPOINT - replay_used:
-                            raise DiscoveryError(
-                                "endpoint replay budget exceeded the hard limit of 6"
-                            )
+                        remaining_budget = MAX_REPLAYS_PER_ENDPOINT - replay_used
+                        replays = execute_replay_ladder(
+                            candidate,
+                            requester=requester,
+                            request_budget=remaining_budget,
+                            sleep_fn=sleep_fn,
+                        )
                         replay_used += len(replays)
+                        endpoint_replay_usage[endpoint_key] = replay_used
                         ladder_attempted = True
                         candidate["replays"] = replays
                         candidate["verdict"] = classify_replay_results(replays)
@@ -1419,7 +1431,17 @@ def capture_target(target: TargetSpec) -> dict[str, object]:
                         page.evaluate(
                             "window.scrollTo(0, document.body.scrollHeight)"
                         )
+                        result["error"] = guard_violation_reason(
+                            interaction_violations
+                        )
+                        if result["error"]:
+                            break
                         page.wait_for_timeout(750)
+                        result["error"] = guard_violation_reason(
+                            interaction_violations
+                        )
+                        if result["error"]:
+                            break
                 if target.click_selector and not result["error"]:
                     locator = page.locator(target.click_selector).first
                     locator.wait_for(state="visible", timeout=5_000)
@@ -1440,10 +1462,14 @@ def capture_target(target: TargetSpec) -> dict[str, object]:
                         result["error"] = safety_reason
                     else:
                         locator.click(timeout=5_000)
-                        page.wait_for_timeout(1_500)
                         result["error"] = guard_violation_reason(
                             interaction_violations
                         )
+                        if not result["error"]:
+                            page.wait_for_timeout(1_500)
+                            result["error"] = guard_violation_reason(
+                                interaction_violations
+                            )
                 result["final_url"] = page.url
                 try:
                     visible_text = page.locator("body").inner_text(timeout=5_000)
@@ -1602,11 +1628,7 @@ def main(
         results = run_target_sequence(
             targets,
             capture_func=capture_boundary,
-            replay_func=lambda candidate: execute_replay_ladder(
-                candidate,
-                requester=request_boundary,
-                sleep_fn=sleep_fn,
-            ),
+            requester=request_boundary,
             sleep_fn=sleep_fn,
         )
         generated_at = now_fn() if now_fn is not None else (
