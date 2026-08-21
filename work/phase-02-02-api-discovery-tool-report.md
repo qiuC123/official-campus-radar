@@ -199,9 +199,11 @@ Further offline review produced bounded implementation corrections:
 
 - Semantic unique identifiers (`jobId`, `postId`, and `positionId`) now outrank
   a generic unique `id`, even when only the generic value has a recognized
-  numeric/UUID shape. The retained live Ctrip config remains
-  `position_key="id"` because its captured sample contains `id` and no
-  `jobId`; live evidence was not rewritten from the offline fixture.
+  numeric/UUID shape. The retained live Ctrip artifact remains
+  `position_key="id"` because no live artifact was regenerated during this
+  offline correction. Its persisted sample is field-selected and therefore
+  does not establish whether the original response row contained `jobId`;
+  that must be rechecked in any separately authorized live acceptance rerun.
 - Candidate identity now includes `list_path`, retaining every qualifying
   array for a request variant. One five-call replay ladder is captured once and
   re-evaluated independently for all retained paths without extra requests.
