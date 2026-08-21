@@ -1,5 +1,6 @@
 from radar.collectors.base import FetchedPage
 from radar.collectors.html import HtmlSourceAdapter
+from radar.collectors.json_api import JsonApiSourceAdapter
 from radar.models import OfficialSource
 
 
@@ -23,6 +24,7 @@ class DisabledLocalDemoAdapter:
 class AdapterRegistry:
     adapters = {
         "html_selector": HtmlSourceAdapter,
+        "json_api": JsonApiSourceAdapter,
         "local_demo_disabled": DisabledLocalDemoAdapter,
     }
 

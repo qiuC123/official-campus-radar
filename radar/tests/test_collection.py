@@ -4,6 +4,7 @@ from unittest.mock import patch
 import requests
 from django.test import TestCase
 
+from radar.collectors.base import FetchedPage
 from radar.collectors.html import HtmlSourceAdapter
 from radar.models import FetchRun, OfficialSource, Organization, SourceVersion
 
@@ -55,3 +56,79 @@ class HtmlCollectionTests(TestCase):
             with self.assertRaises(requests.RequestException):
                 adapter.fetch(self.source)
         self.assertEqual(FetchRun.objects.count(), 0)
+
+    def test_extracts_multiple_position_nodes_under_one_notice(self) -> None:
+        self.source.parser_config = {
+            "notice_selector": "article.job",
+            "notice_id_attribute": "data-notice-id",
+            "notice_url_selector": "a.notice",
+            "title_selector": "h2",
+            "recruitment_type_selector": ".type",
+            "target_audience_selector": ".audience",
+            "published_on_selector": ".published",
+            "deadline_selector": ".deadline",
+            "excerpt_selector": ".description",
+            "position_selector": ".position",
+            "position_id_attribute": "data-position-id",
+            "position_title_selector": ".position-title",
+            "location_selector": ".location",
+            "application_selector": "a.apply",
+            "positions_complete": True,
+        }
+        page = FetchedPage(
+            self.source.source_url,
+            """
+            <article class="job" data-notice-id="notice-2027">
+              <a class="notice" href="/notices/2027">notice</a>
+              <h2>2027 Campus</h2><span class="type">campus_recruitment</span>
+              <span class="audience">2027 graduates</span>
+              <time class="published">2026-08-01</time>
+              <time class="deadline">2026-09-01</time>
+              <p class="description">Two open roles</p>
+              <div class="position" data-position-id="position-1">
+                <span class="position-title">Engineer</span>
+                <span class="location">Beijing</span>
+                <a class="apply" href="/apply/1">apply</a>
+              </div>
+              <div class="position" data-position-id="position-2">
+                <span class="position-title">Designer</span>
+                <span class="location">Shanghai</span>
+                <a class="apply" href="/apply/2">apply</a>
+              </div>
+            </article>
+            """,
+            "f" * 64,
+            200,
+            None,
+        )
+
+        candidates = HtmlSourceAdapter().extract(self.source, page)
+
+        self.assertEqual(len(candidates), 1)
+        candidate = candidates[0]
+        self.assertEqual(
+            [position.position_key for position in candidate.positions],
+            ["position-1", "position-2"],
+        )
+        self.assertEqual(
+            [position.title for position in candidate.positions],
+            ["Engineer", "Designer"],
+        )
+        self.assertEqual(
+            [position.location_text for position in candidate.positions],
+            ["Beijing", "Shanghai"],
+        )
+        self.assertEqual(
+            [position.application_url for position in candidate.positions],
+            [
+                "https://careers.example.test/apply/1",
+                "https://careers.example.test/apply/2",
+            ],
+        )
+        self.assertNotEqual(
+            candidate.positions[0].locator,
+            candidate.positions[1].locator,
+        )
+        self.assertIn("position-1", candidate.positions[0].locator)
+        self.assertIn("position-2", candidate.positions[1].locator)
+        self.assertTrue(candidate.positions_complete)

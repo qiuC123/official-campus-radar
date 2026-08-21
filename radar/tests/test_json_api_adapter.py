@@ -9,6 +9,7 @@ from unittest.mock import Mock, patch
 from django.test import SimpleTestCase
 
 from radar.collectors.json_api import JsonApiSourceAdapter
+from radar.collectors.registry import AdapterRegistry
 
 
 BASE_CONFIG = {
@@ -57,6 +58,7 @@ def merge_config(patch: dict) -> dict:
 
 def make_source(config: dict):
     return SimpleNamespace(
+        adapter_name="json_api",
         parser_config=config,
         source_url="https://careers.example.test/api/jobs",
         organization=SimpleNamespace(official_domain="careers.example.test"),
@@ -72,6 +74,18 @@ def adapter_type():
 
 
 class JsonApiConfigurationTests(SimpleTestCase):
+    def test_registry_constructs_the_json_api_adapter(self) -> None:
+        self.assertIsInstance(
+            AdapterRegistry.get(make_source(BASE_CONFIG)),
+            JsonApiSourceAdapter,
+        )
+
+    def test_registry_still_rejects_an_unknown_adapter(self) -> None:
+        source = make_source(BASE_CONFIG)
+        source.adapter_name = "unknown"
+        with self.assertRaisesRegex(ValueError, "unregistered adapter"):
+            AdapterRegistry.get(source)
+
     def test_valid_configuration_is_accepted(self) -> None:
         adapter = adapter_type()
         self.assertIsNotNone(adapter, "JsonApiSourceAdapter must exist")
