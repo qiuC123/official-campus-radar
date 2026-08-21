@@ -1,0 +1,11 @@
+{"retCode":"201","retMessage":"调用成功",
+ "retValue":{"total":1,"recruitJobAdList":[
+   {"id":"29570670","fromId":"MJ036531",
+    "jobId":"535f2df5-32a7-4857-9fdf-fad0acef18bb",
+    "jobTitle":"测试职位（请勿投递）(MJ036531)",
+    "publishDate":"2026-08-20","city":"CO0009","cityName":"上海",
+    "requirements":"<p>招聘对象：本、硕、博。</p><p>毕业时间：2026 年 9 月至 2027 年 8 月期间毕业</p>",
+    "jobFamilyGroupCode":"JFG_31","jobFamilyGroupName":"开发",
+    "buName":"Trip.com Group","kind":"1","kindName":"应届校招生",
+    "atsApiType":"Moka","category":"2"}]},
+ "ResponseStatus":{"Ack":"Success","Errors":[]}}

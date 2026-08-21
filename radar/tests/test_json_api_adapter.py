@@ -52,6 +52,59 @@ BASE_CONFIG = {
     "request_delay_seconds": 0,
 }
 
+CTRIP_CONFIG = {
+    "endpoint": "https://careers.ctrip.com/api/hrrecruit/getJobAd",
+    "method": "POST",
+    "body": {
+        "condition": {
+            "kind": ["1"],
+            "category": 2,
+            "city": [],
+            "keyword": "",
+            "fromId": [],
+            "country": [],
+            "bucode": [],
+            "jobFamilyCode": [],
+            "jobFamilyGroupCode": [],
+        },
+        "head": {"language": "zh_CN", "version": "1"},
+    },
+    "pagination": {
+        "mode": "page_index",
+        "page_param": "pager.index",
+        "size_param": "pager.size",
+        "page_size": 100,
+        "start_page": 1,
+        "max_pages": 20,
+    },
+    "list_path": "retValue.recruitJobAdList",
+    "total_path": "retValue.total",
+    "success": {"path": "retCode", "expect": "201"},
+    "html_fields": ["raw_text"],
+    "notice": {
+        "identity_key": "ctrip-campus-2027",
+        "title": "携程 2027 校园招聘",
+        "official_notice_url": "https://careers.ctrip.com/",
+        "recruitment_type": "campus_recruitment",
+        "target_audience": "2027届",
+        "published_on": "2026-08-20",
+        "deadline": "2027-08-31",
+    },
+    "field_map": {
+        "position_key": "jobId",
+        "title": "jobTitle",
+        "location": "cityName",
+        "raw_text": "requirements",
+        "updated_at": "publishDate",
+        "category": "jobFamilyGroupName",
+        "recruit_kind": "kindName",
+    },
+    "valid_values": {
+        "recruit_kind": ["应届校招生", "Fresh Graduates"]
+    },
+    "request_delay_seconds": 0,
+}
+
 
 def merge_config(patch: dict) -> dict:
     config = copy.deepcopy(BASE_CONFIG)
@@ -60,12 +113,23 @@ def merge_config(patch: dict) -> dict:
     return config
 
 
-def make_source(config: dict):
+def make_source(
+    config: dict,
+    *,
+    source_url: str = "https://careers.example.test/api/jobs",
+    official_domain: str = "careers.example.test",
+):
     return SimpleNamespace(
         adapter_name="json_api",
         parser_config=config,
-        source_url="https://careers.example.test/api/jobs",
-        organization=SimpleNamespace(official_domain="careers.example.test"),
+        source_url=source_url,
+        organization=SimpleNamespace(official_domain=official_domain),
+    )
+
+
+def load_json_fixture(name: str) -> dict:
+    return json.loads(
+        (Path(__file__).parent / "fixtures" / name).read_text(encoding="utf-8")
     )
 
 
@@ -280,6 +344,50 @@ class JsonApiFetchTests(SimpleTestCase):
         with self.assertRaisesRegex(ValueError, "reserved"):
             self.fetch(BASE_CONFIG)
 
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_fetch_rejects_a_configured_business_failure(
+        self, request: Mock
+    ) -> None:
+        config = merge_config(
+            {"success": {"path": "Code", "expect": 200}}
+        )
+        request.return_value = json_response(
+            {"Code": "500", "Data": {"Count": 0, "Posts": []}}
+        )
+
+        with self.assertRaisesRegex(ValueError, "success"):
+            self.fetch(config)
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_fetch_compares_business_success_values_as_strings(
+        self, request: Mock
+    ) -> None:
+        config = merge_config(
+            {"success": {"path": "Code", "expect": 200}}
+        )
+        request.return_value = json_response(
+            {"Code": "200", "Data": {"Count": 0, "Posts": []}}
+        )
+
+        try:
+            page = self.fetch(config)
+        except ValueError as error:
+            self.fail(f"equivalent success values were rejected: {error}")
+
+        self.assertTrue(json.loads(page.body)["_radar"]["positions_complete"])
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_fetch_without_success_config_uses_http_status_only(
+        self, request: Mock
+    ) -> None:
+        request.return_value = json_response(
+            {"Code": "500", "Data": {"Count": 0, "Posts": []}}
+        )
+
+        page = self.fetch(BASE_CONFIG)
+
+        self.assertTrue(json.loads(page.body)["_radar"]["positions_complete"])
+
     @patch("radar.collectors.json_api.time.sleep")
     @patch("radar.collectors.json_api.requests.Session.request")
     def test_fetch_combines_pages_and_stops_at_total(
@@ -424,9 +532,122 @@ class JsonApiFetchTests(SimpleTestCase):
 
         call = request.call_args
         self.assertEqual(call.args[:2], ("POST", BASE_CONFIG["endpoint"]))
+        self.assertEqual(call.kwargs["json"].get("language"), "zh-cn")
         self.assertEqual(call.kwargs["json"]["pageIndex"], 1)
         self.assertEqual(call.kwargs["json"]["pageSize"], 2)
         self.assertNotIn("params", call.kwargs)
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_post_merges_pagination_into_the_fixed_body_template(
+        self, request: Mock
+    ) -> None:
+        config = copy.deepcopy(BASE_CONFIG)
+        config["method"] = "POST"
+        config["body"] = {
+            "condition": {"kind": ["1"], "category": 2},
+            "head": {"language": "zh_CN", "version": "1"},
+        }
+        request.return_value = json_response(
+            {"Data": {"Count": 0, "Posts": []}}
+        )
+
+        self.fetch(config)
+
+        self.assertEqual(
+            request.call_args.kwargs["json"],
+            {
+                "condition": {"kind": ["1"], "category": 2},
+                "head": {"language": "zh_CN", "version": "1"},
+                "pageIndex": 1,
+                "pageSize": 2,
+            },
+        )
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_post_writes_pagination_at_nested_body_paths(
+        self, request: Mock
+    ) -> None:
+        config = copy.deepcopy(BASE_CONFIG)
+        config["method"] = "POST"
+        config["body"] = {"head": {"language": "zh_CN"}}
+        config["pagination"].update(
+            {"page_param": "pager.index", "size_param": "pager.size"}
+        )
+        request.return_value = json_response(
+            {"Data": {"Count": 0, "Posts": []}}
+        )
+
+        self.fetch(config)
+
+        self.assertEqual(
+            request.call_args.kwargs["json"],
+            {
+                "head": {"language": "zh_CN"},
+                "pager": {"index": 1, "size": 2},
+            },
+        )
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_ctrip_fixture_uses_its_configured_response_and_request_shapes(
+        self, request: Mock
+    ) -> None:
+        request.return_value = json_response(
+            load_json_fixture("json_api_ctrip.json")
+        )
+        source = make_source(
+            CTRIP_CONFIG,
+            source_url=CTRIP_CONFIG["endpoint"],
+            official_domain="careers.ctrip.com",
+        )
+
+        page = JsonApiSourceAdapter().fetch(source)
+
+        request_body = request.call_args.kwargs["json"]
+        self.assertEqual(
+            request.call_args.args[:2],
+            ("POST", "https://careers.ctrip.com/api/hrrecruit/getJobAd"),
+        )
+        self.assertEqual(
+            request_body["condition"],
+            {
+                "kind": ["1"],
+                "category": 2,
+                "city": [],
+                "keyword": "",
+                "fromId": [],
+                "country": [],
+                "bucode": [],
+                "jobFamilyCode": [],
+                "jobFamilyGroupCode": [],
+            },
+        )
+        self.assertEqual(
+            request_body["head"],
+            {"language": "zh_CN", "version": "1"},
+        )
+        self.assertEqual(request_body["pager"], {"index": 1, "size": 100})
+        document = json.loads(page.body)
+        self.assertEqual(
+            document["retValue"]["recruitJobAdList"][0]["jobId"],
+            "535f2df5-32a7-4857-9fdf-fad0acef18bb",
+        )
+        self.assertTrue(document["_radar"]["positions_complete"])
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_ctrip_fixture_rejects_its_configured_business_failure(
+        self, request: Mock
+    ) -> None:
+        payload = load_json_fixture("json_api_ctrip.json")
+        payload["retCode"] = "500"
+        request.return_value = json_response(payload)
+        source = make_source(
+            CTRIP_CONFIG,
+            source_url=CTRIP_CONFIG["endpoint"],
+            official_domain="careers.ctrip.com",
+        )
+
+        with self.assertRaisesRegex(ValueError, "success"):
+            JsonApiSourceAdapter().fetch(source)
 
 
 class JsonApiExtractionTests(SimpleTestCase):
@@ -525,6 +746,118 @@ class JsonApiExtractionTests(SimpleTestCase):
 
         self.assertIsNone(parse_date("2026/08/20"))
         self.assertIsNone(parse_date("not-a-date"))
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_html_field_is_readable_while_evidence_keeps_original_html(
+        self, request: Mock
+    ) -> None:
+        request.return_value = json_response(
+            load_json_fixture("json_api_ctrip.json")
+        )
+        source = make_source(
+            CTRIP_CONFIG,
+            source_url=CTRIP_CONFIG["endpoint"],
+            official_domain="careers.ctrip.com",
+        )
+        adapter = JsonApiSourceAdapter()
+
+        candidate = adapter.extract(source, adapter.fetch(source))[0]
+        position = candidate.positions[0]
+
+        self.assertEqual(
+            position.raw_text,
+            "招聘对象：本、硕、博。\n"
+            "毕业时间：2026 年 9 月至 2027 年 8 月期间毕业",
+        )
+        self.assertEqual(
+            position.field_evidence["raw_text"].raw_value,
+            "<p>招聘对象：本、硕、博。</p>"
+            "<p>毕业时间：2026 年 9 月至 2027 年 8 月期间毕业</p>",
+        )
+        self.assertEqual(
+            position.field_evidence["raw_text"].parsed_value,
+            position.raw_text,
+        )
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_tencent_fixture_uses_the_same_config_driven_extraction(
+        self, request: Mock
+    ) -> None:
+        config = merge_config(
+            {"success": {"path": "Code", "expect": 200}}
+        )
+        request.side_effect = [
+            json_response(load_json_fixture("json_api_tencent.json")),
+            json_response({"Code": 200, "Data": {"Count": 2, "Posts": []}}),
+        ]
+        source = make_source(config)
+        adapter = JsonApiSourceAdapter()
+
+        candidate = adapter.extract(source, adapter.fetch(source))[0]
+
+        self.assertEqual(len(candidate.positions), 1)
+        self.assertEqual(
+            candidate.positions[0].title,
+            "腾讯云- MaaS高级产品经理",
+        )
+        self.assertEqual(
+            candidate.positions[0].field_evidence["position_title"].locator,
+            "$.Data.Posts[0].RecruitPostName",
+        )
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_ctrip_iso_date_can_feed_a_mapped_notice_date(
+        self, request: Mock
+    ) -> None:
+        config = copy.deepcopy(CTRIP_CONFIG)
+        config["notice"].pop("published_on")
+        config["field_map"]["published_on"] = "publishDate"
+        request.return_value = json_response(
+            load_json_fixture("json_api_ctrip.json")
+        )
+        source = make_source(
+            config,
+            source_url=config["endpoint"],
+            official_domain="careers.ctrip.com",
+        )
+        adapter = JsonApiSourceAdapter()
+
+        candidate = adapter.extract(source, adapter.fetch(source))[0]
+
+        self.assertEqual(candidate.published_on, date(2026, 8, 20))
+        self.assertEqual(
+            candidate.field_evidence["published_on"].locator,
+            "$.retValue.recruitJobAdList[0].publishDate",
+        )
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_ctrip_campus_whitelist_excludes_a_mixed_social_row(
+        self, request: Mock
+    ) -> None:
+        payload = load_json_fixture("json_api_ctrip.json")
+        social_row = copy.deepcopy(
+            payload["retValue"]["recruitJobAdList"][0]
+        )
+        social_row["jobId"] = "social-job"
+        social_row["jobTitle"] = "社会招聘岗位"
+        social_row["kindName"] = ""
+        payload["retValue"]["recruitJobAdList"].append(social_row)
+        payload["retValue"]["total"] = 2
+        request.return_value = json_response(payload)
+        source = make_source(
+            CTRIP_CONFIG,
+            source_url=CTRIP_CONFIG["endpoint"],
+            official_domain="careers.ctrip.com",
+        )
+        adapter = JsonApiSourceAdapter()
+
+        candidate = adapter.extract(source, adapter.fetch(source))[0]
+
+        self.assertEqual(
+            [position.position_key for position in candidate.positions],
+            ["535f2df5-32a7-4857-9fdf-fad0acef18bb"],
+        )
+        self.assertIn("filtered_invalid=1", candidate.evidence_excerpt)
 
 
 class JsonApiPublicationIntegrationTests(TestCase):

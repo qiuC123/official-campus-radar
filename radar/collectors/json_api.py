@@ -7,6 +7,7 @@ from datetime import date
 from urllib.parse import urlparse
 
 import requests
+from bs4 import BeautifulSoup
 
 from radar.collectors.base import (
     FieldEvidenceValue,
@@ -202,7 +203,11 @@ class JsonApiSourceAdapter:
         delay = config.get("request_delay_seconds", 1)
         list_path = str(config["list_path"]).strip()
         total_path = str(config.get("total_path", "")).strip()
-        base_params = config.get("params", {})
+        base_request_values = (
+            config.get("params", {})
+            if method == "GET"
+            else config.get("body", config.get("params", {}))
+        )
 
         session = requests.Session()
         headers = {"User-Agent": self.user_agent}
@@ -213,9 +218,9 @@ class JsonApiSourceAdapter:
         missing = object()
 
         for offset in range(max_pages):
-            request_values = dict(base_params)
-            request_values[page_param] = start_page + offset
-            request_values[size_param] = page_size
+            request_values = copy.deepcopy(base_request_values)
+            _set_path(request_values, page_param, start_page + offset)
+            _set_path(request_values, size_param, page_size)
             request_kwargs = {
                 "allow_redirects": False,
                 "headers": headers,
@@ -233,6 +238,15 @@ class JsonApiSourceAdapter:
             payload = response.json()
             if not isinstance(payload, dict):
                 raise ValueError("JSON API response must be an object")
+            success = config.get("success")
+            if isinstance(success, dict):
+                actual = _path_value(
+                    payload,
+                    str(success.get("path", "")).strip(),
+                    missing,
+                )
+                if actual is missing or str(actual) != str(success.get("expect")):
+                    raise ValueError("JSON API success check failed")
             if "_radar" in payload:
                 raise ValueError(
                     "JSON API response contains the reserved _radar metadata key"
@@ -278,6 +292,7 @@ class JsonApiSourceAdapter:
             "notice": copy.deepcopy(config["notice"]),
             "field_map": copy.deepcopy(config["field_map"]),
             "valid_values": copy.deepcopy(config.get("valid_values", {})),
+            "html_fields": copy.deepcopy(config.get("html_fields", [])),
         }
         body = _canonical_json(aggregate_document)
         return FetchedPage(
@@ -321,6 +336,21 @@ class JsonApiSourceAdapter:
             return _canonical_json(value)
         return str(value)
 
+    @classmethod
+    def _field_text(
+        cls,
+        field_name: str,
+        value: object,
+        html_fields: set[str],
+    ) -> str:
+        raw_value = cls._raw_text(value)
+        if field_name not in html_fields:
+            return raw_value
+        return BeautifulSoup(raw_value, "html.parser").get_text(
+            separator="\n",
+            strip=True,
+        )
+
     def extract(
         self, source: OfficialSource, page: FetchedPage
     ) -> list[NoticeCandidate]:
@@ -336,10 +366,20 @@ class JsonApiSourceAdapter:
         notice_config = metadata.get("notice")
         field_map = metadata.get("field_map")
         valid_values = metadata.get("valid_values", {})
+        raw_html_fields = metadata.get("html_fields", [])
         if not list_path or not isinstance(notice_config, dict):
             raise ValueError("JSON API canonical document has invalid notice metadata")
-        if not isinstance(field_map, dict) or not isinstance(valid_values, dict):
+        if (
+            not isinstance(field_map, dict)
+            or not isinstance(valid_values, dict)
+            or not isinstance(raw_html_fields, list)
+        ):
             raise ValueError("JSON API canonical document has invalid field metadata")
+        html_fields = {
+            str(field_name).strip()
+            for field_name in raw_html_fields
+            if str(field_name).strip()
+        }
         rows = _path_value(document, list_path)
         if not isinstance(rows, list):
             raise ValueError("JSON API canonical list_path must resolve to a list")
@@ -390,9 +430,21 @@ class JsonApiSourceAdapter:
                 if application_path
                 else ""
             )
-            title = self._raw_text(raw_title).strip()
-            location = self._raw_text(raw_location).strip()
-            application_url = self._raw_text(raw_application_url).strip() or None
+            title = self._field_text("title", raw_title, html_fields).strip()
+            location = self._field_text(
+                "location", raw_location, html_fields
+            ).strip()
+            description = self._field_text(
+                "raw_text", raw_description, html_fields
+            ).strip()
+            application_url = (
+                self._field_text(
+                    "application_url",
+                    raw_application_url,
+                    html_fields,
+                ).strip()
+                or None
+            )
             if application_url:
                 application_url = canonicalize_url(application_url)
 
@@ -409,6 +461,12 @@ class JsonApiSourceAdapter:
                     f"{base_locator}.{location_path}",
                     location,
                 )
+            if raw_text_path:
+                position_evidence["raw_text"] = FieldEvidenceValue(
+                    self._raw_text(raw_description),
+                    f"{base_locator}.{raw_text_path}",
+                    description,
+                )
             if application_path and application_url:
                 position_evidence["application_link"] = FieldEvidenceValue(
                     self._raw_text(raw_application_url),
@@ -419,7 +477,7 @@ class JsonApiSourceAdapter:
                 PositionCandidate(
                     title=title,
                     location_text=location,
-                    raw_text=self._raw_text(raw_description),
+                    raw_text=description,
                     application_url=application_url,
                     locator=base_locator,
                     application_locator=(
