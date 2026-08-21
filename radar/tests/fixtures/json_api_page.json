@@ -1,0 +1,45 @@
+{
+  "Code": 200,
+  "Data": {
+    "Count": 4,
+    "Posts": [
+      {
+        "PostId": "2034975730101809152",
+        "RecruitPostName": "AI 产品经理",
+        "LocationName": "深圳",
+        "Responsibility": "参与校园招聘产品建设",
+        "LastUpdateTime": "2026年8月20日",
+        "PostURL": "https://careers.example.test/jobs/2034975730101809152",
+        "IsValid": "True"
+      },
+      {
+        "PostId": "2034975730101809153",
+        "RecruitPostName": "后端开发工程师",
+        "LocationName": "上海",
+        "Responsibility": "建设招聘平台后端服务",
+        "LastUpdateTime": "2026年8月20日",
+        "PostURL": "https://careers.example.test/jobs/2034975730101809153",
+        "IsValid": true
+      },
+      {
+        "PostId": "   ",
+        "RecruitPostName": "缺少稳定身份的岗位",
+        "LocationName": "北京",
+        "Responsibility": "该岗位应被跳过",
+        "LastUpdateTime": "2026年8月20日",
+        "PostURL": "https://careers.example.test/jobs/missing-id",
+        "IsValid": "True"
+      },
+      {
+        "PostId": "2034975730101809154",
+        "RecruitPostName": "已下线岗位",
+        "LocationName": "广州",
+        "Responsibility": "该岗位应被有效值过滤",
+        "LastUpdateTime": "2026年8月20日",
+        "PostURL": "https://careers.example.test/jobs/2034975730101809154",
+        "IsValid": "False"
+      }
+    ]
+  }
+}
+

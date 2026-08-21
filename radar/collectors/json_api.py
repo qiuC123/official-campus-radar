@@ -1,12 +1,19 @@
 import copy
 import hashlib
 import json
+import re
 import time
+from datetime import date
 from urllib.parse import urlparse
 
 import requests
 
-from radar.collectors.base import FetchedPage
+from radar.collectors.base import (
+    FieldEvidenceValue,
+    FetchedPage,
+    NoticeCandidate,
+    PositionCandidate,
+)
 from radar.models import OfficialSource
 from radar.services.normalization import canonicalize_url
 
@@ -92,14 +99,32 @@ class JsonApiSourceAdapter:
         ):
             if not str(notice.get(name, "")).strip():
                 raise ValueError(f"JSON API notice.{name} is required")
+
+        notice_url = urlparse(str(notice["official_notice_url"]).strip())
+        source_url = urlparse(source.source_url)
+        if (
+            notice_url.scheme != "https"
+            or not notice_url.hostname
+            or notice_url.hostname.lower()
+            != (source_url.hostname or "").lower()
+        ):
+            raise ValueError(
+                "JSON API notice.official_notice_url must use HTTPS on the source host"
+            )
+
         for name in ("published_on", "deadline"):
-            if not (
-                str(notice.get(name, "")).strip()
-                or str(field_map.get(name, "")).strip()
-            ):
+            fixed_value = str(notice.get(name, "")).strip()
+            if not (fixed_value or str(field_map.get(name, "")).strip()):
                 raise ValueError(
                     f"JSON API {name} requires a fixed notice value or field path"
                 )
+            if fixed_value:
+                try:
+                    date.fromisoformat(fixed_value)
+                except ValueError as error:
+                    raise ValueError(
+                        f"JSON API notice.{name} must be an ISO date"
+                    ) from error
 
         pagination = config.get("pagination")
         if not isinstance(pagination, dict):
@@ -212,6 +237,10 @@ class JsonApiSourceAdapter:
         _set_path(aggregate_document, list_path, positions)
         aggregate_document["_radar"] = {
             "positions_complete": positions_complete,
+            "list_path": list_path,
+            "notice": copy.deepcopy(config["notice"]),
+            "field_map": copy.deepcopy(config["field_map"]),
+            "valid_values": copy.deepcopy(config.get("valid_values", {})),
         }
         body = _canonical_json(aggregate_document)
         return FetchedPage(
@@ -221,3 +250,234 @@ class JsonApiSourceAdapter:
             http_status=last_response.status_code,
             etag=None,
         )
+
+    @staticmethod
+    def _parse_date(value: object) -> date | None:
+        if isinstance(value, date):
+            return value
+        text = str(value or "").strip()
+        if not text:
+            return None
+        try:
+            return date.fromisoformat(text)
+        except ValueError:
+            match = re.fullmatch(
+                r"(?P<year>\d{4})年(?P<month>\d{1,2})月(?P<day>\d{1,2})日",
+                text,
+            )
+            if match is None:
+                return None
+            try:
+                return date(
+                    int(match.group("year")),
+                    int(match.group("month")),
+                    int(match.group("day")),
+                )
+            except ValueError:
+                return None
+
+    @staticmethod
+    def _raw_text(value: object) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, (dict, list)):
+            return _canonical_json(value)
+        return str(value)
+
+    def extract(
+        self, source: OfficialSource, page: FetchedPage
+    ) -> list[NoticeCandidate]:
+        if page.not_modified:
+            return []
+        document = json.loads(page.body)
+        if not isinstance(document, dict):
+            raise ValueError("JSON API canonical document must be an object")
+        metadata = document.get("_radar")
+        if not isinstance(metadata, dict):
+            raise ValueError("JSON API canonical document is missing adapter metadata")
+        list_path = str(metadata.get("list_path", "")).strip()
+        notice_config = metadata.get("notice")
+        field_map = metadata.get("field_map")
+        valid_values = metadata.get("valid_values", {})
+        if not list_path or not isinstance(notice_config, dict):
+            raise ValueError("JSON API canonical document has invalid notice metadata")
+        if not isinstance(field_map, dict) or not isinstance(valid_values, dict):
+            raise ValueError("JSON API canonical document has invalid field metadata")
+        rows = _path_value(document, list_path)
+        if not isinstance(rows, list):
+            raise ValueError("JSON API canonical list_path must resolve to a list")
+
+        positions: list[PositionCandidate] = []
+        retained_rows: list[tuple[int, dict]] = []
+        filtered_invalid = 0
+        skipped_missing_identity = 0
+        for index, row in enumerate(rows):
+            if not isinstance(row, dict):
+                continue
+            valid = True
+            for field_name, allowed_values in valid_values.items():
+                field_path = str(field_map.get(field_name, "")).strip()
+                if not field_path or not isinstance(allowed_values, list):
+                    valid = False
+                    break
+                if _path_value(row, field_path) not in allowed_values:
+                    valid = False
+                    break
+            if not valid:
+                filtered_invalid += 1
+                continue
+
+            position_key_path = str(field_map["position_key"]).strip()
+            raw_position_key = _path_value(row, position_key_path, "")
+            position_key = self._raw_text(raw_position_key).strip()
+            if not position_key:
+                skipped_missing_identity += 1
+                continue
+
+            base_locator = f"$.{list_path}[{index}]"
+            title_path = str(field_map["title"]).strip()
+            location_path = str(field_map.get("location", "")).strip()
+            raw_text_path = str(field_map.get("raw_text", "")).strip()
+            application_path = str(
+                field_map.get("application_url", "")
+            ).strip()
+            raw_title = _path_value(row, title_path, "")
+            raw_location = (
+                _path_value(row, location_path, "") if location_path else ""
+            )
+            raw_description = (
+                _path_value(row, raw_text_path, "") if raw_text_path else ""
+            )
+            raw_application_url = (
+                _path_value(row, application_path, "")
+                if application_path
+                else ""
+            )
+            title = self._raw_text(raw_title).strip()
+            location = self._raw_text(raw_location).strip()
+            application_url = self._raw_text(raw_application_url).strip() or None
+            if application_url:
+                application_url = canonicalize_url(application_url)
+
+            position_evidence: dict[str, FieldEvidenceValue] = {
+                "position_title": FieldEvidenceValue(
+                    self._raw_text(raw_title),
+                    f"{base_locator}.{title_path}",
+                    title,
+                )
+            }
+            if location_path:
+                position_evidence["location"] = FieldEvidenceValue(
+                    self._raw_text(raw_location),
+                    f"{base_locator}.{location_path}",
+                    location,
+                )
+            if application_path and application_url:
+                position_evidence["application_link"] = FieldEvidenceValue(
+                    self._raw_text(raw_application_url),
+                    f"{base_locator}.{application_path}",
+                    application_url,
+                )
+            positions.append(
+                PositionCandidate(
+                    title=title,
+                    location_text=location,
+                    raw_text=self._raw_text(raw_description),
+                    application_url=application_url,
+                    locator=base_locator,
+                    application_locator=(
+                        f"{base_locator}.{application_path}"
+                        if application_path
+                        else ""
+                    ),
+                    position_key=position_key,
+                    field_evidence=position_evidence,
+                )
+            )
+            retained_rows.append((index, row))
+
+        def notice_text(field_name: str) -> tuple[str, str]:
+            raw_value = notice_config.get(field_name, "")
+            return (
+                self._raw_text(raw_value).strip(),
+                f"$._radar.notice.{field_name}",
+            )
+
+        def notice_date(field_name: str) -> tuple[date | None, FieldEvidenceValue]:
+            if str(notice_config.get(field_name, "")).strip():
+                raw_value = notice_config[field_name]
+                locator = f"$._radar.notice.{field_name}"
+            else:
+                field_path = str(field_map.get(field_name, "")).strip()
+                if retained_rows:
+                    index, row = retained_rows[0]
+                    raw_value = _path_value(row, field_path, "")
+                    locator = f"$.{list_path}[{index}].{field_path}"
+                else:
+                    raw_value = ""
+                    locator = f"$._radar.field_map.{field_name}"
+            parsed_date = self._parse_date(raw_value)
+            parsed_value = parsed_date.isoformat() if parsed_date else ""
+            return parsed_date, FieldEvidenceValue(
+                self._raw_text(raw_value), locator, parsed_value
+            )
+
+        title, title_locator = notice_text("title")
+        recruitment_type, recruitment_type_locator = notice_text(
+            "recruitment_type"
+        )
+        target_audience, target_audience_locator = notice_text(
+            "target_audience"
+        )
+        notice_url, notice_url_locator = notice_text("official_notice_url")
+        notice_url = canonicalize_url(notice_url)
+        published_on, published_evidence = notice_date("published_on")
+        deadline, deadline_evidence = notice_date("deadline")
+        field_evidence = {
+            "title": FieldEvidenceValue(title, title_locator, title),
+            "recruitment_type": FieldEvidenceValue(
+                recruitment_type,
+                recruitment_type_locator,
+                recruitment_type,
+            ),
+            "target_audience": FieldEvidenceValue(
+                target_audience,
+                target_audience_locator,
+                target_audience,
+            ),
+            "published_on": published_evidence,
+            "deadline": deadline_evidence,
+            "notice_url": FieldEvidenceValue(
+                self._raw_text(notice_config.get("official_notice_url", "")),
+                notice_url_locator,
+                notice_url,
+            ),
+        }
+        return [
+            NoticeCandidate(
+                title=title,
+                official_notice_url=notice_url,
+                recruitment_type=recruitment_type,
+                target_audience=target_audience,
+                published_on=published_on,
+                deadline=deadline,
+                withdrawn=False,
+                evidence_excerpt=(
+                    f"rows={len(rows)} retained={len(positions)} "
+                    f"skipped_missing_identity={skipped_missing_identity} "
+                    f"filtered_invalid={filtered_invalid}"
+                ),
+                positions=tuple(positions),
+                field_locators={
+                    name: evidence.locator
+                    for name, evidence in field_evidence.items()
+                },
+                identity_key=self._raw_text(
+                    notice_config.get("identity_key", "")
+                ).strip(),
+                field_evidence=field_evidence,
+                positions_complete=bool(
+                    metadata.get("positions_complete", False)
+                ),
+            )
+        ]

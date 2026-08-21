@@ -1,6 +1,8 @@
 import copy
 import importlib
 import json
+from datetime import date
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
@@ -139,6 +141,29 @@ class JsonApiConfigurationTests(SimpleTestCase):
                 with self.assertRaisesRegex(ValueError, name):
                     adapter.validate_source_config(make_source(config))
 
+    def test_fixed_notice_dates_must_be_valid_iso_dates(self) -> None:
+        for name in ("published_on", "deadline"):
+            config = copy.deepcopy(BASE_CONFIG)
+            config["notice"][name] = "not-a-date"
+            with self.subTest(name=name):
+                with self.assertRaisesRegex(ValueError, name):
+                    JsonApiSourceAdapter.validate_source_config(
+                        make_source(config)
+                    )
+
+    def test_official_notice_url_must_be_https_on_source_host(self) -> None:
+        for url in (
+            "http://careers.example.test/campus",
+            "https://jobs.example.test/campus",
+        ):
+            config = copy.deepcopy(BASE_CONFIG)
+            config["notice"]["official_notice_url"] = url
+            with self.subTest(url=url):
+                with self.assertRaisesRegex(ValueError, "official_notice_url"):
+                    JsonApiSourceAdapter.validate_source_config(
+                        make_source(config)
+                    )
+
 
 def json_response(payload: dict, *, status_code: int = 200) -> Mock:
     response = Mock()
@@ -270,6 +295,24 @@ class JsonApiFetchTests(SimpleTestCase):
         self.assertEqual(first.content_hash, second.content_hash)
 
     @patch("radar.collectors.json_api.requests.Session.request")
+    def test_fixed_notice_change_updates_the_canonical_hash(
+        self, request: Mock
+    ) -> None:
+        payload = {"Data": {"Count": 0, "Posts": []}}
+        request.side_effect = [json_response(payload), json_response(payload)]
+        changed_config = copy.deepcopy(BASE_CONFIG)
+        changed_config["notice"]["title"] = "Updated campus notice"
+
+        first = self.fetch(BASE_CONFIG)
+        second = self.fetch(changed_config)
+
+        self.assertNotEqual(first.content_hash, second.content_hash)
+        self.assertEqual(
+            json.loads(second.body)["_radar"]["notice"]["title"],
+            "Updated campus notice",
+        )
+
+    @patch("radar.collectors.json_api.requests.Session.request")
     def test_post_places_pagination_in_the_json_body(self, request: Mock) -> None:
         config = copy.deepcopy(BASE_CONFIG)
         config["method"] = "POST"
@@ -284,3 +327,101 @@ class JsonApiFetchTests(SimpleTestCase):
         self.assertEqual(call.kwargs["json"]["pageIndex"], 1)
         self.assertEqual(call.kwargs["json"]["pageSize"], 2)
         self.assertNotIn("params", call.kwargs)
+
+
+class JsonApiExtractionTests(SimpleTestCase):
+    def fixture_page(self, config: dict | None = None):
+        fixture = json.loads(
+            (Path(__file__).parent / "fixtures" / "json_api_page.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        effective_config = copy.deepcopy(config or BASE_CONFIG)
+        with patch(
+            "radar.collectors.json_api.requests.Session.request",
+            return_value=json_response(fixture),
+        ):
+            return JsonApiSourceAdapter().fetch(make_source(effective_config))
+
+    def extract(self, config: dict | None = None):
+        adapter = JsonApiSourceAdapter()
+        extract = getattr(adapter, "extract", None)
+        self.assertIsNotNone(extract, "JsonApiSourceAdapter.extract must exist")
+        effective_config = copy.deepcopy(config or BASE_CONFIG)
+        return extract(
+            make_source(effective_config),
+            self.fixture_page(effective_config),
+        )
+
+    def test_extract_groups_valid_positions_under_one_notice(self) -> None:
+        candidates = self.extract()
+
+        self.assertEqual(len(candidates), 1)
+        candidate = candidates[0]
+        self.assertEqual(candidate.identity_key, "example-campus-2027")
+        self.assertEqual(candidate.title, "Example 2027 校园招聘")
+        self.assertEqual(candidate.published_on, date(2026, 8, 20))
+        self.assertEqual(candidate.deadline, date(2026, 12, 31))
+        self.assertTrue(candidate.positions_complete)
+        self.assertEqual(
+            [position.position_key for position in candidate.positions],
+            ["2034975730101809152", "2034975730101809153"],
+        )
+
+    def test_extract_audits_skipped_and_filtered_position_counts(self) -> None:
+        candidate = self.extract()[0]
+
+        self.assertIn("rows=4", candidate.evidence_excerpt)
+        self.assertIn("retained=2", candidate.evidence_excerpt)
+        self.assertIn("skipped_missing_identity=1", candidate.evidence_excerpt)
+        self.assertIn("filtered_invalid=1", candidate.evidence_excerpt)
+
+    def test_extract_writes_exact_json_path_evidence(self) -> None:
+        candidate = self.extract()[0]
+        first = candidate.positions[0]
+
+        self.assertEqual(first.locator, "$.Data.Posts[0]")
+        self.assertEqual(
+            first.field_evidence["position_title"].locator,
+            "$.Data.Posts[0].RecruitPostName",
+        )
+        self.assertEqual(
+            first.field_evidence["location"].raw_value,
+            "深圳",
+        )
+        self.assertEqual(
+            first.field_evidence["application_link"].parsed_value,
+            "https://careers.example.test/jobs/2034975730101809152",
+        )
+        self.assertEqual(
+            candidate.field_evidence["title"].locator,
+            "$._radar.notice.title",
+        )
+        self.assertEqual(
+            candidate.field_evidence["deadline"].parsed_value,
+            "2026-12-31",
+        )
+
+    def test_published_on_can_come_from_a_mapped_chinese_date(self) -> None:
+        config = copy.deepcopy(BASE_CONFIG)
+        config["notice"].pop("published_on")
+        config["field_map"]["published_on"] = "LastUpdateTime"
+
+        candidate = self.extract(config)[0]
+
+        self.assertEqual(candidate.published_on, date(2026, 8, 20))
+        self.assertEqual(
+            candidate.field_evidence["published_on"].locator,
+            "$.Data.Posts[0].LastUpdateTime",
+        )
+        self.assertEqual(
+            candidate.field_evidence["published_on"].parsed_value,
+            "2026-08-20",
+        )
+
+    def test_bad_date_falls_back_to_none_without_aborting_extraction(self) -> None:
+        parse_date = getattr(JsonApiSourceAdapter, "_parse_date", None)
+        self.assertIsNotNone(parse_date, "JsonApiSourceAdapter._parse_date must exist")
+
+        self.assertIsNone(parse_date("2026/08/20"))
+        self.assertIsNone(parse_date("not-a-date"))
