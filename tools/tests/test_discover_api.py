@@ -92,6 +92,17 @@ class PureInferenceTests(unittest.TestCase):
 
         self.assertEqual(find_candidate_arrays(payload), [])
 
+    def test_rejects_location_dictionaries_when_one_key_matches_both_signals(self):
+        find_candidate_arrays = self.require_function("find_candidate_arrays")
+        payloads = (
+            {"cities": [{"code": "CO0009", "cityName": "上海"}]},
+            {"locations": [{"code": "SZ", "LocationName": "深圳"}]},
+        )
+
+        for payload in payloads:
+            with self.subTest(payload=payload):
+                self.assertEqual(find_candidate_arrays(payload), [])
+
     def test_finds_total_nearest_each_candidate_array(self):
         infer_total_path = self.require_function("infer_total_path")
 
@@ -301,6 +312,62 @@ class PureConfigurationAndReportingTests(unittest.TestCase):
         self.assertEqual(draft["total_path"], "Data.Count")
         self.assertEqual(draft["success"], {"path": "Code", "value": 200})
 
+    def test_detects_suspicious_query_and_nested_body_keys(self):
+        find_suspicious_request_inputs = self.require_function(
+            "find_suspicious_request_inputs"
+        )
+        request_url = (
+            "https://careers.example/api/jobs?pageIndex=1&token=query-secret"
+        )
+        request_body = {
+            "condition": {"kind": ["1"], "nonce": "nested-secret"},
+            "head": {"w-signature": "body-signature", "language": "zh_CN"},
+        }
+
+        paths = find_suspicious_request_inputs(request_url, request_body)
+
+        self.assertEqual(
+            paths,
+            [
+                "query.token",
+                "body.condition.nonce",
+                "body.head.w-signature",
+            ],
+        )
+
+    def test_config_redacts_suspicious_query_and_nested_body_values(self):
+        build_config_draft = self.require_function("build_config_draft")
+        query_secret = "query-secret-value"
+        body_secret = "nested-body-secret"
+        get_draft = build_config_draft(
+            "https://careers.tencent.com/tencentcareer/api/post/Query"
+            f"?pageIndex=1&pageSize=10&token={query_secret}&language=zh-cn",
+            "GET",
+            None,
+            TENCENT_PAYLOAD,
+            "Data.Posts",
+        )
+        post_draft = build_config_draft(
+            "https://careers.ctrip.com/api/hrrecruit/getJobAd",
+            "POST",
+            {
+                "condition": {"kind": ["1"], "nonce": body_secret},
+                "pager": {"index": "1", "size": "10"},
+            },
+            CTRIP_PAYLOAD,
+            "retValue.recruitJobAdList",
+        )
+
+        serialized = str(get_draft) + str(post_draft)
+
+        self.assertNotIn(query_secret, serialized)
+        self.assertNotIn(body_secret, serialized)
+        self.assertEqual(get_draft["params"]["token"], "[REDACTED]")
+        self.assertEqual(
+            post_draft["params"]["condition"]["nonce"],
+            "[REDACTED]",
+        )
+
     def test_endpoint_identity_deduplicates_pages_but_keeps_methods_distinct(self):
         endpoint_identity = self.require_function("endpoint_identity")
         page_one = "https://careers.example/api/jobs?pageIndex=1&pageSize=10"
@@ -357,10 +424,11 @@ class PureConfigurationAndReportingTests(unittest.TestCase):
                 {"tag_name": "button", "type": "submit", "inside_form": True}
             ),
         )
-        self.assertIsNone(
+        self.assertIn(
+            "表单",
             click_safety_reason(
                 {"tag_name": "button", "type": "button", "inside_form": True}
-            )
+            ),
         )
         self.assertIn(
             "新页面",
@@ -373,6 +441,94 @@ class PureConfigurationAndReportingTests(unittest.TestCase):
                 }
             ),
         )
+        self.assertIn(
+            "新页面",
+            click_safety_reason(
+                {
+                    "tag_name": "a",
+                    "type": "",
+                    "inside_form": False,
+                    "target": "recruitment-results",
+                }
+            ),
+        )
+
+    def test_browser_guards_are_installed_before_page_creation_and_block_effects(self):
+        create_guarded_page = self.require_function("create_guarded_page")
+        guard_violation_reason = self.require_function("guard_violation_reason")
+
+        class FakePopup:
+            def __init__(self):
+                self.closed = False
+
+            def close(self):
+                self.closed = True
+
+        class FakePage:
+            def __init__(self, events):
+                self.events = events
+                self.handlers = {}
+
+            def on(self, event, callback):
+                self.events.append(f"page.on:{event}")
+                self.handlers[event] = callback
+
+        class FakeContext:
+            def __init__(self):
+                self.events = []
+                self.handlers = {}
+                self.binding = None
+                self.init_script = ""
+                self.page = FakePage(self.events)
+
+            def expose_binding(self, name, callback):
+                self.events.append(f"expose_binding:{name}")
+                self.binding = callback
+
+            def add_init_script(self, *, script):
+                self.events.append("add_init_script")
+                self.init_script = script
+
+            def new_page(self):
+                self.events.append("new_page")
+                return self.page
+
+            def on(self, event, callback):
+                self.events.append(f"context.on:{event}")
+                self.handlers[event] = callback
+
+        context = FakeContext()
+        violations = []
+
+        page = create_guarded_page(context, violations)
+
+        self.assertIs(page, context.page)
+        self.assertEqual(
+            context.events,
+            [
+                "expose_binding:__officialCampusRadarViolation",
+                "add_init_script",
+                "new_page",
+                "context.on:page",
+                "page.on:popup",
+            ],
+        )
+        self.assertIn("HTMLFormElement.prototype.submit", context.init_script)
+        self.assertIn("requestSubmit", context.init_script)
+        self.assertIn("window.open", context.init_script)
+        self.assertIn("base[target]", context.init_script)
+
+        context.binding(None, "form.requestSubmit")
+        popup = FakePopup()
+        context.handlers["page"](popup)
+        second_popup = FakePopup()
+        page.handlers["popup"](second_popup)
+
+        self.assertTrue(popup.closed)
+        self.assertTrue(second_popup.closed)
+        reason = guard_violation_reason(violations)
+        self.assertIn("form.requestSubmit", reason)
+        self.assertIn("new page", reason)
 
     def test_classifies_only_minimal_header_success_as_connectable(self):
         classify_replay_results = self.require_function("classify_replay_results")
@@ -513,6 +669,56 @@ class PureConfigurationAndReportingTests(unittest.TestCase):
         self.assertNotIn("接入成功", report)
 
 
+    def test_markdown_report_renders_capture_omissions_with_redacted_urls(self):
+        render_markdown_report = self.require_function("render_markdown_report")
+        secret = "never-render-this-token"
+        target_results = [
+            {
+                "entry_url": "https://careers.example/jobs",
+                "final_url": "https://careers.example/jobs",
+                "page_status": 200,
+                "block_reason": None,
+                "error": None,
+                "exchanges": [
+                    {
+                        "method": "GET",
+                        "request_url": (
+                            "https://careers.example/api/jobs"
+                            f"?token={secret}&page=1"
+                        ),
+                        "response_status": 200,
+                        "capture_note": "response body exceeded capture limit",
+                    },
+                    {
+                        "method": "POST",
+                        "request_url": "https://careers.example/api/search",
+                        "response_status": 200,
+                        "capture_note": "response JSON was malformed",
+                    },
+                    {
+                        "method": "GET",
+                        "request_url": "https://careers.example/api/blocked",
+                        "response_status": 403,
+                        "capture_note": "response body was unreadable",
+                    },
+                ],
+                "candidates": [],
+            }
+        ]
+
+        report = render_markdown_report(
+            target_results,
+            generated_at="2026-08-21T10:00:00+08:00",
+        )
+
+        self.assertIn("### Capture notes", report)
+        self.assertIn("response body exceeded capture limit", report)
+        self.assertIn("response JSON was malformed", report)
+        self.assertIn("response body was unreadable", report)
+        self.assertIn("%5BREDACTED%5D", report)
+        self.assertNotIn(secret, report)
+
+
 class OfflineBoundaryTests(unittest.TestCase):
     def require_function(self, name):
         function = load_function(name)
@@ -566,6 +772,119 @@ class OfflineBoundaryTests(unittest.TestCase):
             "https://careers.tencent.com/tencentcareer/api/post/Query",
         )
 
+    def test_capture_analysis_preserves_material_filter_variants(self):
+        analyze_captured_target = self.require_function("analyze_captured_target")
+        endpoint = "https://careers.tencent.com/tencentcareer/api/post/Query"
+        capture = {
+            "exchanges": [
+                {
+                    "request_url": f"{endpoint}?pageIndex=1&pageSize=10&attrId=",
+                    "method": "GET",
+                    "request_headers": {"Accept": "application/json"},
+                    "request_body": None,
+                    "request_json": None,
+                    "response_status": 200,
+                    "content_type": "application/json",
+                    "response_json": TENCENT_PAYLOAD,
+                },
+                {
+                    "request_url": (
+                        f"{endpoint}?pageIndex=1&pageSize=10&attrId=campus"
+                    ),
+                    "method": "GET",
+                    "request_headers": {"Accept": "application/json"},
+                    "request_body": None,
+                    "request_json": None,
+                    "response_status": 200,
+                    "content_type": "application/json",
+                    "response_json": TENCENT_PAYLOAD,
+                },
+            ]
+        }
+
+        candidates = analyze_captured_target(capture)
+
+        self.assertEqual(len(candidates), 2)
+        self.assertEqual(
+            {candidate["config"]["params"]["attrId"] for candidate in candidates},
+            {"", "campus"},
+        )
+
+    def test_endpoint_budget_replays_only_campus_preferred_material_variant(self):
+        run_target_sequence = self.require_function("run_target_sequence")
+        TargetSpec = load_function("TargetSpec")
+        self.assertIsNotNone(TargetSpec)
+        endpoint = "https://careers.tencent.com/tencentcareer/api/post/Query"
+
+        def exchange(query):
+            return {
+                "request_url": f"{endpoint}?{query}",
+                "method": "GET",
+                "request_headers": {"Accept": "application/json"},
+                "request_body": None,
+                "request_json": None,
+                "response_status": 200,
+                "content_type": "application/json",
+                "response_json": TENCENT_PAYLOAD,
+            }
+
+        capture = {
+            "entry_url": "https://careers.tencent.com/search.html",
+            "final_url": "https://careers.tencent.com/search.html",
+            "page_status": 200,
+            "block_reason": None,
+            "error": None,
+            "exchanges": [
+                exchange("pageIndex=1&pageSize=10&attrId="),
+                exchange("pageIndex=2&pageSize=10&attrId="),
+                exchange("pageIndex=1&pageSize=10&attrId=campus"),
+            ],
+        }
+        replayed_filters = []
+
+        def replay_candidate(candidate):
+            replayed_filters.append(candidate["config"]["params"]["attrId"])
+            return [
+                {"name": "完整头 + Cookie（基线）", "equivalent": True},
+                {"name": "去掉疑似签名头", "equivalent": True},
+                {"name": "去掉 Cookie", "equivalent": True},
+                {"name": "同时去掉两者", "equivalent": True},
+                {"name": "最简合规头", "equivalent": True},
+            ]
+
+        results = run_target_sequence(
+            [TargetSpec("https://careers.tencent.com/search.html")],
+            capture_func=lambda target: capture,
+            replay_func=replay_candidate,
+            sleep_fn=lambda seconds: None,
+        )
+
+        candidates = results[0]["candidates"]
+        self.assertEqual(len(candidates), 2)
+        self.assertEqual(replayed_filters, ["campus"])
+        self.assertLessEqual(
+            sum(len(candidate["replays"]) for candidate in candidates),
+            6,
+        )
+        self.assertEqual(
+            {candidate["verdict"]["status"] for candidate in candidates},
+            {"可接入", "未重放"},
+        )
+        self.assertTrue(
+            all(candidate["endpoint_replay_budget_limit"] == 6 for candidate in candidates)
+        )
+        self.assertTrue(
+            all(candidate["endpoint_replay_budget_used"] == 5 for candidate in candidates)
+        )
+        render_markdown_report = self.require_function("render_markdown_report")
+        report = render_markdown_report(
+            results,
+            generated_at="2026-08-21T10:00:00+08:00",
+        )
+        self.assertIn('"attrId": ""', report)
+        self.assertIn('"attrId": "campus"', report)
+        self.assertIn("5 / 6", report)
+
     def test_replay_ladder_uses_exactly_five_sequential_requests(self):
         execute_replay_ladder = self.require_function("execute_replay_ladder")
         calls = []
@@ -609,6 +928,82 @@ class OfflineBoundaryTests(unittest.TestCase):
             calls[-1]["headers"]["user-agent"],
             "OfficialCampusRadar/0.1 (local low-frequency collector)",
         )
+
+    def test_suspicious_request_variant_is_redacted_and_never_replayed(self):
+        analyze_captured_target = self.require_function("analyze_captured_target")
+        execute_replay_ladder = self.require_function("execute_replay_ladder")
+        render_markdown_report = self.require_function("render_markdown_report")
+        run_target_sequence = self.require_function("run_target_sequence")
+        TargetSpec = load_function("TargetSpec")
+        self.assertIsNotNone(TargetSpec)
+        secret = "frontend-generated-secret"
+        request_url = (
+            "https://careers.tencent.com/tencentcareer/api/post/Query"
+            f"?pageIndex=1&pageSize=10&attrId=campus&traceId={secret}"
+        )
+        capture = {
+            "entry_url": "https://careers.tencent.com/search.html",
+            "final_url": "https://careers.tencent.com/search.html",
+            "page_status": 200,
+            "block_reason": None,
+            "error": None,
+            "exchanges": [
+                {
+                    "request_url": request_url,
+                    "method": "GET",
+                    "request_headers": {"Accept": "application/json"},
+                    "request_body": None,
+                    "request_json": None,
+                    "response_status": 200,
+                    "content_type": "application/json",
+                    "response_json": TENCENT_PAYLOAD,
+                }
+            ],
+        }
+        analyzed = analyze_captured_target(capture)
+        direct_calls = []
+
+        def direct_requester(**kwargs):
+            direct_calls.append(kwargs)
+            return {
+                "http_status": 200,
+                "payload": TENCENT_PAYLOAD,
+                "note": "HTTP 200 JSON",
+            }
+
+        direct_replays = execute_replay_ladder(
+            analyzed[0],
+            requester=direct_requester,
+            sleep_fn=lambda seconds: None,
+        )
+        replayed = []
+
+        def replay_candidate(candidate):
+            replayed.append(candidate)
+            return []
+
+        results = run_target_sequence(
+            [TargetSpec("https://careers.tencent.com/search.html")],
+            capture_func=lambda target: capture,
+            replay_func=replay_candidate,
+            sleep_fn=lambda seconds: None,
+        )
+        candidate = results[0]["candidates"][0]
+        report = render_markdown_report(
+            results,
+            generated_at="2026-08-21T10:00:00+08:00",
+        )
+
+        self.assertEqual(direct_replays, [])
+        self.assertEqual(direct_calls, [])
+        self.assertEqual(replayed, [])
+        self.assertEqual(candidate["verdict"]["status"], "不可接入")
+        self.assertIn("签名", candidate["verdict"]["reason"])
+        self.assertEqual(candidate["endpoint_replay_budget_used"], 0)
+        self.assertNotIn(secret, candidate["request_url"])
+        self.assertNotIn(secret, str(candidate["config"]))
+        self.assertNotIn(secret, report)
+        self.assertIn("[REDACTED]", report)
 
     def test_target_sequence_is_serial_and_delays_at_least_three_seconds(self):
         run_target_sequence = self.require_function("run_target_sequence")

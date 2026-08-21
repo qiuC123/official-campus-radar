@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import hashlib
 import json
 import math
 import re
@@ -13,11 +14,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, TextIO
-from urllib.parse import parse_qsl, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 
 USER_AGENT = "OfficialCampusRadar/0.1 (local low-frequency collector)"
 MAX_JSON_BODY_BYTES = 2 * 1024 * 1024
+MAX_REPLAYS_PER_ENDPOINT = 6
+REPLAY_LADDER_REQUESTS = 5
+REDACTED_VALUE = "[REDACTED]"
 
 TITLE_KEY = re.compile(r"title|name|job|post|position", re.IGNORECASE)
 LOCATION_KEY = re.compile(r"city|location|area|place|region", re.IGNORECASE)
@@ -32,6 +36,50 @@ DISCRIMINATOR_KEY = re.compile(
     r"kind|campus|graduate|school|workyears?|experience|intern|recruit|attr|type",
     re.IGNORECASE,
 )
+CAMPUS_FILTER = re.compile(
+    r"campus|school|graduate|intern|校招|校园|应届|实习",
+    re.IGNORECASE,
+)
+EPHEMERAL_REQUEST_KEY = re.compile(
+    r"^(?:_|t|ts|timestamp|cachebuster)$",
+    re.IGNORECASE,
+)
+
+INTERACTION_GUARD_SCRIPT = r"""
+(() => {
+  const report = (kind) => {
+    try { window.__officialCampusRadarViolation(kind); } catch (_) {}
+  };
+  HTMLFormElement.prototype.submit = function () {
+    report('form.submit');
+  };
+  HTMLFormElement.prototype.requestSubmit = function () {
+    report('form.requestSubmit');
+  };
+  window.open = function () {
+    report('window.open');
+    return null;
+  };
+  window.addEventListener('submit', (event) => {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    report('form submit event');
+  }, true);
+  window.addEventListener('click', (event) => {
+    const source = event.target instanceof Element ? event.target : null;
+    const link = source ? source.closest('a,area') : null;
+    if (!link) return;
+    const base = document.querySelector('base[target]');
+    const target = (link.getAttribute('target') ||
+      (base ? base.getAttribute('target') : '') || '').toLowerCase();
+    if (target && !['_self', '_parent', '_top'].includes(target)) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      report('inherited/new-page target');
+    }
+  }, true);
+})();
+"""
 
 
 @dataclass(frozen=True)
@@ -64,7 +112,11 @@ def _join_path(parent: str, key: str) -> str:
 
 
 def _candidate_score(keys: set[str], row_count: int) -> int:
-    title_count = sum(bool(TITLE_KEY.search(key)) for key in keys)
+    title_count = sum(
+        bool(TITLE_KEY.search(key))
+        and not bool(LOCATION_KEY.search(key) or TIME_KEY.search(key))
+        for key in keys
+    )
     location_count = sum(bool(LOCATION_KEY.search(key)) for key in keys)
     time_count = sum(bool(TIME_KEY.search(key)) for key in keys)
     identity_count = sum(
@@ -95,11 +147,18 @@ def find_candidate_arrays(payload: object) -> list[CandidateArray]:
         if value and all(isinstance(item, dict) for item in value):
             rows = tuple(value)
             keys = {str(key) for row in rows for key in row}
-            has_title = any(TITLE_KEY.search(key) for key in keys)
-            has_context = any(
-                LOCATION_KEY.search(key) or TIME_KEY.search(key) for key in keys
-            )
-            if has_title and has_context:
+            title_keys = {
+                key
+                for key in keys
+                if TITLE_KEY.search(key)
+                and not (LOCATION_KEY.search(key) or TIME_KEY.search(key))
+            }
+            context_keys = {
+                key
+                for key in keys
+                if LOCATION_KEY.search(key) or TIME_KEY.search(key)
+            }
+            if title_keys and context_keys and title_keys.isdisjoint(context_keys):
                 candidates.append(
                     CandidateArray(
                         path=path,
@@ -401,6 +460,8 @@ def _json_path_value(payload: object, path: str) -> object:
 def _query_params(request_url: str) -> dict[str, object]:
     result: dict[str, object] = {}
     for key, value in parse_qsl(urlsplit(request_url).query, keep_blank_values=True):
+        if SIGNATURE_HEADER.search(key):
+            value = REDACTED_VALUE
         existing = result.get(key)
         if existing is None or (existing == "" and key not in result):
             result[key] = value
@@ -409,6 +470,70 @@ def _query_params(request_url: str) -> dict[str, object]:
         else:
             result[key] = [existing, value]
     return result
+
+
+def _find_suspicious_body_keys(
+    value: object,
+    path: str,
+    found: list[str],
+) -> None:
+    if isinstance(value, dict):
+        for key, child in value.items():
+            child_path = _join_path(path, str(key))
+            if SIGNATURE_HEADER.search(str(key)):
+                found.append(child_path)
+            else:
+                _find_suspicious_body_keys(child, child_path, found)
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            _find_suspicious_body_keys(child, f"{path}[{index}]", found)
+
+
+def find_suspicious_request_inputs(
+    request_url: str,
+    request_body: object | None,
+) -> list[str]:
+    """Return query/body paths whose keys look signed or credential-like."""
+
+    found = [
+        f"query.{key}"
+        for key, _value in parse_qsl(
+            urlsplit(request_url).query,
+            keep_blank_values=True,
+        )
+        if SIGNATURE_HEADER.search(key)
+    ]
+    _find_suspicious_body_keys(request_body, "body", found)
+    return found
+
+
+def redact_suspicious_values(value: object) -> object:
+    if isinstance(value, dict):
+        return {
+            str(key): (
+                REDACTED_VALUE
+                if SIGNATURE_HEADER.search(str(key))
+                else redact_suspicious_values(child)
+            )
+            for key, child in value.items()
+        }
+    if isinstance(value, list):
+        return [redact_suspicious_values(child) for child in value]
+    return copy.deepcopy(value)
+
+
+def redact_request_url(request_url: str) -> str:
+    parsed = urlsplit(request_url)
+    redacted_query = urlencode(
+        [
+            (key, REDACTED_VALUE if SIGNATURE_HEADER.search(key) else value)
+            for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+        ],
+        doseq=True,
+    )
+    return urlunsplit(
+        (parsed.scheme, parsed.netloc, parsed.path, redacted_query, parsed.fragment)
+    )
 
 
 def _integer_or_default(value: object, default: int) -> int:
@@ -436,7 +561,7 @@ def build_config_draft(
     if normalized_method == "GET":
         params = _query_params(request_url)
     elif isinstance(request_body, dict):
-        params = copy.deepcopy(request_body)
+        params = redact_suspicious_values(request_body)
     else:
         params = {}
 
@@ -498,6 +623,67 @@ def endpoint_identity(method: str, request_url: str) -> tuple[str, str]:
     return method.upper(), endpoint
 
 
+def _material_request_value(value: object) -> object:
+    if isinstance(value, dict):
+        return {
+            str(key): _material_request_value(child)
+            for key, child in value.items()
+            if _pagination_role(str(key)) is None
+            and not EPHEMERAL_REQUEST_KEY.fullmatch(str(key))
+        }
+    if isinstance(value, list):
+        return [_material_request_value(child) for child in value]
+    return value
+
+
+def _material_request_document(
+    request_url: str,
+    request_body: object | None,
+) -> dict[str, object]:
+    material_query = [
+        (
+            key,
+            REDACTED_VALUE if SIGNATURE_HEADER.search(key) else value,
+        )
+        for key, value in parse_qsl(
+            urlsplit(request_url).query,
+            keep_blank_values=True,
+        )
+        if _pagination_role(key) is None
+        and not EPHEMERAL_REQUEST_KEY.fullmatch(key)
+    ]
+    return {
+        "query": sorted(material_query),
+        "body": _material_request_value(redact_suspicious_values(request_body)),
+    }
+
+
+def request_variant_identity(
+    method: str,
+    request_url: str,
+    request_body: object | None,
+) -> tuple[str, str, str]:
+    """Identify material filter variants while ignoring pagination/cache values."""
+
+    material = _material_request_document(request_url, request_body)
+    canonical = json.dumps(
+        material,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return (
+        *endpoint_identity(method, request_url),
+        hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+    )
+
+
+def _campus_filter_score(request_url: str, request_body: object | None) -> int:
+    material = _material_request_document(request_url, request_body)
+    text = json.dumps(material, ensure_ascii=False, sort_keys=True)
+    return len(CAMPUS_FILTER.findall(text))
+
+
 def detect_page_block(
     http_status: int | None,
     final_url: str,
@@ -535,17 +721,53 @@ def detect_page_block(
 def click_safety_reason(metadata: dict[str, object]) -> str | None:
     """Reject selectors whose target could submit a form."""
 
-    tag_name = str(metadata.get("tag_name", "")).casefold()
     element_type = str(metadata.get("type", "")).casefold()
     inside_form = bool(metadata.get("inside_form"))
     target = str(metadata.get("target", "")).casefold()
-    if target == "_blank":
+    if target and target not in {"_self", "_parent", "_top"}:
         return "选择器会打开新页面；每个目标只允许打开一个页面"
     if element_type in {"submit", "image"}:
         return "选择器指向表单提交控件；工具不会提交任何数据"
-    if inside_form and tag_name == "button" and not element_type:
-        return "选择器指向可能提交表单的按钮；请使用明确的非提交控件"
+    if inside_form:
+        return "选择器位于表单内；工具不会与表单交互"
     return None
+
+
+def _record_guard_violation(violations: list[str], message: object) -> None:
+    normalized = str(message or "unknown forbidden interaction").strip()
+    if normalized and normalized not in violations:
+        violations.append(normalized)
+
+
+def create_guarded_page(context, violations: list[str]):
+    """Create the sole page after installing pre-navigation interaction guards."""
+
+    def report_violation(_source, message) -> None:
+        _record_guard_violation(violations, message)
+
+    context.expose_binding(
+        "__officialCampusRadarViolation",
+        report_violation,
+    )
+    context.add_init_script(script=INTERACTION_GUARD_SCRIPT)
+    page = context.new_page()
+
+    def block_new_page(new_page) -> None:
+        _record_guard_violation(violations, "new page blocked")
+        try:
+            new_page.close()
+        except Exception:
+            pass
+
+    context.on("page", block_new_page)
+    page.on("popup", block_new_page)
+    return page
+
+
+def guard_violation_reason(violations: list[str]) -> str | None:
+    if not violations:
+        return None
+    return "已阻止禁止的表单/新页面交互：" + ", ".join(violations)
 
 
 def classify_replay_results(
@@ -712,6 +934,26 @@ def render_markdown_report(
                 f"- Page status: `{target.get('page_status', '—')}`",
             ]
         )
+        exchanges = target.get("exchanges", [])
+        capture_notes = []
+        if isinstance(exchanges, list):
+            capture_notes = [
+                exchange
+                for exchange in exchanges
+                if isinstance(exchange, dict) and exchange.get("capture_note")
+            ]
+        if capture_notes:
+            lines.extend(["", "### Capture notes", ""])
+            for exchange in capture_notes:
+                method = str(exchange.get("method", ""))
+                request_url = redact_request_url(
+                    str(exchange.get("request_url", ""))
+                )
+                response_status = exchange.get("response_status", "—")
+                note = _markdown_cell(exchange.get("capture_note"))
+                lines.append(
+                    f"- `{method} {request_url}` / `{response_status}` — {note}"
+                )
         block_reason = target.get("block_reason")
         error = target.get("error")
         if block_reason or error:
@@ -760,6 +1002,12 @@ def render_markdown_report(
                     f"- Total path: `{candidate.get('total_path') or 'not inferred'}`",
                     f"- Confidence score: `{candidate.get('confidence', '—')}`",
                     (
+                        "- Shared endpoint replay budget: `"
+                        f"{candidate.get('endpoint_replay_budget_used', 0)} / "
+                        f"{candidate.get('endpoint_replay_budget_limit', MAX_REPLAYS_PER_ENDPOINT)}"
+                        "`"
+                    ),
+                    (
                         "- Captured request header names: `"
                         f"{', '.join(candidate.get('header_names', [])) or 'none'}` "
                         "(values redacted)"
@@ -767,6 +1015,10 @@ def render_markdown_report(
                     (
                         f"- Replay verdict: **{verdict.get('status', 'not verified')}** "
                         f"— {_markdown_cell(verdict.get('reason', ''))}"
+                    ),
+                    (
+                        "- Suspicious query/body paths: `"
+                        f"{', '.join(candidate.get('suspicious_inputs', [])) or 'none'}`"
                     ),
                     "",
                     "#### Replay verification",
@@ -832,9 +1084,9 @@ def render_markdown_report(
 
 
 def analyze_captured_target(capture: dict[str, object]) -> list[dict[str, object]]:
-    """Turn plain captured exchanges into one ranked candidate per endpoint."""
+    """Turn captures into ranked candidates without discarding filter variants."""
 
-    best_by_endpoint: dict[tuple[str, str], dict[str, object]] = {}
+    best_by_variant: dict[tuple[str, str, str], dict[str, object]] = {}
     exchanges = capture.get("exchanges", [])
     if not isinstance(exchanges, list):
         return []
@@ -847,6 +1099,11 @@ def analyze_captured_target(capture: dict[str, object]) -> list[dict[str, object
         if response_payload is None or not request_url:
             continue
         for candidate_array in find_candidate_arrays(response_payload):
+            suspicious_inputs = find_suspicious_request_inputs(
+                request_url,
+                exchange.get("request_json"),
+            )
+            redacted_json = redact_suspicious_values(exchange.get("request_json"))
             config = build_config_draft(
                 request_url,
                 method,
@@ -862,10 +1119,14 @@ def analyze_captured_target(capture: dict[str, object]) -> list[dict[str, object
                 request_headers = {}
             candidate: dict[str, object] = {
                 "method": method,
-                "request_url": request_url,
+                "request_url": redact_request_url(request_url),
                 "request_headers": copy.deepcopy(request_headers),
-                "request_body": exchange.get("request_body"),
-                "request_json": copy.deepcopy(exchange.get("request_json")),
+                "request_body": redacted_json,
+                "request_json": redacted_json,
+                "_replay_url": request_url,
+                "_replay_body": exchange.get("request_body"),
+                "_replay_json": copy.deepcopy(exchange.get("request_json")),
+                "suspicious_inputs": suspicious_inputs,
                 "response_status": exchange.get("response_status"),
                 "content_type": exchange.get("content_type", ""),
                 "list_path": candidate_array.path,
@@ -873,6 +1134,10 @@ def analyze_captured_target(capture: dict[str, object]) -> list[dict[str, object
                     response_payload, candidate_array.path
                 ),
                 "confidence": candidate_array.score,
+                "campus_filter_score": _campus_filter_score(
+                    request_url,
+                    exchange.get("request_json"),
+                ),
                 "header_names": sorted(
                     {str(key).strip().lower() for key in request_headers}
                 ),
@@ -887,15 +1152,20 @@ def analyze_captured_target(capture: dict[str, object]) -> list[dict[str, object
                     for row in candidate_array.rows[:5]
                 ],
             }
-            identity = endpoint_identity(method, request_url)
-            current = best_by_endpoint.get(identity)
+            identity = request_variant_identity(
+                method,
+                request_url,
+                exchange.get("request_json"),
+            )
+            current = best_by_variant.get(identity)
             if current is None or candidate_array.score > int(
                 current.get("confidence", 0)
             ):
-                best_by_endpoint[identity] = candidate
+                best_by_variant[identity] = candidate
     return sorted(
-        best_by_endpoint.values(),
+        best_by_variant.values(),
         key=lambda candidate: (
+            -int(candidate.get("campus_filter_score", 0)),
             -int(candidate.get("confidence", 0)),
             str(candidate.get("request_url", "")),
         ),
@@ -930,6 +1200,9 @@ def execute_replay_ladder(
 ) -> list[dict[str, object]]:
     """Execute the fixed five-request ladder sequentially for one endpoint."""
 
+    if candidate.get("suspicious_inputs"):
+        return []
+
     raw_headers = candidate.get("request_headers", {})
     if not isinstance(raw_headers, dict):
         raw_headers = {}
@@ -938,10 +1211,10 @@ def execute_replay_ladder(
     for index, profile in enumerate(profiles):
         response = requester(
             method=str(candidate.get("method", "GET")),
-            url=str(candidate.get("request_url", "")),
+            url=str(candidate.get("_replay_url", candidate.get("request_url", ""))),
             headers=profile.headers,
-            request_json=candidate.get("request_json"),
-            request_body=candidate.get("request_body"),
+            request_json=candidate.get("_replay_json", candidate.get("request_json")),
+            request_body=candidate.get("_replay_body", candidate.get("request_body")),
         )
         http_status = response.get("http_status")
         equivalent, note = _evaluate_replay_payload(
@@ -982,12 +1255,55 @@ def run_target_sequence(
         target_result = dict(capture)
         candidates: list[dict[str, object]] = []
         if not capture.get("block_reason") and not capture.get("error"):
+            grouped: dict[tuple[str, str], list[dict[str, object]]] = {}
             for raw_candidate in analyze_captured_target(capture):
-                candidate = dict(raw_candidate)
-                replays = replay_func(candidate)
-                candidate["replays"] = replays
-                candidate["verdict"] = classify_replay_results(replays)
-                candidates.append(candidate)
+                key = endpoint_identity(
+                    str(raw_candidate.get("method", "GET")),
+                    str(raw_candidate.get("request_url", "")),
+                )
+                grouped.setdefault(key, []).append(dict(raw_candidate))
+            for endpoint_candidates in grouped.values():
+                replay_used = 0
+                ladder_attempted = False
+                for candidate in endpoint_candidates:
+                    if candidate.get("suspicious_inputs"):
+                        candidate["replays"] = []
+                        candidate["verdict"] = {
+                            "status": "不可接入",
+                            "reason": (
+                                "查询或请求正文含疑似签名/凭据字段；"
+                                "未发出重放请求，也未尝试移除或逆向"
+                            ),
+                        }
+                    elif (
+                        not ladder_attempted
+                        and MAX_REPLAYS_PER_ENDPOINT - replay_used
+                        >= REPLAY_LADDER_REQUESTS
+                    ):
+                        replays = replay_func(candidate)
+                        if len(replays) > MAX_REPLAYS_PER_ENDPOINT - replay_used:
+                            raise DiscoveryError(
+                                "endpoint replay budget exceeded the hard limit of 6"
+                            )
+                        replay_used += len(replays)
+                        ladder_attempted = True
+                        candidate["replays"] = replays
+                        candidate["verdict"] = classify_replay_results(replays)
+                    else:
+                        candidate["replays"] = []
+                        candidate["verdict"] = {
+                            "status": "未重放",
+                            "reason": (
+                                "共享端点预算只允许一个完整五级重放梯度；"
+                                "该过滤变体已保留但未发出请求"
+                            ),
+                        }
+                for candidate in endpoint_candidates:
+                    candidate["endpoint_replay_budget_used"] = replay_used
+                    candidate["endpoint_replay_budget_limit"] = (
+                        MAX_REPLAYS_PER_ENDPOINT
+                    )
+                    candidates.append(candidate)
         target_result["candidates"] = candidates
         results.append(target_result)
     return results
@@ -1019,6 +1335,7 @@ def capture_target(target: TargetSpec) -> dict[str, object]:
         "exchanges": [],
     }
     exchanges: list[dict[str, object]] = []
+    interaction_violations: list[str] = []
 
     def record_response(response) -> None:
         request = response.request
@@ -1087,7 +1404,7 @@ def capture_target(target: TargetSpec) -> dict[str, object]:
                 ) from error
             try:
                 context = browser.new_context()
-                page = context.new_page()
+                page = create_guarded_page(context, interaction_violations)
                 page.on("response", record_response)
                 navigation = page.goto(
                     target.url,
@@ -1096,13 +1413,14 @@ def capture_target(target: TargetSpec) -> dict[str, object]:
                 )
                 result["page_status"] = navigation.status if navigation else None
                 page.wait_for_timeout(target.wait_seconds * 1000)
-                if target.scroll:
+                result["error"] = guard_violation_reason(interaction_violations)
+                if target.scroll and not result["error"]:
                     for _ in range(3):
                         page.evaluate(
                             "window.scrollTo(0, document.body.scrollHeight)"
                         )
                         page.wait_for_timeout(750)
-                if target.click_selector:
+                if target.click_selector and not result["error"]:
                     locator = page.locator(target.click_selector).first
                     locator.wait_for(state="visible", timeout=5_000)
                     metadata = locator.evaluate(
@@ -1111,7 +1429,9 @@ def capture_target(target: TargetSpec) -> dict[str, object]:
                           tag_name: element.tagName.toLowerCase(),
                           type: (element.getAttribute('type') || element.type || '').toLowerCase(),
                           inside_form: Boolean(element.closest('form')),
-                          target: (element.getAttribute('target') || '').toLowerCase()
+                          target: (element.getAttribute('target') ||
+                            (document.querySelector('base[target]') || {}).target ||
+                            '').toLowerCase()
                         })
                         """
                     )
@@ -1121,6 +1441,9 @@ def capture_target(target: TargetSpec) -> dict[str, object]:
                     else:
                         locator.click(timeout=5_000)
                         page.wait_for_timeout(1_500)
+                        result["error"] = guard_violation_reason(
+                            interaction_violations
+                        )
                 result["final_url"] = page.url
                 try:
                     visible_text = page.locator("body").inner_text(timeout=5_000)

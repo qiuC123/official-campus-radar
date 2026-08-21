@@ -27,8 +27,10 @@ py -3.13 tools/discover_api.py --url https://careers.example/jobs `
 ```
 
 `--click "<CSS selector>"` may click one visible navigation/filter control.
-The tool rejects form-submit controls and links that would open another page.
-It never fills a field or submits a form.
+The tool rejects every control inside a form and links whose explicit or
+inherited target could open another page. Guards installed before navigation
+also block programmatic form submission, `window.open`, and popups. It never
+fills a field or submits a form.
 
 For a batch:
 
@@ -65,24 +67,34 @@ reported without a Python traceback.
 The tool records request/response metadata, retains JSON response bodies only
 up to 2 MiB, ranks arrays that look like job records, infers total/success and
 pagination paths, proposes a field map, and samples up to five raw records.
-Recruitment-discriminator values such as `kindName` and
-`RequireWorkYearsName` remain in those samples for human review.
+Capture omissions (including oversized, malformed, or unreadable JSON) appear
+in the report. Recruitment-discriminator values such as `kindName` and
+`RequireWorkYearsName` remain in samples for human review.
 
-Each candidate receives five sequential replay attempts: the captured headers,
-then removal of signature-like headers, Cookie, both groups, and finally only
-`accept`, `content-type`, and the transparent low-frequency user agent. Only a
-non-empty equivalent result under the minimal compliant headers is labeled
-`可接入`. The configuration block contains observed or inferred API fields;
-human review must still confirm campus scope and add the adapter's notice
-metadata.
+Pagination-only observations are collapsed, while materially different query
+or body filters remain as separate candidates. Within the shared six-request
+budget for an endpoint, one preferred safe variant receives the full five-step
+replay ladder: captured headers, removal of signature-like headers, Cookie,
+both groups, and finally only `accept`, `content-type`, and the transparent
+low-frequency user agent. Other material variants remain visible and are
+marked as not replayed. Only a non-empty equivalent result under the minimal
+compliant headers is labeled `可接入`.
+
+Query or nested body keys matching signature/credential indicators such as
+`sign`, `token`, `payload`, `nonce`, `trace`, or `w-` are reported by path.
+Their values are redacted from URLs and configuration drafts, and that request
+variant is conservatively marked non-integrable without replay, field removal,
+or reverse engineering. Human review must still confirm campus scope and add
+the adapter's notice metadata.
 
 Discovery is deliberately low-frequency and non-evasive:
 
 - Each target opens one headless Chromium page once.
 - Targets run serially with at least three seconds between them; the tool never
   performs same-domain concurrency.
-- Each endpoint is de-duplicated before its five replays, below the hard limit
-  of six requests per endpoint.
+- Pagination observations are de-duplicated without discarding material filter
+  variants; one full five-request ladder stays within the endpoint-wide hard
+  limit of six replay requests.
 - The tool does not log in, accept credentials, submit forms, bypass CAPTCHA,
   use stealth or proxies, scan paths, brute-force parameters, or reproduce
   frontend signatures. A login wall, CAPTCHA, abnormal status, or empty blocked
