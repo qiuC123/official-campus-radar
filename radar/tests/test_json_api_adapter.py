@@ -274,11 +274,63 @@ class JsonApiConfigurationTests(SimpleTestCase):
                         make_source(config)
                     )
 
+    def test_pagination_paths_reject_equal_or_prefix_overlap(self) -> None:
+        cases = [
+            ("pageIndex", "pageIndex"),
+            ("pager", "pager.size"),
+            ("pager.index", "pager"),
+        ]
+        for page_param, size_param in cases:
+            with self.subTest(
+                page_param=page_param,
+                size_param=size_param,
+            ):
+                config = copy.deepcopy(BASE_CONFIG)
+                config["pagination"].update(
+                    {
+                        "page_param": page_param,
+                        "size_param": size_param,
+                    }
+                )
+                with self.assertRaisesRegex(ValueError, "pagination.*overlap"):
+                    JsonApiSourceAdapter.validate_source_config(
+                        make_source(config)
+                    )
+
+    def test_sibling_pagination_paths_are_accepted(self) -> None:
+        config = copy.deepcopy(BASE_CONFIG)
+        config["pagination"].update(
+            {
+                "page_param": "pager.index",
+                "size_param": "pager.size",
+            }
+        )
+
+        self.assertIsNone(
+            JsonApiSourceAdapter.validate_source_config(make_source(config))
+        )
+
     def test_request_delay_must_be_positive(self) -> None:
         config = merge_config({"request_delay_seconds": 0})
 
         with self.assertRaisesRegex(ValueError, "request_delay_seconds"):
             JsonApiSourceAdapter.validate_source_config(make_source(config))
+
+    def test_request_delay_must_be_finite(self) -> None:
+        non_finite_delays = [
+            float("nan"),
+            float("inf"),
+            float("-inf"),
+        ]
+        for delay in non_finite_delays:
+            with self.subTest(delay=delay):
+                config = merge_config({"request_delay_seconds": delay})
+                with self.assertRaisesRegex(
+                    ValueError, "request_delay_seconds"
+                ):
+                    JsonApiSourceAdapter.validate_source_config(
+                        make_source(config)
+                    )
 
     def test_invalid_configuration_names_the_broken_contract(self) -> None:
         adapter = adapter_type()

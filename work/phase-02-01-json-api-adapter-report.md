@@ -107,3 +107,33 @@ exit 0（仅 Git 的既有 LF/CRLF 工作副本提示）
 ```
 
 本轮未修改模型、迁移、准入状态机、发布/formal 门控、HTML 适配器或前端。
+
+## Fix Round 3/5：分页路径关系与有限延迟
+
+- 配置准入现在拒绝 `pagination.page_param` 与 `pagination.size_param` 相等或互为点号路径前缀。这样连续 `_set_path` 不会再覆盖先写入的页码或页大小；`pager.index` / `pager.size` 等共享父对象的兄弟路径仍然有效。
+- `request_delay_seconds` 除了严格大于零，现在还必须通过 `math.isfinite`；`NaN`、`+Inf`、`-Inf` 均在抓取前被拒绝。
+
+最新隔离验证结果：
+
+```text
+python.exe manage.py test radar.tests.test_json_api_adapter -v 2
+Found 55 test(s).
+Ran 55 tests in 0.607s
+OK
+
+python.exe manage.py test radar.tests -v 2
+Found 163 test(s).
+Ran 163 tests in 2.821s
+OK
+
+python.exe manage.py check
+System check identified no issues (0 silenced).
+
+python.exe manage.py makemigrations --check --dry-run
+No changes detected
+
+git diff --check
+exit 0（仅 Git 的既有 LF/CRLF 工作副本提示）
+```
+
+本轮仍未修改模型、迁移、准入状态机、发布/formal 门控、HTML 适配器、前端或网络边界；所有请求测试均为离线 mock。

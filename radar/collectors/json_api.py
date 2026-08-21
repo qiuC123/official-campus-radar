@@ -1,6 +1,7 @@
 import copy
 import hashlib
 import json
+import math
 import re
 import time
 import warnings
@@ -226,6 +227,7 @@ class JsonApiSourceAdapter:
         request_template = (
             params if method == "GET" else body if body is not None else params
         )
+        pagination_paths: dict[str, str] = {}
         for name in ("page_param", "size_param"):
             path = str(pagination.get(name, "")).strip()
             if not path:
@@ -238,6 +240,18 @@ class JsonApiSourceAdapter:
                 raise ValueError(
                     f"JSON API pagination.{name} collides with the request template"
                 )
+            pagination_paths[name] = path
+        page_param = pagination_paths["page_param"]
+        size_param = pagination_paths["size_param"]
+        if (
+            page_param == size_param
+            or page_param.startswith(f"{size_param}.")
+            or size_param.startswith(f"{page_param}.")
+        ):
+            raise ValueError(
+                "JSON API pagination.page_param and pagination.size_param "
+                "must not overlap"
+            )
         start_page = pagination.get("start_page", 1)
         if (
             not isinstance(start_page, int)
@@ -252,10 +266,11 @@ class JsonApiSourceAdapter:
         if (
             not isinstance(delay, (int, float))
             or isinstance(delay, bool)
+            or not math.isfinite(delay)
             or delay <= 0
         ):
             raise ValueError(
-                "JSON API request_delay_seconds must be a positive number"
+                "JSON API request_delay_seconds must be a finite positive number"
             )
 
     def fetch(self, source: OfficialSource) -> FetchedPage:
