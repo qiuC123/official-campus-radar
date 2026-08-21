@@ -78,6 +78,15 @@ class JsonApiSourceAdapter:
         if method not in {"GET", "POST"}:
             raise ValueError("JSON API method must be GET or POST")
 
+        if "success" in config:
+            success = config["success"]
+            if not isinstance(success, dict):
+                raise ValueError("JSON API success must be an object")
+            if not str(success.get("path", "")).strip():
+                raise ValueError("JSON API success.path is required")
+            if "expect" not in success:
+                raise ValueError("JSON API success.expect is required")
+
         list_path = str(config.get("list_path", "")).strip()
         if not list_path:
             raise ValueError("JSON API list_path is required")
@@ -466,6 +475,7 @@ class JsonApiSourceAdapter:
                     self._raw_text(raw_description),
                     f"{base_locator}.{raw_text_path}",
                     description,
+                    excerpt=description,
                 )
             if application_path and application_url:
                 position_evidence["application_link"] = FieldEvidenceValue(

@@ -11,7 +11,13 @@ from django.test import SimpleTestCase, TestCase
 
 from radar.collectors.json_api import JsonApiSourceAdapter
 from radar.collectors.registry import AdapterRegistry
-from radar.models import OfficialSource, Organization, RecruitmentNotice, SourceVersion
+from radar.models import (
+    Evidence,
+    OfficialSource,
+    Organization,
+    RecruitmentNotice,
+    SourceVersion,
+)
 from radar.services.admission import transition_source
 from radar.services.publication import publish_candidates
 
@@ -158,6 +164,26 @@ class JsonApiConfigurationTests(SimpleTestCase):
         adapter = adapter_type()
         self.assertIsNotNone(adapter, "JsonApiSourceAdapter must exist")
         self.assertIsNone(adapter.validate_source_config(make_source(BASE_CONFIG)))
+
+    def test_success_config_must_be_an_object(self) -> None:
+        config = merge_config({"success": "Code == 200"})
+
+        with self.assertRaisesRegex(ValueError, "success"):
+            JsonApiSourceAdapter.validate_source_config(make_source(config))
+
+    def test_success_config_requires_a_nonempty_path(self) -> None:
+        config = merge_config(
+            {"success": {"path": "  ", "expect": 200}}
+        )
+
+        with self.assertRaisesRegex(ValueError, "success.path"):
+            JsonApiSourceAdapter.validate_source_config(make_source(config))
+
+    def test_success_config_requires_an_explicit_expect(self) -> None:
+        config = merge_config({"success": {"path": "Code"}})
+
+        with self.assertRaisesRegex(ValueError, "success.expect"):
+            JsonApiSourceAdapter.validate_source_config(make_source(config))
 
     def test_invalid_configuration_names_the_broken_contract(self) -> None:
         adapter = adapter_type()
@@ -925,6 +951,51 @@ class JsonApiPublicationIntegrationTests(TestCase):
         notice = RecruitmentNotice.objects.formal().get(pk=result.notice_id)
         self.assertEqual(notice.source, self.source)
         self.assertEqual(notice.positions.filter(is_current=True).count(), 2)
+
+    def test_html_raw_text_evidence_is_persisted_with_a_plain_excerpt(
+        self,
+    ) -> None:
+        config = copy.deepcopy(BASE_CONFIG)
+        config["html_fields"] = ["raw_text"]
+        self.source.parser_config = config
+        self.source.save(update_fields=["parser_config"])
+        payload = copy.deepcopy(self.payload)
+        original_html = (
+            "<p>Campus graduates.</p>"
+            "<p>Apply before 2027-08-31.</p>"
+        )
+        payload["Data"]["Posts"][0]["Responsibility"] = original_html
+
+        result, version = self.publish_payload(payload)
+
+        evidence_rows = list(
+            Evidence.objects.filter(
+                source_version=version,
+                position__position_key="2034975730101809152",
+                field_name="raw_text",
+            ).values(
+                "field_name",
+                "raw_value",
+                "parsed_value",
+                "excerpt",
+            )
+        )
+        self.assertEqual(result.action, "created")
+        self.assertEqual(
+            evidence_rows,
+            [
+                {
+                    "field_name": "raw_text",
+                    "raw_value": original_html,
+                    "parsed_value": (
+                        "Campus graduates. Apply before 2027-08-31."
+                    ),
+                    "excerpt": (
+                        "Campus graduates.\nApply before 2027-08-31."
+                    ),
+                }
+            ],
+        )
 
     def test_existing_gate_rejects_an_untrusted_application_url(self) -> None:
         payload = copy.deepcopy(self.payload)

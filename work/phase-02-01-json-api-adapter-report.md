@@ -10,9 +10,11 @@
 - `radar/models.py`：增加 `OfficialSource.SourceType.API`。
 - `radar/migrations/0010_officialsource_api_source_type.py`：更新来源类型 choices。
 - `radar/services/admission.py`：让 API 来源走 HTTPS 与官方域名准入校验。
+- `radar/collectors/base.py`：为 `FieldEvidenceValue` 增加向后兼容的可选纯文本 `excerpt`。
 - `radar/collectors/json_api.py`：新增 JSON API 配置校验、抓取、规范化和提取实现。
 - `radar/collectors/registry.py`：注册 `json_api` 适配器。
 - `radar/collectors/html.py`：支持可选 `position_selector` 下的一公告多岗位提取。
+- `radar/services/publication.py`：持久化适配器提供的可选 `raw_text` 证据，不改变必需证据门控。
 - `radar/tests/test_admission.py`：覆盖 API 类型与官方域名准入。
 - `radar/tests/test_collection.py`：覆盖 HTML 一公告多岗位及精确岗位定位。
 - `radar/tests/test_json_api_adapter.py`：覆盖配置、注册表、GET/POST、业务成功码、嵌套分页、哈希、提取、HTML 证据、校招过滤和日期解析。
@@ -25,9 +27,9 @@
 
 `fetch` 仅允许 GET/POST，使用透明 User-Agent、15 秒超时和页间固定延迟。每页请求前清空 Session Cookie，并禁用和拒绝 HTTP 重定向，避免跨页状态与官方 endpoint 之外的隐式取数。它支持 `page_index` 分页，将每页岗位合并回配置的 `list_path`，再用固定的 `json.dumps` 参数生成规范化 JSON 和 SHA-256。GET 使用 `params` 作为 query；POST 优先深拷贝固定 `body` 模板，并保留旧配置以 `params` 作为 JSON body 的回退行为。`page_param` / `size_param` 通过点号路径写入，可生成携程所需的 `pager.index` / `pager.size` 嵌套对象。
 
-若配置 `success.path` / `success.expect`，每页会在读取岗位列表前校验业务成功值，使用 `str(actual) == str(expect)` 兼容数字/字符串类型；不匹配或路径缺失即让该页失败。未配置 `success` 时仍只依赖既有 HTTP 状态校验，不硬编码腾讯 `Code == 200`。携程 fixture 验证了 `retCode: "201"` 成功和 `"500"` 失败。
+若配置 `success.path` / `success.expect`，配置校验会要求 `success` 为对象、`path` 非空且显式提供 `expect`；每页会在读取岗位列表前校验业务成功值，使用 `str(actual) == str(expect)` 兼容数字/字符串类型。不匹配或路径缺失即让该页失败。未配置 `success` 时仍只依赖既有 HTTP 状态校验，不硬编码腾讯 `Code == 200`。携程 fixture 验证了 `retCode: "201"` 成功和 `"500"` 失败。
 
-`extract` 把完整岗位数组归为一条 `NoticeCandidate`，为每条有效岗位生成一个 `PositionCandidate`。空 `position_key` 会跳过并计数；`valid_values` 使用精确值匹配过滤。岗位证据使用形如 `$.Data.Posts[0].RecruitPostName` 的 JSON Path，固定公告字段使用规范化快照内 `$._radar.notice.*` 的真实位置。异常日期返回 `None`，不会中断整批提取。`html_fields` 指定的字段使用现有 BeautifulSoup 依赖去标签，并以换行保留可读段落；`PositionCandidate.raw_text` 和对应证据的 `parsed_value` 使用纯文本，而 `FieldEvidenceValue.raw_value` 保留原始 HTML。携程混合 fixture 明确证明 `kindName="应届校招生"` 被保留、空校招标识被白名单过滤。
+`extract` 把完整岗位数组归为一条 `NoticeCandidate`，为每条有效岗位生成一个 `PositionCandidate`。空 `position_key` 会跳过并计数；`valid_values` 使用精确值匹配过滤。岗位证据使用形如 `$.Data.Posts[0].RecruitPostName` 的 JSON Path，固定公告字段使用规范化快照内 `$._radar.notice.*` 的真实位置。异常日期返回 `None`，不会中断整批提取。`html_fields` 指定的字段使用现有 BeautifulSoup 依赖去标签，并以换行保留可读段落；`PositionCandidate.raw_text`、持久化 `Evidence.excerpt` 和 `parsed_value` 使用纯文本，而 `Evidence.raw_value` 保留原始 HTML。`raw_text` 是可选附加证据，不加入既有 formal 门控的必需字段集合，缺少它的适配器行为不变。携程混合 fixture 明确证明 `kindName="应届校招生"` 被保留、空校招标识被白名单过滤。
 
 HTML 适配器在配置 `position_selector` 时遍历公告内全部岗位节点，并相对每个岗位节点解析身份、标题、地点和申请链接；未配置时仍把公告节点视为唯一岗位节点，保留既有单岗位语义。若配置了岗位选择器却零匹配，即使配置声明完整，也会强制 `positions_complete=False`，避免页面改版误下架旧岗位。该步骤没有与现有测试产生实质冲突。
 
@@ -61,14 +63,14 @@ python.exe manage.py check
 System check identified no issues (0 silenced).
 
 python.exe manage.py test radar.tests.test_json_api_adapter -v 2
-Found 34 test(s).
-Ran 34 tests in 0.061s
+Found 38 test(s).
+Ran 38 tests in 0.078s
 OK
 
 python.exe manage.py test radar.tests -v 2
-Found 142 test(s).
-Ran 142 tests in 1.778s
+Found 146 test(s).
+Ran 146 tests in 2.096s
 OK
 ```
 
-测试数为 142，大于验收要求的 101；测试配置中的网络守卫测试也通过。新增离线端到端测试证明 JSON 适配器候选可以通过既有 formal/evidence 门控，同时外域申请链接仍被既有 URL 门控拒绝。
+测试数为 146，大于验收要求的 101；测试配置中的网络守卫测试也通过。新增离线端到端测试证明 JSON 适配器候选可以通过既有 formal/evidence 门控，同时外域申请链接仍被既有 URL 门控拒绝。

@@ -10,6 +10,7 @@ class FieldEvidenceValue:
     raw_value: str
     locator: str
     parsed_value: str
+    excerpt: str | None = None
 
 
 @dataclass(frozen=True)

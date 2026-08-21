@@ -44,6 +44,7 @@ NOTICE_EVIDENCE_FIELDS = {
     "notice_url",
 }
 POSITION_EVIDENCE_FIELDS = {"position_title", "location"}
+OPTIONAL_POSITION_EVIDENCE_FIELDS = {"raw_text"}
 
 
 def classify_recruitment(value: str) -> str:
@@ -126,6 +127,7 @@ def _write_evidence(
     application_link: ApplicationLink | None = None,
 ) -> None:
     parsed = normalize_evidence_value(field_name, value.parsed_value)
+    excerpt = value.raw_value if value.excerpt is None else value.excerpt
     Evidence.objects.create(
         notice=notice,
         source_version=version,
@@ -133,7 +135,7 @@ def _write_evidence(
         position=position,
         application_link=application_link,
         field_name=field_name,
-        excerpt=value.raw_value[:1000],
+        excerpt=excerpt[:1000],
         locator=value.locator,
         raw_value=value.raw_value,
         parsed_value=parsed,
@@ -380,6 +382,17 @@ def _publish_candidate(
                 value=position_candidate.field_evidence[field_name],
                 position=position,
             )
+        for field_name in OPTIONAL_POSITION_EVIDENCE_FIELDS:
+            value = position_candidate.field_evidence.get(field_name)
+            if value is not None:
+                _write_evidence(
+                    notice=notice,
+                    version=version,
+                    event=event,
+                    field_name=field_name,
+                    value=value,
+                    position=position,
+                )
         if position_candidate.application_url:
             if not candidate.positions_complete:
                 ApplicationLink.objects.filter(
