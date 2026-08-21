@@ -39,6 +39,7 @@ class OfficialSource(models.Model):
         WEBSITE = "website", "企业官网"
         ATS = "ats", "官网关联投递系统"
         WECHAT = "wechat", "官方招聘公众号"
+        API = "api", "官方招聘接口"
 
     class AdmissionState(models.TextChoices):
         CANDIDATE = "candidate", "候选"

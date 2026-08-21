@@ -34,6 +34,19 @@ def _belongs_to_official_domain(host: str, official_domain: str) -> bool:
     return bool(domain) and (host == domain or host.endswith(f".{domain}"))
 
 
+def _api_endpoint_is_official(source: OfficialSource) -> bool:
+    config = source.parser_config
+    if not isinstance(config, dict):
+        return False
+    endpoint = str(config.get("endpoint", "")).strip()
+    return (
+        urlparse(endpoint).scheme == "https"
+        and _belongs_to_official_domain(
+            _host(endpoint), source.organization.official_domain
+        )
+    )
+
+
 def _validated_admission_chain(source: OfficialSource) -> list[SourceAdmissionEvent] | None:
     events = list(source.admission_events.order_by("created_at", "pk"))
     if not events:
@@ -93,6 +106,11 @@ def source_is_admitted(source: OfficialSource) -> bool:
     official_domain = source.organization.official_domain
     if source.source_type == OfficialSource.SourceType.WEBSITE:
         return _belongs_to_official_domain(source_host, official_domain)
+    if source.source_type == OfficialSource.SourceType.API:
+        return (
+            _belongs_to_official_domain(source_host, official_domain)
+            and _api_endpoint_is_official(source)
+        )
     if source.source_type == OfficialSource.SourceType.ATS:
         return (
             bool(source.official_entrypoint_url)
@@ -175,10 +193,20 @@ def _validate_verification_candidate(source: OfficialSource) -> None:
     official_domain = source.organization.official_domain
     if urlparse(source.source_url).scheme != "https":
         raise ValidationError("source URL must use HTTPS")
-    if source.source_type == OfficialSource.SourceType.WEBSITE:
+    if source.source_type in {
+        OfficialSource.SourceType.WEBSITE,
+        OfficialSource.SourceType.API,
+    }:
         if not _belongs_to_official_domain(source_host, official_domain):
             raise ValidationError(
                 "website source host must belong to the official domain"
+            )
+        if (
+            source.source_type == OfficialSource.SourceType.API
+            and not _api_endpoint_is_official(source)
+        ):
+            raise ValidationError(
+                "API endpoint must use HTTPS and belong to the official domain"
             )
     elif source.source_type in {
         OfficialSource.SourceType.ATS,
