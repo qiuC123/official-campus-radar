@@ -221,7 +221,7 @@ def infer_success(payload: object) -> dict[str, object] | None:
         if isinstance(value, bool) or not SUCCESS_KEY.search(str(key)):
             continue
         if str(value).strip().lower() in {"200", "201", "0", "success"}:
-            return {"path": str(key), "value": value}
+            return {"path": str(key), "expect": value}
     return None
 
 
@@ -557,13 +557,13 @@ def build_config_draft(
     parsed = urlsplit(request_url)
     endpoint = urlunsplit((parsed.scheme, parsed.netloc, parsed.path, "", ""))
     normalized_method = method.upper()
-    params: object
+    request_values: object
     if normalized_method == "GET":
-        params = _query_params(request_url)
+        request_values = _query_params(request_url)
     elif isinstance(request_body, dict):
-        params = redact_suspicious_values(request_body)
+        request_values = redact_suspicious_values(request_body)
     else:
-        params = {}
+        request_values = {}
 
     pagination_fields = infer_pagination_parameters(request_body, request_url)
     page_param = next(
@@ -588,10 +588,10 @@ def build_config_draft(
     draft: dict[str, object] = {
         "endpoint": endpoint,
         "method": normalized_method,
-        "params": params,
         "list_path": list_path,
         "field_map": infer_field_map(rows),
     }
+    draft["params" if normalized_method == "GET" else "body"] = request_values
     if page_param is not None and size_param is not None:
         draft["pagination"] = {
             "mode": "page_index",

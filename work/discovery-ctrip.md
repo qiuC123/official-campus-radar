@@ -43,7 +43,7 @@ The draft contains observed/inferred API fields only. Human review must add noti
 {
   "endpoint": "https://careers.ctrip.com/api/hrrecruit/listActiveNews",
   "method": "POST",
-  "params": {
+  "body": {
     "recruitDomain": "School",
     "pager": {
       "index": 1,
@@ -73,7 +73,7 @@ The draft contains observed/inferred API fields only. Human review must add noti
   "total_path": "retValue.total",
   "success": {
     "path": "retCode",
-    "value": "201"
+    "expect": "201"
   }
 }
 ```
@@ -175,7 +175,7 @@ The draft contains observed/inferred API fields only. Human review must add noti
 {
   "endpoint": "https://careers.ctrip.com/api/hrrecruit/getJobAd",
   "method": "POST",
-  "params": {
+  "body": {
     "condition": {
       "fromId": [],
       "keyword": "",
@@ -214,7 +214,7 @@ The draft contains observed/inferred API fields only. Human review must add noti
   "total_path": "retValue.total",
   "success": {
     "path": "retCode",
-    "value": "201"
+    "expect": "201"
   }
 }
 ```
@@ -266,7 +266,7 @@ The draft contains observed/inferred API fields only. Human review must add noti
 {
   "endpoint": "https://careers.ctrip.com/api/hrrecruit/getEmployeeStory",
   "method": "POST",
-  "params": {
+  "body": {
     "head": {
       "language": "zh_CN",
       "version": "1"
@@ -280,7 +280,7 @@ The draft contains observed/inferred API fields only. Human review must add noti
   },
   "success": {
     "path": "retCode",
-    "value": "201"
+    "expect": "201"
   }
 }
 ```

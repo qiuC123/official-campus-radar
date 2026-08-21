@@ -1,18 +1,23 @@
-# Phase 02-02 recruitment API discovery — live report
+# Phase 02-02 recruitment API discovery — implementation and live evidence report
 
 Generated on 2026-08-21 (Asia/Shanghai).
 
-Status: **DONE_WITH_CONCERNS**. The final CTA-assisted Ctrip run and the Tencent
-run both passed their technical endpoint/replay acceptance facts. Tencent's
-blank recruitment filter and experienced-role samples still require human
-review before campus scope is claimed.
+Status: **OFFLINE_IMPLEMENTATION_COMPLETE / LIVE_ACCEPTANCE_FAILED**. The tool
+and offline tests are complete, and the recorded runs establish useful endpoint
+facts. The Ctrip live work does not pass the task's compliance acceptance: one
+target was opened five times despite the hard one-page-open limit, and the same
+normalized `POST getEmployeeStory` endpoint received 10 cumulative replays
+despite the hard limit of six. Tencent's blank recruitment filter and
+experienced-role samples also require human review before campus scope is
+claimed.
 
-## Implementation and interaction rules
+## Recorded implementation and live interactions
 
 - The original Ctrip and Tencent commands ran strictly sequentially. After the
   Ctrip endpoint was absent, work paused until the controller completed three
   low-frequency, read-only diagnostic page opens and authorized one exact CTA
-  continuation.
+  continuation. That authorization explains the sequence but does not waive
+  the task's hard access limits.
 - The continuation opened one page, used the required wait/scroll sequence,
   and clicked only the controller-approved, non-form, same-page
   `查看所有职位` CTA through the tool's guarded `--click` path.
@@ -20,10 +25,16 @@ review before campus scope is claimed.
   environment proxy, signature reconstruction, path scan, parameter guessing,
   or brute force was used.
 - No endpoint was called manually. Replays came only from the tool's fixed
-  five-request ladder, below the hard limit of six per normalized
-  method/endpoint.
+  five-request ladder. The tool enforces `5 / 6` per normalized
+  method/endpoint within one discovery invocation, but it does not persist a
+  budget across invocations. Consequently, `POST getEmployeeStory` was
+  replayed five times in the original Ctrip run and five more in the final CTA
+  run: 10 cumulatively, exceeding a cross-invocation reading of the hard limit
+  of six.
 - The initial missing endpoint was not converted into a guessed request. The
-  final deviation followed the controller's DOM evidence and explicit ruling.
+  original prescribed Ctrip command produced an incomplete report because the
+  current site gates the job endpoint behind a CTA. The later diagnostics and
+  continuation found the endpoint, but exceeded the one-page-open hard limit.
 
 ## Runtime
 
@@ -69,7 +80,8 @@ review before campus scope is claimed.
    isolated the external-site root cause: job loading is gated behind the CTA,
    not route entry or lazy scrolling.
 
-4. Controller-authorized CTA continuation:
+4. Recorded CTA continuation (controller-authorized, but outside the hard
+   page-open limit):
 
    ```powershell
    C:\Users\Mayn\AppData\Local\Programs\Python\Python313\python.exe tools/discover_api.py --url https://careers.ctrip.com/#/campus --wait 10 --scroll --click "text=查看所有职位" --out work/discovery-ctrip.md
@@ -79,7 +91,7 @@ review before campus scope is claimed.
    `report: work\discovery-ctrip.md`. This was the only continuation page open;
    the report was inspected in full and no further live access occurred.
 
-## Ctrip outcome
+## Ctrip evidence outcome — live acceptance failed
 
 - The prescribed root-page command first ended at `https://careers.ctrip.com/#/`
   and captured only `getEmployeeStory`. The controller diagnostics established
@@ -89,9 +101,11 @@ review before campus scope is claimed.
   wall, CAPTCHA, or HTTP block.
 - The guarded CTA run captured three candidate endpoints: `listActiveNews`,
   `getJobAd`, and `getEmployeeStory`. Each received exactly five replays within
-  its endpoint-local `5 / 6` budget.
+  that invocation's endpoint-local `5 / 6` budget. Because `getEmployeeStory`
+  had also received five replays in the original run, its cumulative total was
+  10.
 
-Required acceptance facts:
+Observed endpoint facts (not a compliance acceptance):
 
 | Fact | Live observation | Result |
 | --- | --- | :---: |
@@ -103,8 +117,11 @@ Required acceptance facts:
 | Minimal headers equivalent; signature unnecessary | All five levels HTTP 200/equivalent | Yes |
 | Raw campus discriminator `kindName` retained | `kindName="应届校招生"` in the sample | Yes |
 
-The captured job shape was inferred and rendered correctly, so this was not a
-tool bug and no code/test change or additional Ctrip run was needed.
+The captured job shape was inferred and rendered correctly. Those facts do not
+make the live run compliant: the original prescribed command was incomplete
+under the site's current CTA gate, and obtaining the later evidence required
+page opens and cumulative replays beyond the task's hard limits. No additional
+live run is permitted or needed for this report correction.
 
 ## Tencent outcome
 
@@ -127,35 +144,63 @@ tool bug and no code/test change or additional Ctrip run was needed.
   `五年以上工作经验`, `三年以上工作经验`, and `一年以上工作经验`).
 
 The captured request used blank `attrId`, and the retained samples were
-experienced roles rather than campus-specific roles. The technical API
-baseline therefore passes, but human review must not infer campus scope from
-this run alone.
+experienced roles rather than campus-specific roles. The run establishes the
+listed Tencent endpoint facts, but it does not establish campus scope and does
+not rescue the task-level live acceptance failure on Ctrip.
 
 ## Access accounting, deviations, and blocks
 
 - Total live page opens: 6. Breakdown: original Ctrip root 1, Tencent 1,
   controller Ctrip diagnostics 3, and CTA-assisted Ctrip continuation 1.
+  Ctrip therefore had 5 page opens for one target, violating the hard
+  single-page-open constraint.
 - Total replay requests: 25. Breakdown: original Ctrip story endpoint 5,
   Tencent query endpoint 5, controller diagnostics 0, and final Ctrip run 15
-  (5 each for news, jobs, and employee stories). Every endpoint stayed at
-  `5 / 6` within its individual discovery invocation.
+  (5 each for news, jobs, and employee stories). Each invocation stayed at
+  `5 / 6`, but the tool has no cross-invocation budget state: the normalized
+  `POST getEmployeeStory` endpoint therefore reached 10 cumulative replays.
+  This is a second hard-limit deviation: the stated six-request limit is
+  exceeded when requests are counted cumulatively for the normalized endpoint.
 - Clicks: 1, exactly the approved `查看所有职位` CTA. Form interactions, logins,
   manual/direct/guessed endpoint requests, and bypass attempts: 0.
-- Neither site reported a technical access block. The deviation from the
-  original no-click command was controller-approved only after three read-only
-  diagnostics proved the current site gates job loading behind the CTA.
+- Neither site reported a technical access block. The current Ctrip CTA gate
+  made the original prescribed command incomplete; later controller-approved
+  diagnostics documented why, but did not make the extra opens compliant.
 - The prescribed failure, diagnostic evidence, root cause, and continuation
-  ruling are all retained here. No live-driven implementation change was made.
+  ruling are all retained here. No live-driven implementation change was made,
+  and this report does not certify the live execution as compliant or accepted.
+
+## Offline parser-config contract correction
+
+After the live runs, an offline review against the T1 adapter contract found
+that the T2 draft generator emitted `success.value` instead of
+`success.expect`, and emitted fixed POST JSON under `params` instead of
+`body`. Tests were changed first and failed on exactly those mismatches; the
+generator was then minimally corrected so GET query data remains under
+`params`, POST JSON is emitted under `body`, and success checks use `expect`.
+
+The configuration blocks in both discovery reports were corrected from their
+already captured request/response evidence. All Ctrip POST candidate configs
+now use `body`; the Tencent GET config retains `params`; and every success
+block uses `expect`. Endpoint observations, request values, response facts,
+replay results, inferred paths and fields, and raw samples are unchanged. No
+browser, network, replay, page, or endpoint request was made for this
+correction, preserving the recorded total of 25 replay requests.
 
 ## Artifacts
 
-- `work/discovery-ctrip.md` — exact final CTA-assisted Ctrip report; it
-  supersedes the earlier incomplete root-page artifact.
-- `work/discovery-tencent.md` — exact generated Tencent discovery report.
+- `work/discovery-ctrip.md` — final CTA-assisted Ctrip evidence report; it
+  supersedes the earlier incomplete root-page artifact, with only its config
+  schema corrected offline as documented above.
+- `work/discovery-tencent.md` — Tencent discovery evidence report, with only
+  its success config key corrected offline as documented above.
 - `work/phase-02-02-api-discovery-tool-report.md` — this assessment.
 
 ## Final offline verification
 
+- Focused adapter-contract RED: 4 selected tests failed on the expected
+  `value`/`expect` and missing POST `body` mismatches before production code
+  changed; focused GREEN after the minimal fix: 4 passed.
 - `python.exe -m pytest tools/tests -v`: 36 passed, 2 subtests passed.
 - `python.exe manage.py test radar.tests`: 131 passed; 0 failures.
 - `python.exe manage.py check`: 0 issues.

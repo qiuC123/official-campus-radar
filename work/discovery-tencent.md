@@ -79,7 +79,7 @@ The draft contains observed/inferred API fields only. Human review must add noti
   "total_path": "Data.Count",
   "success": {
     "path": "Code",
-    "value": 200
+    "expect": 200
   }
 }
 ```

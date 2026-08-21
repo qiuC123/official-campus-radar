@@ -123,11 +123,11 @@ class PureInferenceTests(unittest.TestCase):
 
         self.assertEqual(
             infer_success(CTRIP_PAYLOAD),
-            {"path": "retCode", "value": "201"},
+            {"path": "retCode", "expect": "201"},
         )
         self.assertEqual(
             infer_success(TENCENT_PAYLOAD),
-            {"path": "Code", "value": 200},
+            {"path": "Code", "expect": 200},
         )
 
     def test_infers_nested_body_pagination_paths(self):
@@ -272,7 +272,8 @@ class PureConfigurationAndReportingTests(unittest.TestCase):
             "https://careers.ctrip.com/api/hrrecruit/getJobAd",
         )
         self.assertEqual(draft["method"], "POST")
-        self.assertEqual(draft["params"], request_body)
+        self.assertEqual(draft["body"], request_body)
+        self.assertNotIn("params", draft)
         self.assertEqual(
             draft["pagination"],
             {
@@ -286,7 +287,7 @@ class PureConfigurationAndReportingTests(unittest.TestCase):
         )
         self.assertEqual(draft["list_path"], "retValue.recruitJobAdList")
         self.assertEqual(draft["total_path"], "retValue.total")
-        self.assertEqual(draft["success"], {"path": "retCode", "value": "201"})
+        self.assertEqual(draft["success"], {"path": "retCode", "expect": "201"})
         self.assertEqual(draft["field_map"]["title"], "jobTitle")
 
     def test_builds_tencent_adapter_shaped_config_from_query(self):
@@ -309,11 +310,12 @@ class PureConfigurationAndReportingTests(unittest.TestCase):
             "https://careers.tencent.com/tencentcareer/api/post/Query",
         )
         self.assertEqual(draft["params"]["attrId"], "")
+        self.assertNotIn("body", draft)
         self.assertEqual(draft["pagination"]["page_param"], "pageIndex")
         self.assertEqual(draft["pagination"]["size_param"], "pageSize")
         self.assertEqual(draft["list_path"], "Data.Posts")
         self.assertEqual(draft["total_path"], "Data.Count")
-        self.assertEqual(draft["success"], {"path": "Code", "value": 200})
+        self.assertEqual(draft["success"], {"path": "Code", "expect": 200})
 
     def test_detects_suspicious_query_and_nested_body_keys(self):
         find_suspicious_request_inputs = self.require_function(
@@ -367,9 +369,10 @@ class PureConfigurationAndReportingTests(unittest.TestCase):
         self.assertNotIn(body_secret, serialized)
         self.assertEqual(get_draft["params"]["token"], "[REDACTED]")
         self.assertEqual(
-            post_draft["params"]["condition"]["nonce"],
+            post_draft["body"]["condition"]["nonce"],
             "[REDACTED]",
         )
+        self.assertNotIn("params", post_draft)
 
     def test_endpoint_identity_deduplicates_pages_but_keeps_methods_distinct(self):
         endpoint_identity = self.require_function("endpoint_identity")
