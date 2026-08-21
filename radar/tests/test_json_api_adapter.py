@@ -1,8 +1,12 @@
 import copy
 import importlib
+import json
 from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 from django.test import SimpleTestCase
+
+from radar.collectors.json_api import JsonApiSourceAdapter
 
 
 BASE_CONFIG = {
@@ -135,3 +139,148 @@ class JsonApiConfigurationTests(SimpleTestCase):
                 with self.assertRaisesRegex(ValueError, name):
                     adapter.validate_source_config(make_source(config))
 
+
+def json_response(payload: dict, *, status_code: int = 200) -> Mock:
+    response = Mock()
+    response.status_code = status_code
+    response.url = BASE_CONFIG["endpoint"]
+    response.headers = {"Content-Type": "application/json"}
+    response.json.return_value = payload
+    return response
+
+
+class JsonApiFetchTests(SimpleTestCase):
+    def fetch(self, config: dict):
+        fetch = getattr(JsonApiSourceAdapter(), "fetch", None)
+        self.assertIsNotNone(fetch, "JsonApiSourceAdapter.fetch must exist")
+        return fetch(make_source(config))
+
+    @patch("radar.collectors.json_api.time.sleep")
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_fetch_combines_pages_and_stops_at_total(
+        self, request: Mock, sleep: Mock
+    ) -> None:
+        request.side_effect = [
+            json_response(
+                {
+                    "Code": 200,
+                    "Data": {
+                        "Count": 3,
+                        "Posts": [{"PostId": "1"}, {"PostId": "2"}],
+                    },
+                }
+            ),
+            json_response(
+                {
+                    "Code": 200,
+                    "Data": {"Count": 3, "Posts": [{"PostId": "3"}]},
+                }
+            ),
+        ]
+
+        page = self.fetch(BASE_CONFIG)
+
+        document = json.loads(page.body)
+        self.assertEqual(
+            document["Data"]["Posts"],
+            [{"PostId": "1"}, {"PostId": "2"}, {"PostId": "3"}],
+        )
+        self.assertTrue(document["_radar"]["positions_complete"])
+        self.assertEqual(page.canonical_url, BASE_CONFIG["endpoint"])
+        self.assertEqual(request.call_count, 2)
+        sleep.assert_called_once_with(0)
+        first_call = request.call_args_list[0]
+        self.assertEqual(first_call.args[:2], ("GET", BASE_CONFIG["endpoint"]))
+        self.assertEqual(first_call.kwargs["params"]["pageIndex"], 1)
+        self.assertEqual(first_call.kwargs["params"]["pageSize"], 2)
+        self.assertNotIn("json", first_call.kwargs)
+
+    @patch("radar.collectors.json_api.time.sleep")
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_fetch_stops_at_an_empty_page_without_total(
+        self, request: Mock, sleep: Mock
+    ) -> None:
+        config = copy.deepcopy(BASE_CONFIG)
+        config.pop("total_path")
+        request.side_effect = [
+            json_response({"Data": {"Posts": [{"PostId": "1"}]}}),
+            json_response({"Data": {"Posts": []}}),
+        ]
+
+        page = self.fetch(config)
+
+        document = json.loads(page.body)
+        self.assertEqual(document["Data"]["Posts"], [{"PostId": "1"}])
+        self.assertTrue(document["_radar"]["positions_complete"])
+        self.assertEqual(request.call_count, 2)
+        sleep.assert_called_once_with(0)
+
+    @patch("radar.collectors.json_api.time.sleep")
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_max_pages_marks_a_nonempty_truncated_result_incomplete(
+        self, request: Mock, sleep: Mock
+    ) -> None:
+        config = copy.deepcopy(BASE_CONFIG)
+        config["pagination"]["max_pages"] = 1
+        request.return_value = json_response(
+            {
+                "Data": {
+                    "Count": 3,
+                    "Posts": [{"PostId": "1"}, {"PostId": "2"}],
+                }
+            }
+        )
+
+        page = self.fetch(config)
+
+        document = json.loads(page.body)
+        self.assertFalse(document["_radar"]["positions_complete"])
+        self.assertEqual(request.call_count, 1)
+        sleep.assert_not_called()
+
+    @patch("radar.collectors.json_api.time.sleep")
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_canonical_hash_is_stable_across_response_key_order(
+        self, request: Mock, _sleep: Mock
+    ) -> None:
+        request.side_effect = [
+            json_response(
+                {
+                    "Code": 200,
+                    "Data": {
+                        "Count": 1,
+                        "Posts": [{"PostId": "1", "Name": "A"}],
+                    },
+                }
+            ),
+            json_response(
+                {
+                    "Data": {
+                        "Posts": [{"Name": "A", "PostId": "1"}],
+                        "Count": 1,
+                    },
+                    "Code": 200,
+                }
+            ),
+        ]
+        first = self.fetch(BASE_CONFIG)
+        second = self.fetch(BASE_CONFIG)
+
+        self.assertEqual(first.body, second.body)
+        self.assertEqual(first.content_hash, second.content_hash)
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_post_places_pagination_in_the_json_body(self, request: Mock) -> None:
+        config = copy.deepcopy(BASE_CONFIG)
+        config["method"] = "POST"
+        request.return_value = json_response(
+            {"Data": {"Count": 0, "Posts": []}}
+        )
+
+        self.fetch(config)
+
+        call = request.call_args
+        self.assertEqual(call.args[:2], ("POST", BASE_CONFIG["endpoint"]))
+        self.assertEqual(call.kwargs["json"]["pageIndex"], 1)
+        self.assertEqual(call.kwargs["json"]["pageSize"], 2)
+        self.assertNotIn("params", call.kwargs)
