@@ -1,7 +1,7 @@
 const statuses = ["未投递", "已投递", "已笔试", "已面试", "未通过", "面试通过", "暂不投递"];
 const prototypeToday = "2026-08-26";
 const filterDefinitions = {
-  companyType: ["央国企", "民企", "事业单位", "银行", "外企/合资", "社会机构"],
+  companyType: ["央国企", "民企", "事业单位", "银行", "外资", "中外合资", "社会机构"],
   recruitmentType: ["春招", "秋招", "秋招补录", "秋招提前批", "实习", "春招补录"],
   progress: statuses,
   location: ["北京", "天津", "河北", "山西", "内蒙古", "辽宁", "吉林", "黑龙江", "上海", "江苏", "浙江", "安徽", "福建", "江西", "山东", "河南", "湖北", "湖南", "广东", "广西", "海南", "重庆", "四川", "贵州", "云南", "西藏", "陕西", "甘肃", "青海", "宁夏", "新疆", "香港", "澳门", "台湾"],
@@ -25,7 +25,7 @@ const batches = [
     positions: [["电气工程师", ["湖北", "全国"], "2026-08-24"], ["财务管理岗", ["北京"], "2026-08-20"]],
   },
   {
-    id: 3, company: "云帆智能", companyType: "外企/合资", industry: "互联网/科技", recruitmentType: "实习", audience: "实习生",
+    id: 3, company: "云帆智能", companyType: "外资", industry: "互联网/科技", recruitmentType: "实习", audience: "实习生",
     title: "云帆智能长期实习生招聘", updated: "2026-08-23", deadline: "2026-10-31", official: "https://example.invalid/cloud", status: "active",
     positions: [["前端开发实习生", ["远程", "浙江"], "2026-08-23"], ["交互设计实习生", ["远程"], "2026-08-21"]],
   },
@@ -35,7 +35,7 @@ const batches = [
     positions: [["金融科技管培生", ["北京", "上海", "广东"], "2026-08-20"], ["风险管理岗", ["北京"], "2026-08-19"]],
   },
   {
-    id: 5, company: "矩阵机器人", companyType: "外企/合资", industry: "制造业", recruitmentType: "秋招提前批", audience: "2028届",
+    id: 5, company: "矩阵机器人", companyType: "中外合资", industry: "制造业", recruitmentType: "秋招提前批", audience: "2028届",
     title: "矩阵机器人全球校园招聘", updated: "2026-08-18", deadline: "2026-11-30", official: "https://example.invalid/robot", status: "active",
     positions: [["机器人控制算法", ["广东"], "2026-08-18"], ["机械设计", ["上海"], "2026-08-17"]],
   },
@@ -168,7 +168,7 @@ function filterBatches() {
 }
 
 function typeClass(companyType) {
-  return { "民企": "private", "央国企": "state", "外企/合资": "foreign", "银行": "bank" }[companyType] || "other";
+  return { "民企": "private", "央国企": "state", "外资": "foreign", "中外合资": "foreign", "银行": "bank" }[companyType] || "other";
 }
 
 function batchProgress(batch) {
