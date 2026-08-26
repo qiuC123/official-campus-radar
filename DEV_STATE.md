@@ -2,7 +2,7 @@
 
 Last verified: 2026-08-26 Asia/Shanghai
 
-Phase and status: Phase 02 / H1、H2、G10 已通过；当前停在 H3。首批 50 家企业的七类配额、公开只读访问范围和至少 25 家可稳定接入的最低成功线已由用户确认，具体企业名单仍待确认；T3 尚未开始。
+Phase and status: Phase 02 / H1、H2、G10 已通过；当前停在 H3。七类配额、公开只读访问范围和至少 25 家可稳定接入的最低成功线已确认；具体 50 家候选名单已形成，等待用户确认。T3 尚未开始。
 
 ## Current result
 
@@ -36,4 +36,4 @@ T3 企业探测、真实来源准入、真实岗位采集、Windows 计划任务
 
 ## Exact next task
 
-继续完成 H3：按已确认配额形成并由用户确认具体 50 家企业名单。名单确认前，不访问任何企业网站，不启动 T3。
+由用户审阅并确认 `docs/handoffs/phase-02-company-pool-candidate.md` 的具体 50 家名单。名单确认前，不启动 T3；名单通过后 H3 才正式完成。
