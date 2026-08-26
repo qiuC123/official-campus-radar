@@ -2,27 +2,43 @@ from dataclasses import dataclass
 from datetime import date
 
 
-OPTIONAL_COLUMN_CHOICES = (
-    ("company-type", "公司类型"),
-    ("industry", "行业"),
-    ("recruitment-type", "招聘类型"),
-    ("target-audience", "招聘对象"),
-    ("updated", "更新时间"),
-    ("deadline", "截止时间"),
-    ("official-page", "官方页"),
+PREVIEW_COMPANY_TYPE_CHOICES = (
+    ("state_owned", "央国企"),
+    ("private", "民企"),
+    ("public_institution", "事业单位"),
+    ("bank", "银行"),
+    ("foreign", "外资"),
+    ("joint_venture", "中外合资"),
+    ("social_organization", "社会机构"),
 )
 
-FILTER_FIELD_SPECS = (
-    ("company", "公司关键词", "text", "例如：腾讯"),
-    ("company_type", "公司类型", "select", ""),
-    ("industry", "行业", "text", ""),
-    ("recruitment_type", "招聘类型", "select", ""),
-    ("target_audience", "招聘对象", "text", ""),
-    ("position", "岗位关键词", "text", ""),
-    ("deadline_before", "截止日期", "date", ""),
+PREVIEW_RECRUITMENT_TYPE_CHOICES = (
+    ("spring", "春招"),
+    ("autumn", "秋招"),
+    ("autumn_supplement", "秋招补录"),
+    ("autumn_early", "秋招提前批"),
+    ("internship", "实习"),
+    ("spring_supplement", "春招补录"),
 )
 
-MULTI_FILTER_LABELS = (("city", "城市（可多选）"), ("progress", "进度（可多选）"))
+AUDIENCE_CHOICES = tuple((value, value) for value in (
+    "2024届", "2025届", "2026届", "2027届", "2028届", "实习生",
+))
+
+PROVINCE_CHOICES = (
+    "北京", "天津", "河北", "山西", "内蒙古", "辽宁", "吉林", "黑龙江",
+    "上海", "江苏", "浙江", "安徽", "福建", "江西", "山东", "河南",
+    "湖北", "湖南", "广东", "广西", "海南", "重庆", "四川", "贵州",
+    "云南", "西藏", "陕西", "甘肃", "青海", "宁夏", "新疆", "香港",
+    "澳门", "台湾",
+)
+
+DEADLINE_WINDOW_CHOICES = (
+    ("1", "1 天内截止"),
+    ("3", "3 天内截止"),
+    ("7", "7 天内截止"),
+    ("unknown", "未说明"),
+)
 
 
 @dataclass(frozen=True)
@@ -55,15 +71,52 @@ class RecruitmentBatchVM:
 
     @property
     def preview_positions(self):
-        return self.positions[:3]
+        return self.positions[:5]
 
     @property
     def remaining_count(self) -> int:
-        return max(0, len(self.positions) - 3)
+        return max(0, len(self.positions) - 5)
 
     @property
     def remaining_positions(self):
-        return self.positions[3:]
+        return self.positions[5:]
+
+    @property
+    def position_summary(self) -> str:
+        text = "、".join(position.title for position in self.preview_positions)
+        if self.remaining_count:
+            text += f"，另有 {self.remaining_count} 个岗位"
+        return text
+
+    @property
+    def location_summary(self) -> str:
+        return "、".join(dict.fromkeys(
+            location for position in self.positions for location in position.locations
+        ))
+
+    @property
+    def primary_application_url(self) -> str:
+        direct = next(
+            (position.application_url for position in self.positions if not position.uses_batch_page),
+            None,
+        )
+        return direct or self.official_page_url
+
+    @property
+    def primary_application_uses_batch_page(self) -> bool:
+        return not any(not position.uses_batch_page for position in self.positions)
+
+    @property
+    def company_badge_class(self) -> str:
+        if self.company_type == "民企":
+            return "private"
+        if self.company_type in {"央国企", "央企/国企", "央企", "国企"}:
+            return "state"
+        if self.company_type in {"外资", "中外合资"}:
+            return "foreign"
+        if self.company_type == "银行":
+            return "bank"
+        return "other"
 
     @property
     def effective_updated_on(self) -> date:
@@ -76,3 +129,7 @@ class DashboardSummaryVM:
     changed_in_3_days: int
     deadline_in_7_days: int
     applications_in_progress: int
+    today_updated_companies: int = 0
+    updated_companies_in_3_days: int = 0
+    deadline_companies_in_1_day: int = 0
+    deadline_companies_in_3_days: int = 0

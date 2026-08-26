@@ -183,7 +183,7 @@ class Phase02FrontendFirstTests(TestCase):
         result = publish_candidates(self.source, [candidate], self.version())[0]
         self.assertEqual(result.action, "created")
         response = self.client.get("/")
-        self.assertContains(response, "截止：未说明")
+        self.assertContains(response, '<td class="deadline-cell">未说明</td>', html=True)
         self.assertEqual(response.context["summary"].deadline_in_7_days, 0)
 
     def test_tampered_details_fail_closed_and_derived_locations_ignore_cache(self):
@@ -334,7 +334,7 @@ class Phase02FrontendFirstTests(TestCase):
     def test_batch_position_fragment_loads_all_positions(self):
         candidate = complete_candidate(self.source, identity_key="expand-four")
         positions = list(candidate.positions)
-        for index in range(2, 5):
+        for index in range(2, 7):
             positions.append(PositionCandidate(
                 position_key=f"extra-{index}",
                 title=f"额外岗位 {index}",
@@ -351,9 +351,9 @@ class Phase02FrontendFirstTests(TestCase):
         )[0]
         batch = RecruitmentBatch.objects.get(pk=result.batch_id)
         home = self.client.get("/")
-        self.assertContains(home, "展开其余 1 个岗位")
+        self.assertContains(home, "另有 1 个岗位")
         fragment = self.client.get(f"/batches/{batch.pk}/positions/")
-        self.assertEqual(fragment.content.count(b'class="position-row"'), 4)
+        self.assertEqual(fragment.content.count(b'class="position-item"'), 6)
 
     def test_batches_and_positions_sort_by_effective_change_date(self):
         candidate = complete_candidate(self.source, identity_key="sort-first")
@@ -427,7 +427,7 @@ class Phase02FrontendFirstTests(TestCase):
         self.assertNotContains(self.client.get("/?company_type=state_owned"), self.source.organization.name)
         with self.settings(DEBUG=True):
             preview = self.client.get(
-                "/preview/phase-02/?company_type=internet&recruitment_type=campus_recruitment"
+                "/preview/phase-02/?company_type=private&recruitment_type=autumn"
             )
         self.assertContains(preview, "星河科技")
 

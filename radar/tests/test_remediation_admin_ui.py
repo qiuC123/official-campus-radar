@@ -34,19 +34,19 @@ class AuditAdminAndColumnTests(TestCase):
             self.assertFalse(model_admin.has_change_permission(request, object()))
             self.assertFalse(model_admin.has_delete_permission(request, object()))
 
-    def test_every_confirmed_column_has_its_own_control(self) -> None:
-        response = self.client.get("/")
+    def test_confirmed_table_columns_are_fixed_and_have_no_visibility_controls(self) -> None:
+        with self.settings(DEBUG=True):
+            response = self.client.get("/preview/phase-02/")
         columns = (
-            "company-type", "industry", "recruitment-type", "target-audience",
-            "updated", "deadline", "official-page",
+            "公司名称", "公司类型", "所属行业", "招聘类型", "招聘对象", "工作地点",
+            "岗位", "投递进度", "更新时间", "投递截止", "相关链接", "批次官网",
         )
-        self.assertEqual(response.content.count(b'type="checkbox" data-column='), 7)
+        self.assertNotContains(response, 'data-column=')
         for column in columns:
-            self.assertContains(response, f'<input type="checkbox" data-column="{column}" checked>')
+            self.assertContains(response, f'<th>{column}', count=1)
 
-    def test_column_visibility_script_targets_declared_optional_content(self) -> None:
+    def test_filter_script_enforces_the_five_province_limit(self) -> None:
         script = (Path(__file__).resolve().parents[1] / "static" / "radar" / "phase02.js").read_text(encoding="utf-8")
-        self.assertIn(
-            'document.querySelectorAll(`[data-column-content="${input.dataset.column}"]`)',
-            script,
-        )
+        self.assertIn("checked >= max", script)
+        self.assertIn("地点最多同时选择 5 个省份", script)
+        self.assertNotIn("phase02-column-", script)

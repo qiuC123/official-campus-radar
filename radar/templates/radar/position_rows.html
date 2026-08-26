@@ -1,7 +1,1 @@
-{% for position in positions %}<article class="position-row" data-position-id="{{ position.id }}">
-  <button class="position-title" type="button" aria-expanded="false">{{ position.title }}</button>
-  <div class="locations">{% for city in position.locations %}<span>{{ city }}</span>{% endfor %}</div>
-  <time data-column-content="updated">{{ position.effective_updated_on }}</time>
-  <span><a href="{{ position.application_url }}" target="_blank" rel="noopener"{% if position.uses_batch_page %} title="官网没有岗位直投链接，已回退到批次官网"{% endif %}>{% if position.uses_batch_page %}批次官网{% else %}岗位投递{% endif %}</a></span>
-  <div class="position-details" hidden>{{ position.details }}</div>
-</article>{% endfor %}
+{% for position in positions %}<li class="position-item" data-position-id="{{ position.id }}"><strong>{{ position.title }}</strong><span>{{ position.locations|join:'、' }} · 更新 {{ position.effective_updated_on|date:'Y-m-d' }}</span></li>{% endfor %}

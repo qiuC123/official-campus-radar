@@ -9,7 +9,6 @@ from django.views.decorators.http import require_GET, require_POST
 from radar.models import ApplicationProgress, Organization, RecruitmentBatch
 from radar.services.dashboard_data import (
     _position_vm,
-    available_city_choices,
     build_orm_dashboard,
     filter_position_vms,
     mock_dashboard,
@@ -17,52 +16,56 @@ from radar.services.dashboard_data import (
 from radar.services.evidence import trusted_historical_projection
 from radar.services.update_runner import run_update
 from radar.services.update_status import latest_source_failures, latest_successful_update, scheduled_run_is_missing
-from radar.viewmodels import FILTER_FIELD_SPECS, MULTI_FILTER_LABELS, OPTIONAL_COLUMN_CHOICES
+from radar.viewmodels import (
+    AUDIENCE_CHOICES,
+    DEADLINE_WINDOW_CHOICES,
+    PREVIEW_COMPANY_TYPE_CHOICES,
+    PREVIEW_RECRUITMENT_TYPE_CHOICES,
+    PROVINCE_CHOICES,
+)
 
 
-def _filter_fields(request: HttpRequest):
-    choice_map = {
-        "company_type": Organization.CompanyType.choices,
-        "recruitment_type": RecruitmentBatch.RecruitmentType.choices,
+def _filter_context(request: HttpRequest, *, preview: bool) -> dict:
+    return {
+        "company_value": request.GET.get("company", ""),
+        "position_value": request.GET.get("position", ""),
+        "company_type_choices": (
+            PREVIEW_COMPANY_TYPE_CHOICES if preview else Organization.CompanyType.choices
+        ),
+        "recruitment_type_choices": (
+            PREVIEW_RECRUITMENT_TYPE_CHOICES if preview else RecruitmentBatch.RecruitmentType.choices
+        ),
+        "audience_choices": AUDIENCE_CHOICES,
+        "deadline_window_choices": DEADLINE_WINDOW_CHOICES,
+        "selected_company_types": request.GET.getlist("company_type"),
+        "selected_recruitment_types": request.GET.getlist("recruitment_type"),
+        "selected_cities": request.GET.getlist("city"),
+        "selected_progress": request.GET.getlist("progress"),
+        "selected_audience": request.GET.get("audience", request.GET.get("target_audience", "")),
+        "selected_deadline_window": request.GET.get("deadline_window", ""),
     }
-    return tuple(
-        {
-            "name": name,
-            "label": label,
-            "kind": kind,
-            "placeholder": placeholder,
-            "value": request.GET.get(name, ""),
-            "choices": choice_map.get(name, ()),
-        }
-        for name, label, kind, placeholder in FILTER_FIELD_SPECS
-    )
 
 def _render_dashboard(request: HttpRequest, *, history: bool = False) -> HttpResponse:
     page, summary, city_choices = build_orm_dashboard(request.GET, history=history)
     preserved_query = request.GET.copy()
     preserved_query.pop("page", None)
-    return render(request, "radar/phase02_dashboard.html", {
+    context = {
         "page": page,
         "batches": page.object_list,
         "summary": summary,
         "history": history,
         "is_preview": False,
         "progress_choices": ApplicationProgress.Status.choices,
-        "company_type_choices": Organization.CompanyType.choices,
-        "recruitment_type_choices": RecruitmentBatch.RecruitmentType.choices,
         "city_choices": tuple(dict.fromkeys((*city_choices, *request.GET.getlist("city")))),
-        "selected_cities": request.GET.getlist("city"),
-        "selected_progress": request.GET.getlist("progress"),
         "scheduled_run_missing": scheduled_run_is_missing(timezone.now()),
         "last_successful_update": latest_successful_update(),
         "source_failures": latest_source_failures(),
         "query_without_page": preserved_query.urlencode(),
         "current_query": request.GET.urlencode(),
-        "optional_columns": OPTIONAL_COLUMN_CHOICES,
-        "filter_fields": _filter_fields(request),
-        "multi_filter_labels": dict(MULTI_FILTER_LABELS),
         "show_operations": request.user.is_staff,
-    })
+    }
+    context.update(_filter_context(request, preview=False))
+    return render(request, "radar/phase02_dashboard.html", context)
 
 
 def dashboard(request: HttpRequest) -> HttpResponse:
@@ -78,25 +81,20 @@ def phase02_preview(request: HttpRequest) -> HttpResponse:
         raise Http404
     history = request.GET.get("view") == "history"
     batches, summary = mock_dashboard(request.GET, history=history)
-    return render(request, "radar/phase02_dashboard.html", {
+    context = {
         "batches": batches,
         "summary": summary,
         "history": history,
         "is_preview": True,
         "progress_choices": ApplicationProgress.Status.choices,
-        "company_type_choices": Organization.CompanyType.choices,
-        "recruitment_type_choices": RecruitmentBatch.RecruitmentType.choices,
-        "city_choices": tuple(dict.fromkeys((*available_city_choices(batches), *request.GET.getlist("city")))),
-        "selected_cities": request.GET.getlist("city"),
-        "selected_progress": request.GET.getlist("progress"),
+        "city_choices": PROVINCE_CHOICES,
         "preview_health": request.GET.get("health", "normal"),
         "scheduled_run_missing": False,
         "source_failures": (),
-        "optional_columns": OPTIONAL_COLUMN_CHOICES,
-        "filter_fields": _filter_fields(request),
-        "multi_filter_labels": dict(MULTI_FILTER_LABELS),
         "show_operations": True,
-    })
+    }
+    context.update(_filter_context(request, preview=True))
+    return render(request, "radar/phase02_dashboard.html", context)
 
 
 @require_GET

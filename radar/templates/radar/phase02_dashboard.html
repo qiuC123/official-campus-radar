@@ -1,32 +1,146 @@
 {% load static %}<!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>校招岗位工作台</title><link rel="stylesheet" href="{% static 'radar/phase02.css' %}"></head>
-<body><main class="workspace">
-  <header class="hero"><div><p class="eyebrow">OFFICIAL CAMPUS RADAR</p><h1>校招岗位工作台</h1><p>先找到值得投的招聘批次，再手动记录这个批次的投递进度。</p></div>
-    <nav><a class="{% if not history %}active{% endif %}" href="{% if is_preview %}?view=active{% else %}/{% endif %}">招聘中</a><a class="{% if history %}active{% endif %}" href="{% if is_preview %}?view=history{% else %}/history/{% endif %}">历史</a>{% if show_operations %}{% if is_preview %}<button type="button" disabled title="预览页不会触发真实更新">立即更新</button>{% else %}<form method="post" action="{% url 'update_now' %}">{% csrf_token %}<button type="submit">立即更新</button></form>{% endif %}{% endif %}</nav></header>
-  {% if is_preview %}<section class="mock-banner"><strong>模拟数据，不是线上岗位</strong><span>此页不查询正式业务表，不会访问企业网站。</span></section>{% endif %}
-  {% if show_operations and is_preview %}<section class="panel preview-health"><strong>模拟运行状态：</strong><a href="?health=normal{% if history %}&view=history{% endif %}">正常</a><a href="?health=missing{% if history %}&view=history{% endif %}">漏跑</a><a href="?health=failure{% if history %}&view=history{% endif %}">来源失败</a></section>{% endif %}
-  {% if show_operations and is_preview and preview_health == 'missing' %}<section class="health warning"><strong>模拟：计划更新漏跑</strong><span>岗位数据保留，不伪装成空。</span></section>{% endif %}
-  {% if show_operations and is_preview and preview_health == 'failure' %}<section class="health danger"><strong>模拟：1 个来源失败</strong><span>最近一次响应失败，等待下次核验。</span></section>{% endif %}
-  {% if show_operations and scheduled_run_missing %}<section class="health warning scheduled-alert"><strong>计划更新可能漏跑</strong><span>最近成功：{% if last_successful_update %}{{ last_successful_update.completed_at|date:'Y-m-d H:i' }}{% else %}尚无记录{% endif %}</span><form method="post" action="{% url 'update_now' %}">{% csrf_token %}<button type="submit">立即更新</button></form></section>{% endif %}
-  {% if show_operations and source_failures %}<section class="health danger"><strong>来源健康降级：{{ source_failures|length }} 个来源失败</strong>{% for failure in source_failures %}<span>{{ failure.source.organization.name }}：{{ failure.error_message }}</span>{% endfor %}</section>{% endif %}
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>校招岗位工作台</title>
+  <link rel="stylesheet" href="{% static 'radar/phase02.css' %}">
+</head>
+<body>
+<main class="shell">
+  <header class="hero">
+    <div>
+      <p class="eyebrow">OFFICIAL CAMPUS RADAR</p>
+      <h1>校招岗位工作台</h1>
+      <p class="subtitle">一行看完一家公司的招聘批次、代表岗位、地点、进度和官方入口。</p>
+    </div>
+    <nav aria-label="页面视图">
+      <a class="nav-button {% if not history %}active{% endif %}" href="{% if is_preview %}{% url 'phase02_preview' %}?view=active{% else %}/{% endif %}">招聘中</a>
+      <a class="nav-button {% if history %}active{% endif %}" href="{% if is_preview %}{% url 'phase02_preview' %}?view=history{% else %}/history/{% endif %}">历史</a>
+      {% if show_operations %}
+        {% if is_preview %}<button class="update-button" type="button" disabled title="预览页不会触发真实更新">立即更新</button>
+        {% else %}<form method="post" action="{% url 'update_now' %}">{% csrf_token %}<button class="update-button live" type="submit">立即更新</button></form>{% endif %}
+      {% endif %}
+    </nav>
+  </header>
+
+  {% if is_preview %}
+    <section class="prototype-note" role="note">
+      <strong>模拟数据，不是线上岗位</strong>
+      <span>这个页面只验证布局和交互，不查询正式业务表，也不会访问企业网站。</span>
+    </section>
+  {% endif %}
+
+  {% if show_operations %}
+    <section class="health-panel" data-health="{% if preview_health == 'missing' or scheduled_run_missing %}missing{% elif preview_health == 'failure' or source_failures %}failure{% else %}healthy{% endif %}" aria-label="管理员运维区">
+      <div>
+        <span class="health-dot"></span><small class="admin-only">仅管理员可见</small>
+        {% if is_preview and preview_health == 'missing' %}<strong>模拟：计划更新漏跑</strong><span class="health-copy">岗位数据保留，不伪装成空。</span>
+        {% elif is_preview and preview_health == 'failure' %}<strong>模拟：1 个来源失败</strong><span class="health-copy">其他来源保留上次成功数据。</span>
+        {% elif scheduled_run_missing %}<strong>计划更新可能漏跑</strong><span class="health-copy">最近成功：{% if last_successful_update %}{{ last_successful_update.completed_at|date:'Y-m-d H:i' }}{% else %}尚无记录{% endif %}</span>
+        {% elif source_failures %}<strong>来源健康降级：{{ source_failures|length }} 个来源失败</strong>{% for failure in source_failures %}<span class="health-copy">{{ failure.source.organization.name }}：{{ failure.error_message }}</span>{% endfor %}
+        {% else %}<strong>{% if is_preview %}模拟运行状态：运行正常{% else %}运行正常{% endif %}</strong><span class="health-copy">{% if is_preview %}最近成功更新：今天 08:20{% elif last_successful_update %}最近成功更新：{{ last_successful_update.completed_at|date:'Y-m-d H:i' }}{% else %}尚无成功更新记录{% endif %}</span>{% endif %}
+      </div>
+      {% if is_preview %}<div class="health-switch" aria-label="模拟运行状态">
+        <a class="{% if preview_health == 'normal' %}selected{% endif %}" href="?health=normal{% if history %}&view=history{% endif %}">正常</a>
+        <a class="{% if preview_health == 'missing' %}selected{% endif %}" href="?health=missing{% if history %}&view=history{% endif %}">漏跑</a>
+        <a class="{% if preview_health == 'failure' %}selected{% endif %}" href="?health=failure{% if history %}&view=history{% endif %}">来源失败</a>
+      </div>{% endif %}
+    </section>
+  {% endif %}
+
   {% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}
-  <section class="stats" aria-label="招聘概览"><article><span>招聘中岗位</span><strong>{{ summary.active_positions }}</strong></article><article><span>近 3 天变化</span><strong>{{ summary.changed_in_3_days }}</strong></article><article><span>7 天内截止</span><strong>{{ summary.deadline_in_7_days }}</strong></article><article><span>求职进行中批次</span><strong>{{ summary.applications_in_progress }}</strong></article></section>
-  <section class="panel"><form method="get" class="filters">
-    {% for field in filter_fields %}<label>{{ field.label }}{% if field.kind == 'select' %}<select name="{{ field.name }}"><option value="">全部</option>{% for value,label in field.choices %}<option value="{{ value }}" {% if field.value == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>{% else %}<input type="{{ field.kind }}" name="{{ field.name }}" value="{{ field.value }}"{% if field.placeholder %} placeholder="{{ field.placeholder }}"{% endif %}>{% endif %}</label>{% endfor %}
-    <fieldset><legend>{{ multi_filter_labels.city }}</legend>{% for city in city_choices %}<label><input type="checkbox" name="city" value="{{ city }}" {% if city in selected_cities %}checked{% endif %}>{{ city }}</label>{% endfor %}</fieldset>
-    <fieldset><legend>{{ multi_filter_labels.progress }}</legend>{% for value,label in progress_choices %}<label><input type="checkbox" name="progress" value="{{ value }}" {% if value in selected_progress %}checked{% endif %}>{{ label }}</label>{% endfor %}</fieldset>
-    {% if is_preview %}<input type="hidden" name="view" value="{% if history %}history{% else %}active{% endif %}"><input type="hidden" name="health" value="{{ preview_health }}">{% endif %}
-    <div class="filter-actions"><button type="submit">查询</button><a href="{% if is_preview %}{% url 'phase02_preview' %}{% if history %}?view=history{% endif %}{% elif history %}/history/{% else %}/{% endif %}">重置</a></div>
-  </form></section>
-  <section class="panel column-controls"><strong>显示信息</strong>{% for key,label in optional_columns %}<label><input type="checkbox" data-column="{{ key }}" checked>{{ label }}</label>{% endfor %}</section>
-  <section class="batch-list"><div class="section-title"><h2>{% if history %}历史批次{% else %}招聘中的批次{% endif %}</h2><span>{{ batches|length }} 个批次</span></div>
-    {% for batch in batches %}<article class="batch-card" data-batch-id="{{ batch.id }}"><header><div><span class="company">{{ batch.company }}</span><h3>{{ batch.title }} · {{ batch.positions|length }} 个岗位</h3></div><div class="batch-actions"><label>投递进度<select class="batch-progress" aria-label="{{ batch.title }}投递进度" data-current-value="{{ batch.progress_value }}" data-save-url="{% if not is_preview %}{% url 'update_progress' batch.id %}{% endif %}">{% for value,label in progress_choices %}<option value="{{ value }}" {% if value == batch.progress_value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label><a data-column-content="official-page" href="{{ batch.official_page_url }}" target="_blank" rel="noopener">批次官网</a></div></header>
-      <div class="batch-meta"><span data-column-content="company-type">{{ batch.company_type }}</span><span data-column-content="industry">{{ batch.industry }}</span><span data-column-content="recruitment-type">{{ batch.recruitment_type }}</span><span data-column-content="target-audience">{{ batch.target_audience }}</span><span data-column-content="deadline">截止：{% if batch.deadline %}{{ batch.deadline }}{% else %}未说明{% endif %}</span></div>
-      <div class="position-list">{% include 'radar/position_rows.html' with positions=batch.preview_positions %}</div>
-      {% if is_preview and batch.remaining_count %}<div class="mock-all-positions" hidden>{% include 'radar/position_rows.html' with positions=batch.remaining_positions %}</div>{% endif %}
-      {% if batch.remaining_count %}<button class="expand" type="button" data-expand-url="{% if is_preview %}{% else %}{% url 'batch_positions' batch.id %}{% if current_query %}?{{ current_query }}{% endif %}{% endif %}" {% if is_preview %}data-mock-expand="true"{% endif %}>展开其余 {{ batch.remaining_count }} 个岗位</button>{% endif %}
-    </article>{% empty %}<section class="empty"><h2>目前没有可展示的岗位</h2><p>{% if is_preview %}模拟筛选结果为空。{% else %}数据库中没有通过正式准入链的匹配岗位；这不代表企业一定没有招聘。{% endif %}</p></section>{% endfor %}
+
+  <section class="panel compact-filters">
+    <form method="get" id="filter-form">
+      <input name="company" aria-label="公司名称" placeholder="公司名称" value="{{ company_value }}">
+
+      <div class="multi-filter" data-label="公司类型">
+        <button class="multi-trigger" type="button" aria-expanded="false">公司类型</button>
+        <div class="multi-menu" hidden><div class="multi-options">
+          {% for value,label in company_type_choices %}<label><input type="checkbox" name="company_type" value="{{ value }}" {% if value in selected_company_types %}checked{% endif %}><span>{{ label }}</span></label>{% endfor %}
+        </div><div class="multi-message"></div><footer><button type="button" class="multi-cancel">取消</button><button type="button" class="multi-confirm">确定</button></footer></div>
+      </div>
+
+      <div class="multi-filter" data-label="地点" data-max="5">
+        <button class="multi-trigger" type="button" aria-expanded="false">地点（省份，最多 5 个）</button>
+        <div class="multi-menu province-menu" hidden><div class="multi-options">
+          {% for city in city_choices %}<label><input type="checkbox" name="city" value="{{ city }}" {% if city in selected_cities %}checked{% endif %}><span>{{ city }}</span></label>{% endfor %}
+        </div><div class="multi-message">最多选择 5 个省份</div><footer><button type="button" class="multi-cancel">取消</button><button type="button" class="multi-confirm">确定</button></footer></div>
+      </div>
+
+      <div class="multi-filter" data-label="招聘类型">
+        <button class="multi-trigger" type="button" aria-expanded="false">招聘类型</button>
+        <div class="multi-menu" hidden><div class="multi-options">
+          {% for value,label in recruitment_type_choices %}<label><input type="checkbox" name="recruitment_type" value="{{ value }}" {% if value in selected_recruitment_types %}checked{% endif %}><span>{{ label }}</span></label>{% endfor %}
+        </div><div class="multi-message"></div><footer><button type="button" class="multi-cancel">取消</button><button type="button" class="multi-confirm">确定</button></footer></div>
+      </div>
+
+      <select name="audience" aria-label="招聘对象"><option value="">招聘对象</option>{% for value,label in audience_choices %}<option value="{{ value }}" {% if selected_audience == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+      <input name="position" aria-label="岗位" placeholder="岗位（多个用逗号隔开）" value="{{ position_value }}">
+
+      <div class="multi-filter" data-label="投递进度">
+        <button class="multi-trigger" type="button" aria-expanded="false">投递进度</button>
+        <div class="multi-menu" hidden><div class="multi-options">
+          {% for value,label in progress_choices %}<label><input type="checkbox" name="progress" value="{{ value }}" {% if value in selected_progress %}checked{% endif %}><span>{% if label == '已挂' %}未通过{% else %}{{ label }}{% endif %}</span></label>{% endfor %}
+        </div><div class="multi-message"></div><footer><button type="button" class="multi-cancel">取消</button><button type="button" class="multi-confirm">确定</button></footer></div>
+      </div>
+
+      <select name="deadline_window" aria-label="截止时间"><option value="">截止时间</option>{% for value,label in deadline_window_choices %}<option value="{{ value }}" {% if selected_deadline_window == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+      {% if is_preview %}<input type="hidden" name="view" value="{% if history %}history{% else %}active{% endif %}"><input type="hidden" name="health" value="{{ preview_health }}">{% endif %}
+      <div class="form-actions wide">
+        <button class="primary-button" type="submit">查询</button>
+        <a class="reset-button" href="{% if is_preview %}{% url 'phase02_preview' %}{% if history %}?view=history{% endif %}{% elif history %}/history/{% else %}/{% endif %}">重置</a>
+        <strong id="filter-summary">今日：{{ summary.today_updated_companies }}家｜近三天：{{ summary.updated_companies_in_3_days }}家｜1天内截止：{{ summary.deadline_companies_in_1_day }}家｜3天内截止：{{ summary.deadline_companies_in_3_days }}家</strong>
+      </div>
+    </form>
   </section>
-  {% if page and page.paginator.num_pages > 1 %}<nav class="pagination">{% if page.has_previous %}<a href="?{{ query_without_page }}&page={{ page.previous_page_number }}">上一页</a>{% endif %}<span>{{ page.number }} / {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a href="?{{ query_without_page }}&page={{ page.next_page_number }}">下一页</a>{% endif %}</nav>{% endif %}
-</main><div id="toast" role="status"></div><script>window.PHASE02_PREVIEW={{ is_preview|yesno:'true,false' }};</script><script src="{% static 'radar/phase02.js' %}"></script></body></html>
+
+  <section class="results-heading">
+    <div><span class="section-index">02</span><h2>{% if history %}历史批次{% else %}招聘中的批次{% endif %}</h2></div>
+    <span>{{ batches|length }} 个招聘批次 · 每页最多 20 个</span>
+  </section>
+
+  {% if batches %}
+  <section class="table-shell">
+    <table class="recruitment-table">
+      <thead><tr>
+        <th>公司名称</th><th>公司类型</th><th>所属行业</th><th>招聘类型</th><th>招聘对象</th><th>工作地点</th>
+        <th>岗位 <small>（点击查看全部）</small></th><th>投递进度</th><th>更新时间</th><th>投递截止</th><th>相关链接</th><th>批次官网</th>
+      </tr></thead>
+      <tbody>
+      {% for batch in batches %}
+        <tr data-batch-id="{{ batch.id }}">
+          <td class="company-cell"><strong>{{ batch.company }}</strong><small title="{{ batch.title }}">{{ batch.title }}</small></td>
+          <td><span class="badge company-{{ batch.company_badge_class }}">{{ batch.company_type }}</span></td>
+          <td>{{ batch.industry }}</td>
+          <td><span class="badge recruit-badge">{{ batch.recruitment_type }}</span></td>
+          <td><span class="badge audience-badge">{{ batch.target_audience }}</span></td>
+          <td class="locations-cell">{{ batch.location_summary }}</td>
+          <td><button type="button" class="positions-summary" aria-expanded="false" data-expand-url="{% if not is_preview %}{% url 'batch_positions' batch.id %}{% if current_query %}?{{ current_query }}{% endif %}{% endif %}" title="点击查看全部岗位">{{ batch.position_summary }}</button></td>
+          <td><select class="batch-progress" aria-label="{{ batch.title }}投递进度" data-current-value="{{ batch.progress_value }}" data-save-url="{% if not is_preview %}{% url 'update_progress' batch.id %}{% endif %}">{% for value,label in progress_choices %}<option value="{{ value }}" {% if value == batch.progress_value %}selected{% endif %}>{% if label == '已挂' %}未通过{% else %}{{ label }}{% endif %}</option>{% endfor %}</select></td>
+          <td class="date-cell">{{ batch.effective_updated_on|date:'Y-m-d' }}</td>
+          <td class="deadline-cell">{% if batch.deadline %}{{ batch.deadline|date:'Y-m-d' }}{% else %}未说明{% endif %}</td>
+          <td><a class="action-link apply{% if is_preview %} preview-external{% endif %}" href="{% if is_preview %}#{% else %}{{ batch.primary_application_url }}{% endif %}" {% if not is_preview %}target="_blank" rel="noopener"{% endif %}{% if batch.primary_application_uses_batch_page %} title="官网没有岗位直投链接，已回退到批次官网"{% endif %}>投递</a></td>
+          <td><a class="action-link notice{% if is_preview %} preview-external{% endif %}" href="{% if is_preview %}#{% else %}{{ batch.official_page_url }}{% endif %}" {% if not is_preview %}target="_blank" rel="noopener"{% endif %}>官方页</a></td>
+        </tr>
+        <tr class="positions-detail-row" data-detail-for="{{ batch.id }}" hidden><td colspan="12"><div class="positions-detail"><strong>全部岗位</strong><ul {% if not is_preview %}data-loaded="false"{% endif %}>{% if is_preview %}{% include 'radar/position_rows.html' with positions=batch.positions %}{% endif %}</ul></div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% else %}
+    <section class="empty"><h2>{% if is_preview %}当前条件下没有匹配的招聘批次{% else %}尚无已准入的真实校招岗位{% endif %}</h2><p>{% if is_preview %}请调整筛选条件后再试。{% else %}数据库中没有通过正式准入链的匹配岗位；这不代表企业一定没有招聘。{% endif %}</p></section>
+  {% endif %}
+
+  {% if page and page.paginator.num_pages > 1 %}<nav class="pagination">
+    {% if page.has_previous %}<a href="?{% if query_without_page %}{{ query_without_page }}&{% endif %}page={{ page.previous_page_number }}">上一页</a>{% endif %}
+    <span>{{ page.number }} / {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}<a href="?{% if query_without_page %}{{ query_without_page }}&{% endif %}page={{ page.next_page_number }}">下一页</a>{% endif %}
+  </nav>{% endif %}
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>window.PHASE02_PREVIEW={{ is_preview|yesno:'true,false' }};</script>
+<script src="{% static 'radar/phase02.js' %}"></script>
+</body>
+</html>

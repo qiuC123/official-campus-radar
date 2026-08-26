@@ -24,7 +24,7 @@ class DashboardViewTests(TestCase):
         response = self.client.get("/")
         self.assertContains(response, "校园招聘")
         self.assertContains(response, f'value="{self.beijing.recruitment_type}"')
-        self.assertContains(response, '<span data-column-content="recruitment-type">校园招聘</span>')
+        self.assertContains(response, '<span class="badge recruit-badge">校园招聘</span>', html=True)
 
     def test_progress_endpoint_accepts_only_known_choice(self) -> None:
         response = self.client.post(f"/batches/{self.beijing.pk}/progress/", {"status": "interviewed"})
@@ -51,7 +51,7 @@ class DashboardViewTests(TestCase):
         administrator = get_user_model().objects.create_superuser("owner", "owner@example.test", "test")
         self.client.force_login(administrator)
         response = self.client.get("/")
-        self.assertContains(response, 'class="health warning scheduled-alert"')
+        self.assertContains(response, 'class="health-panel" data-health="missing"')
         self.assertContains(response, 'action="/update-now/"')
 
     @patch("radar.views.scheduled_run_is_missing", return_value=True)
