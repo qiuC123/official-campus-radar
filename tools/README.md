@@ -32,6 +32,13 @@ inherited target could open another page. Guards installed before navigation
 also block programmatic form submission, `window.open`, and popups. It never
 fills a field or submits a form.
 
+For an acceptance cycle, each target must be invoked exactly once. That
+invocation creates one browser context and one page instance, performs one
+initial navigation, and never reloads or calls `goto` again. The optional
+single safe click may navigate within that same page instance. Do not run a
+second diagnostic invocation when a target produces no candidate; record the
+cycle as failed instead.
+
 For a batch:
 
 ```powershell
@@ -115,21 +122,27 @@ deduplication cannot discard the unsafe marker.
 ## Phase 02 integration boundary
 
 Generated POST drafts place fixed JSON under `body`, and generated success
-checks use `success.expect`. Those drafts require the Phase 02 T1 JSON API
-supplement to be integrated before they can be consumed by the runtime
-collector. T2 intentionally neither changes nor imports `radar/`; its hard
-scope keeps discovery tooling separate from production application code. A
-combined T1+T2 contract test is therefore deferred to the integration branch,
-where both supplements are present.
+checks use `success.expect`. The Phase 02 T1 JSON API supplement and this T2
+tool are now integrated on `main`. The Cycle 02 acceptance audit parsed the
+fresh Ctrip and Tencent drafts, supplemented only the human-owned notice
+metadata and a positive delay, and confirmed that both pass the T1 adapter
+validator. T2 still intentionally neither changes nor imports `radar/`; the
+discovery tool remains separate from production application code.
 
 Discovery is deliberately low-frequency and non-evasive:
 
-- Each target opens one headless Chromium page once.
+- Each target creates one browser context and one headless Chromium page
+  instance, performs one initial navigation, and uses zero reloads or second
+  `goto` calls. At most one guarded click may continue within that page;
+  new-page and popup attempts are blocked.
 - Targets run serially with at least three seconds between them; the tool never
   performs same-domain concurrency.
 - Pagination observations are de-duplicated without discarding material filter
   variants or qualifying list paths; one full five-request ladder stays within
-  the per-invocation endpoint budget of six replay requests.
+  the per-invocation endpoint budget of six replay requests. A formal
+  acceptance cycle must also keep the same normalized endpoint at or below six
+  cumulative replays across all invocations; rerunning a target does not reset
+  that audit budget.
 - The tool does not log in, accept credentials, submit forms, bypass CAPTCHA,
   use stealth or proxies, scan paths, brute-force parameters, or reproduce
   frontend signatures. A login wall, CAPTCHA, abnormal status, or empty blocked

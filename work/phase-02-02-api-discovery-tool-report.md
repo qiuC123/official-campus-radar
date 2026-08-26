@@ -2,7 +2,7 @@
 
 Generated on 2026-08-21 (Asia/Shanghai).
 
-Status: **OFFLINE_IMPLEMENTATION_COMPLETE / LIVE_ACCEPTANCE_FAILED**. The tool
+Cycle 01 status: **OFFLINE_IMPLEMENTATION_COMPLETE / LIVE_ACCEPTANCE_FAILED**. The tool
 and offline tests are complete, and the recorded runs establish useful endpoint
 facts. The Ctrip live work does not pass the task's compliance acceptance: one
 target was opened five times despite the hard one-page-open limit, and the same
@@ -10,6 +10,12 @@ normalized `POST getEmployeeStory` endpoint received 10 cumulative replays
 despite the hard limit of six. Tencent's blank recruitment filter and
 experienced-role samples also require human review before campus scope is
 claimed.
+
+Cycle 02 was executed as a new, independently counted acceptance cycle after
+the page-lifecycle rule was revised prospectively. Its tool-baseline status is
+**LIVE_ACCEPTANCE_PASSED**; it does not rewrite Cycle 01 and does not admit the
+observed Tencent response as campus data. See
+`work/phase-02-02-live-acceptance-cycle-02.md`.
 
 ## Recorded implementation and live interactions
 
@@ -187,11 +193,13 @@ replay results, inferred paths and fields, and raw samples are unchanged. No
 browser, network, replay, page, or endpoint request was made for this
 correction, preserving the recorded total of 25 replay requests.
 
-These generated `body` and `success.expect` drafts require the Phase 02 T1
-JSON API supplement to be integrated before the runtime collector can consume
-them. T2 intentionally cannot change or import `radar/` under its hard scope.
-A combined T1+T2 contract test is therefore deferred to the integration branch
-where both supplements are present.
+At the time of Cycle 01, these generated `body` and `success.expect` drafts
+still required the Phase 02 T1 JSON API supplement to be integrated before the
+runtime collector could consume them. T2 intentionally could not change or
+import `radar/` under its hard scope, so the combined contract test was then
+deferred to the integration branch. T1 and T2 have since been integrated on
+`main`; the fresh Cycle 02 Ctrip and Tencent drafts both passed the T1 adapter
+validator as recorded in `work/phase-02-02-live-acceptance-cycle-02.md`.
 
 ## Offline final-review corrections
 
