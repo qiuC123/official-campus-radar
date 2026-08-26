@@ -164,6 +164,13 @@ needed and the additional visit is recorded with its own target ID and reason.
 Targets remain serialized and low-frequency. Re-running a failed target merely
 to improve its result is prohibited; a new attempt belongs to a later cycle.
 
+T3 Cycle 02 groups frozen targets by recruitment-platform fingerprints before
+selecting representative pages. The machine-readable baseline is
+`tools/recruitment-platform-families-cycle-02.json`. A shared family only means
+that an adapter strategy may be reusable; tenant configuration, campus scope,
+job fields, location fields and pagination still require per-company evidence.
+The file does not authorize production browser collection or T4 admission.
+
 Run the offline tests without installing or launching a browser:
 
 ```powershell
