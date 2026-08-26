@@ -90,6 +90,34 @@ def _validated_admission_chain(source: OfficialSource) -> list[SourceAdmissionEv
     return events
 
 
+def _has_valid_application_host_approval(
+    source: OfficialSource,
+    host: str,
+    chain: list[SourceAdmissionEvent] | None = None,
+) -> bool:
+    """Recheck an approved host's facts, digest, and admission-chain ownership."""
+    chain = chain if chain is not None else _validated_admission_chain(source)
+    if not chain:
+        return False
+    chain_event_ids = {event.pk for event in chain}
+    approvals = source.approved_application_hosts.filter(host=host).select_related(
+        "admission_event"
+    )
+    return any(
+        approval.source_id == source.pk
+        and approval.admission_event_id in chain_event_ids
+        and approval.admission_event.source_id == source.pk
+        and approval.admission_event.to_state
+        == OfficialSource.AdmissionState.VERIFIED
+        and all(
+            str(value or "").strip()
+            for value in (approval.host, approval.actor_label, approval.evidence)
+        )
+        and approval.approval_digest == approval.calculate_digest()
+        for approval in approvals
+    )
+
+
 def source_is_admitted(source: OfficialSource) -> bool:
     if (
         source.admission_state != OfficialSource.AdmissionState.ENABLED
@@ -118,7 +146,7 @@ def source_is_admitted(source: OfficialSource) -> bool:
             and _belongs_to_official_domain(
                 _host(source.official_entrypoint_url), official_domain
             )
-            and source.approved_application_hosts.filter(host=source_host).exists()
+            and _has_valid_application_host_approval(source, source_host, chain)
         )
     return source.source_type == OfficialSource.SourceType.WECHAT
 
@@ -155,29 +183,16 @@ def source_permits_application_url(source: OfficialSource, url: str) -> bool:
     if urlparse(url).scheme != "https":
         return False
     host = _host(url)
-    if host == _host(source.source_url):
-        return True
     source = OfficialSource.objects.select_related("organization").get(pk=source.pk)
     chain = _validated_admission_chain(source)
     if not chain:
         return False
-    chain_event_ids = {event.pk for event in chain}
-    approvals = source.approved_application_hosts.filter(host=host).select_related(
-        "admission_event"
-    )
-    return any(
-        approval.source_id == source.pk
-        and approval.admission_event_id in chain_event_ids
-        and approval.admission_event.source_id == source.pk
-        and approval.admission_event.to_state
-        == OfficialSource.AdmissionState.VERIFIED
-        and all(
-            str(value or "").strip()
-            for value in (approval.host, approval.actor_label, approval.evidence)
-        )
-        and approval.approval_digest == approval.calculate_digest()
-        for approval in approvals
-    )
+    if (
+        host == _host(source.source_url)
+        and source.source_type != OfficialSource.SourceType.ATS
+    ):
+        return True
+    return _has_valid_application_host_approval(source, host, chain)
 
 
 def source_permits_url(
@@ -241,9 +256,9 @@ def transition_source(
     if (
         to_state == OfficialSource.AdmissionState.ENABLED
         and source.source_type == OfficialSource.SourceType.ATS
-        and not source.approved_application_hosts.filter(
-            host=_host(source.source_url)
-        ).exists()
+        and not _has_valid_application_host_approval(
+            source, _host(source.source_url)
+        )
     ):
         raise ValidationError("ATS source host requires official-entrypoint approval")
     if to_state == OfficialSource.AdmissionState.ENABLED:

@@ -18,7 +18,11 @@ from radar.services.admission import (
     source_permits_application_url,
     transition_source,
 )
-from radar.tests.helpers import create_enabled_source, publish_formal_notice
+from radar.tests.helpers import (
+    create_enabled_source,
+    publish_formal_notice,
+    valid_html_parser_config,
+)
 
 
 class AdmissionChainIntegrityTests(TestCase):
@@ -113,6 +117,65 @@ class AdmissionChainIntegrityTests(TestCase):
 
 
 class ApprovedHostIntegrityTests(TestCase):
+    def create_enabled_ats_source(self, name: str) -> OfficialSource:
+        organization = Organization.objects.create(
+            name=name,
+            company_type="internet",
+            industry="tech",
+            official_domain="official.test",
+        )
+        source = OfficialSource.objects.create(
+            organization=organization,
+            source_type=OfficialSource.SourceType.ATS,
+            source_url="https://ats.vendor.test/jobs",
+            official_entrypoint_url="https://official.test/careers",
+            admission_evidence="official page links to ATS",
+            parser_config=valid_html_parser_config(),
+        )
+        transition_source(
+            source,
+            to_state=OfficialSource.AdmissionState.VERIFIED,
+            actor_label="owner",
+            reason="official entrypoint verified",
+            evidence="saved official-page fixture",
+        )
+        approve_application_host(
+            source,
+            host="ats.vendor.test",
+            actor_label="owner",
+            evidence="official entrypoint links to this ATS host",
+        )
+        transition_source(
+            source,
+            to_state=OfficialSource.AdmissionState.ENABLED,
+            actor_label="owner",
+            reason="offline fixture accepted",
+            evidence="saved fixture passed",
+        )
+        source.refresh_from_db()
+        return source
+
+    def test_ats_projection_fails_closed_after_host_approval_digest_tamper(self) -> None:
+        source = self.create_enabled_ats_source("ATS Host Integrity")
+        batch = publish_formal_notice(source, identity_key="ats-integrity")
+        application_url = "https://ats.vendor.test/jobs/position-1"
+
+        self.assertTrue(source_is_admitted(source))
+        self.assertTrue(source_permits_application_url(source, application_url))
+        self.assertTrue(
+            RecruitmentBatch.objects.formal().filter(pk=batch.pk).exists()
+        )
+
+        ApprovedApplicationHost.objects.filter(source=source).update(
+            approval_digest="0" * 64
+        )
+
+        self.assertFalse(source_is_admitted(source))
+        self.assertFalse(source_permits_application_url(source, application_url))
+        self.assertFalse(
+            RecruitmentBatch.objects.formal().filter(pk=batch.pk).exists()
+        )
+
     def test_host_record_is_immutable_and_consumers_recheck_its_event_chain(self) -> None:
         source = create_enabled_source(name="Host Integrity")
         verification_event = source.admission_events.get(to_state="verified")
