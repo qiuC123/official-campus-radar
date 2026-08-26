@@ -42,6 +42,9 @@ nav { display: flex; gap: 8px; }
 .panel h2, .results-heading h2 { margin: 0; font-size: 18px; }
 .section-index { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: #e8edff; color: var(--brand-dark); font-size: 12px; font-weight: 800; }
 .filters form { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 18px; }
+.compact-filters { padding: 18px 20px; }
+.compact-filters form { display: grid; grid-template-columns: repeat(6, minmax(150px, 1fr)); gap: 12px; max-width: 1380px; margin: 0 auto; }
+.compact-filters input, .compact-filters select { min-width: 0; margin: 0; padding: 11px 12px; }
 label, legend { color: #405169; font-size: 13px; font-weight: 700; }
 input, select { width: 100%; margin-top: 7px; padding: 11px 12px; border: 1px solid #cbd5e1; border-radius: 9px; background: #fff; color: var(--ink); }
 fieldset { margin: 0; padding: 0; border: 0; }
@@ -51,6 +54,8 @@ fieldset { margin: 0; padding: 0; border: 0; }
 .choice input { width: auto; margin: 0; }
 .form-actions { display: flex; gap: 14px; align-items: center; }
 .primary-button { border: 0; padding: 11px 24px; border-radius: 10px; background: var(--brand); color: #fff; font-weight: 700; }
+.reset-button { border: 0; padding: 11px 20px; border-radius: 6px; color: #53606f; background: #eef0f3; font-weight: 700; }
+#filter-summary { padding: 10px 14px; border-radius: 5px; color: #fff; background: #4a8df7; font-size: 13px; white-space: nowrap; }
 #result-hint, #batch-count { color: var(--muted); font-size: 13px; }
 .results-heading { margin: 26px 2px 12px; }
 .table-shell { overflow-x: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 24px rgba(30, 55, 90, .05); }
@@ -95,9 +100,12 @@ fieldset { margin: 0; padding: 0; border: 0; }
   .hero { align-items: flex-start; flex-direction: column; }
   .metrics { grid-template-columns: repeat(2, 1fr); }
   .filters form { grid-template-columns: repeat(2, 1fr); }
+  .compact-filters form { grid-template-columns: repeat(3, 1fr); }
+  .compact-filters .form-actions { grid-column: 1 / -1; flex-wrap: wrap; }
 }
 @media (max-width: 640px) {
   .metrics, .filters form { grid-template-columns: 1fr; }
+  .compact-filters form { grid-template-columns: 1fr; }
   .prototype-note, .health-panel { align-items: flex-start; flex-direction: column; }
   .wide { grid-column: 1; }
 }

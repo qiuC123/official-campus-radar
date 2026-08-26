@@ -1,5 +1,5 @@
 const statuses = ["未投递", "已投递", "已笔试", "已面试", "未通过", "面试通过", "暂不投递"];
-const cities = ["北京", "上海", "杭州", "深圳", "广州", "成都", "武汉", "全国", "远程"];
+const prototypeToday = "2026-08-26";
 
 const batches = [
   {
@@ -42,23 +42,27 @@ const batches = [
 let currentView = "active";
 let filteredBatches = [];
 
-function choiceMarkup(name, values) {
-  return values.map(value => `<label class="choice"><input type="checkbox" name="${name}" value="${value}">${value}</label>`).join("");
-}
-
-document.querySelector("#city-options").innerHTML = choiceMarkup("city", cities);
-
-function selected(form, name) {
-  return [...form.querySelectorAll(`[name="${name}"]:checked`)].map(item => item.value);
+function parseTerms(value) {
+  return value.split(/[，,]/).map(item => item.trim()).filter(Boolean);
 }
 
 function effectivePositions(batch, form) {
-  const positionKeyword = form.position.value.trim().toLowerCase();
-  const selectedCities = selected(form, "city");
+  const positionKeywords = parseTerms(form.position.value.toLowerCase());
+  const locationTerms = parseTerms(form.location.value);
+  const excludeNationwide = locationTerms.includes("-全国");
+  const wantedLocations = locationTerms.filter(item => item !== "-全国");
   return batch.positions.filter(([title, locations]) => {
-    const cityMatch = !selectedCities.length || locations.some(city => selectedCities.includes(city) || city === "全国" || city === "远程");
-    return (!positionKeyword || title.toLowerCase().includes(positionKeyword)) && cityMatch;
+    const matchesWanted = !wantedLocations.length || locations.some(city => wantedLocations.includes(city));
+    const matchesSpecial = !wantedLocations.length || (!excludeNationwide && locations.some(city => city === "全国" || city === "远程"));
+    const cityMatch = (matchesWanted || matchesSpecial) && !(excludeNationwide && locations.includes("全国"));
+    const keywordMatch = !positionKeywords.length || positionKeywords.some(keyword => title.toLowerCase().includes(keyword));
+    return keywordMatch && cityMatch;
   });
+}
+
+function daysUntil(deadline) {
+  if (!deadline) return null;
+  return Math.round((new Date(`${deadline}T00:00:00`) - new Date(`${prototypeToday}T00:00:00`)) / 86400000);
 }
 
 function filterBatches() {
@@ -67,10 +71,15 @@ function filterBatches() {
   filteredBatches = batches.filter(batch => {
     if (batch.status !== currentView) return false;
     if (company && !batch.company.toLowerCase().includes(company)) return false;
-    for (const key of ["companyType", "industry", "recruitmentType", "audience"]) {
+    for (const key of ["companyType", "recruitmentType", "audience"]) {
       if (form[key].value && batch[key] !== form[key].value) return false;
     }
-    if (form.deadline.value && (!batch.deadline || batch.deadline > form.deadline.value)) return false;
+    if (form.progress.value && batchProgress(batch) !== form.progress.value) return false;
+    if (form.deadlineWindow.value === "unknown" && batch.deadline) return false;
+    if (/^\d+$/.test(form.deadlineWindow.value)) {
+      const remainingDays = daysUntil(batch.deadline);
+      if (remainingDays === null || remainingDays < 0 || remainingDays > Number(form.deadlineWindow.value)) return false;
+    }
     return effectivePositions(batch, form).length > 0;
   }).sort((a, b) => b.updated.localeCompare(a.updated));
   render();
@@ -118,19 +127,18 @@ function tableMarkup() {
   </table>`;
 }
 
-function updateMetrics() {
-  const positions = filteredBatches.flatMap(batch => effectivePositions(batch, document.querySelector("#filter-form")).map(position => ({ batch, position })));
-  document.querySelector("#metric-active").textContent = positions.length;
-  document.querySelector("#metric-recent").textContent = positions.filter(({ position }) => position[2] >= "2026-08-24").length;
-  document.querySelector("#metric-deadline").textContent = positions.filter(({ batch }) => batch.deadline && batch.deadline <= "2026-09-02").length;
-  document.querySelector("#metric-companies").textContent = new Set(filteredBatches.map(batch => batch.company)).size;
+function updateSummary() {
+  const todayCount = filteredBatches.filter(batch => batch.updated === prototypeToday).length;
+  const recentCount = filteredBatches.filter(batch => batch.updated >= "2026-08-24").length;
+  const dueInOneDay = filteredBatches.filter(batch => { const days = daysUntil(batch.deadline); return days !== null && days >= 0 && days <= 1; }).length;
+  const dueInThreeDays = filteredBatches.filter(batch => { const days = daysUntil(batch.deadline); return days !== null && days >= 0 && days <= 3; }).length;
+  document.querySelector("#filter-summary").textContent = `今日：${todayCount}家｜近三天：${recentCount}家｜1天内截止：${dueInOneDay}家｜3天内截止：${dueInThreeDays}家`;
 }
 
 function render() {
   document.querySelector("#batch-list").innerHTML = tableMarkup();
   document.querySelector("#batch-count").textContent = `${filteredBatches.length} 个招聘批次 · 原型每页最多 20 个`;
-  document.querySelector("#result-hint").textContent = `找到 ${filteredBatches.length} 个招聘批次`;
-  updateMetrics();
+  updateSummary();
 }
 
 document.querySelector("#filter-form").addEventListener("submit", event => { event.preventDefault(); filterBatches(); });

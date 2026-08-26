@@ -10,7 +10,7 @@
   <main class="shell">
     <header class="hero">
       <div>
-        <p class="eyebrow">OFFICIAL CAMPUS RADAR · PROTOTYPE · CYCLE 03</p>
+        <p class="eyebrow">OFFICIAL CAMPUS RADAR · PROTOTYPE · CYCLE 04</p>
         <h1>校招岗位工作台</h1>
         <p class="subtitle">一行看完一家公司的招聘批次、代表岗位、地点、进度和官方入口。</p>
       </div>
@@ -39,28 +39,17 @@
       </div>
     </section>
 
-    <section class="metrics" aria-label="岗位概览">
-      <article><span>招聘中岗位</span><strong id="metric-active">0</strong><small>当前筛选</small></article>
-      <article><span>近 3 天变化</span><strong id="metric-recent">0</strong><small>真实上新或修改</small></article>
-      <article><span>7 天内截止</span><strong id="metric-deadline">0</strong><small>需要尽快处理</small></article>
-      <article><span>覆盖公司</span><strong id="metric-companies">0</strong><small>当前筛选结果</small></article>
-    </section>
-
-    <section class="panel filters">
-      <div class="panel-heading">
-        <div><span class="section-index">01</span><h2>筛选岗位</h2></div>
-        <button id="reset-filters" class="text-button">重置</button>
-      </div>
+    <section class="panel filters compact-filters">
       <form id="filter-form">
-        <label>公司关键词<input name="company" placeholder="例如：腾讯"></label>
-        <label>公司类型<select name="companyType"><option value="">全部类型</option><option>民企</option><option>国企</option><option>外企</option><option>其他</option></select></label>
-        <label>所属行业<select name="industry"><option value="">全部行业</option><option>互联网/科技</option><option>金融</option><option>能源/电力</option><option>制造业</option><option>通信</option></select></label>
-        <label>招聘类型<select name="recruitmentType"><option value="">全部类型</option><option>校园招聘</option><option>实习招聘</option></select></label>
-        <label>招聘对象<select name="audience"><option value="">全部对象</option><option>2024届</option><option>2025届</option><option>2026届</option><option>2027届</option><option>2028届</option><option>实习生</option></select></label>
-        <label>岗位关键词<input name="position" placeholder="算法、产品、财务"></label>
-        <label>截止日期<input type="date" name="deadline"></label>
-        <fieldset class="wide"><legend>目标城市（可多选）</legend><div id="city-options" class="choice-row"></div></fieldset>
-        <div class="form-actions wide"><button class="primary-button" type="submit">查询</button><span id="result-hint"></span></div>
+        <input name="company" aria-label="公司名称" placeholder="公司名称">
+        <select name="companyType" aria-label="公司类型"><option value="">公司类型</option><option>民企</option><option>国企</option><option>外企</option><option>其他</option></select>
+        <input name="location" aria-label="地点" placeholder="地点（多个用逗号隔开；-全国可排除）">
+        <select name="recruitmentType" aria-label="招聘类型"><option value="">招聘类型</option><option>校园招聘</option><option>实习招聘</option></select>
+        <select name="audience" aria-label="招聘对象"><option value="">招聘对象</option><option>2024届</option><option>2025届</option><option>2026届</option><option>2027届</option><option>2028届</option><option>实习生</option></select>
+        <input name="position" aria-label="岗位" placeholder="岗位（多个用逗号隔开）">
+        <select name="progress" aria-label="投递进度"><option value="">投递进度</option><option>未投递</option><option>已投递</option><option>已笔试</option><option>已面试</option><option>未通过</option><option>面试通过</option><option>暂不投递</option></select>
+        <select name="deadlineWindow" aria-label="截止时间"><option value="">截止时间</option><option value="1">1 天内截止</option><option value="3">3 天内截止</option><option value="7">7 天内截止</option><option value="unknown">招满为止 / 未说明</option></select>
+        <div class="form-actions wide"><button class="primary-button" type="submit">查询</button><button id="reset-filters" class="reset-button" type="button">重置</button><strong id="filter-summary"></strong></div>
       </form>
     </section>
 

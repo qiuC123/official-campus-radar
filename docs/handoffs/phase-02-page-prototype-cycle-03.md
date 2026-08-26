@@ -1,10 +1,12 @@
 # Phase 02 页面原型验收记录 / Cycle 03
 
-状态：Awaiting H1 user review
+状态：Changes requested（历史记录）
 
 日期：2026-08-26
 
 交互原型：`docs/prototypes/phase-02/index.html`
+
+冻结提交：`1b9d2c0`（当前路径已进入 Cycle 04，历史版本以该提交为准）
 
 ## Cycle 02 用户反馈
 
@@ -31,4 +33,6 @@
 - [ ] 公司类型、行业和招聘对象仍使用 Cycle 02 确认的分类。
 - [ ] 可以据此同步 Django 预览页。
 
-如未通过，新建 Cycle 04，不覆盖本文件。
+## H1 结果
+
+用户确认可以继续借鉴参考站，并要求筛选区也采用其紧凑的两行控件与蓝色汇总条。Cycle 03 未通过，筛选区修改转入 Cycle 04；本文件不追认为通过。
