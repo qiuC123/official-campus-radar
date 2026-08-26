@@ -1,12 +1,14 @@
 # Phase 02 页面原型验收记录
 
-状态：Awaiting H1 user review
+状态：Changes requested（历史记录）
 
 Cycle：01
 
 日期：2026-08-26
 
 交互原型：`docs/prototypes/phase-02/index.html`
+
+冻结提交：`e95c446`（当前路径已进入 Cycle 02，历史版本以该提交为准）
 
 ## 覆盖范围
 
@@ -27,4 +29,6 @@ Cycle：01
 - [ ] 用户接受桌面优先的视觉方向；
 - [ ] 用户接受模拟状态与正式数据的区分方式。
 
-H1 未确认前，本记录保持 `Awaiting H1 user review`；后续实现不得把本文件改写成已经由用户接受。
+## H1 结果
+
+用户要求修正公司类型/行业划分、细分 2024届至2028届与实习生，并取消首页逐岗位投递进度展示。Cycle 01 未通过，意见和修改结果转入 `phase-02-page-prototype-cycle-02.md`；本记录不追认为通过。

@@ -10,9 +10,9 @@
   <main class="shell">
     <header class="hero">
       <div>
-        <p class="eyebrow">OFFICIAL CAMPUS RADAR · PROTOTYPE</p>
+        <p class="eyebrow">OFFICIAL CAMPUS RADAR · PROTOTYPE · CYCLE 02</p>
         <h1>校招岗位工作台</h1>
-        <p class="subtitle">优先找到值得投的岗位，再跟进每一个岗位的投递状态。</p>
+        <p class="subtitle">先按公司性质、行业和毕业届次缩小范围，再快速浏览代表岗位方向。</p>
       </div>
       <nav aria-label="页面视图">
         <button class="nav-button active" data-view="active">招聘中</button>
@@ -43,7 +43,7 @@
       <article><span>招聘中岗位</span><strong id="metric-active">0</strong><small>当前筛选</small></article>
       <article><span>近 3 天变化</span><strong id="metric-recent">0</strong><small>真实上新或修改</small></article>
       <article><span>7 天内截止</span><strong id="metric-deadline">0</strong><small>需要尽快处理</small></article>
-      <article><span>求职进行中</span><strong id="metric-progress">0</strong><small>已投 / 笔试 / 面试</small></article>
+      <article><span>覆盖公司</span><strong id="metric-companies">0</strong><small>当前筛选结果</small></article>
     </section>
 
     <section class="panel filters">
@@ -53,20 +53,19 @@
       </div>
       <form id="filter-form">
         <label>公司关键词<input name="company" placeholder="例如：腾讯"></label>
-        <label>公司类型<select name="companyType"><option value="">全部类型</option><option>互联网/科技</option><option>央企/国企</option><option>其他</option></select></label>
-        <label>行业<select name="industry"><option value="">全部行业</option><option>互联网</option><option>科技</option><option>新能源</option><option>金融</option></select></label>
-        <label>招聘类型<select name="recruitmentType"><option value="">全部类型</option><option>校园招聘</option><option>实习</option></select></label>
-        <label>招聘对象<select name="audience"><option value="">全部对象</option><option>2027届</option><option>2026/2027届</option><option>在校生</option></select></label>
+        <label>公司类型<select name="companyType"><option value="">全部类型</option><option>民企</option><option>国企</option><option>外企</option><option>其他</option></select></label>
+        <label>所属行业<select name="industry"><option value="">全部行业</option><option>互联网/科技</option><option>金融</option><option>能源/电力</option><option>制造业</option><option>通信</option></select></label>
+        <label>招聘类型<select name="recruitmentType"><option value="">全部类型</option><option>校园招聘</option><option>实习招聘</option></select></label>
+        <label>招聘对象<select name="audience"><option value="">全部对象</option><option>2024届</option><option>2025届</option><option>2026届</option><option>2027届</option><option>2028届</option><option>实习生</option></select></label>
         <label>岗位关键词<input name="position" placeholder="算法、产品、财务"></label>
         <label>截止日期<input type="date" name="deadline"></label>
         <fieldset class="wide"><legend>目标城市（可多选）</legend><div id="city-options" class="choice-row"></div></fieldset>
-        <fieldset class="wide"><legend>投递进度（可多选）</legend><div id="progress-options" class="choice-row"></div></fieldset>
         <div class="form-actions wide"><button class="primary-button" type="submit">查询</button><span id="result-hint"></span></div>
       </form>
     </section>
 
     <section class="panel column-panel">
-      <div class="panel-heading"><div><span class="section-index">02</span><h2>显示信息</h2></div><small>关键岗位信息始终显示</small></div>
+      <div class="panel-heading"><div><span class="section-index">02</span><h2>显示信息</h2></div><small>代表岗位与工作地点始终显示</small></div>
       <div id="column-options" class="choice-row"></div>
     </section>
 
@@ -76,7 +75,6 @@
     </section>
     <section id="batch-list" class="batch-list" aria-live="polite"></section>
   </main>
-  <div id="toast" role="status" aria-live="polite"></div>
   <script src="app.js"></script>
 </body>
 </html>

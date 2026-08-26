@@ -55,7 +55,8 @@ fieldset { margin: 0; padding: 0; border: 0; }
 .results-heading { margin: 26px 2px 12px; }
 .batch-list { display: grid; gap: 12px; }
 .batch-card { overflow: hidden; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(30, 55, 90, .04); }
-.batch-head { display: grid; grid-template-columns: minmax(220px, 1.5fr) repeat(4, minmax(110px, .7fr)) 110px; gap: 14px; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--line); }
+.batch-head { display: grid; grid-template-columns: minmax(230px, 1.25fr) minmax(620px, 3fr) 110px; gap: 20px; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--line); }
+.batch-metadata { display: grid; grid-template-columns: repeat(6, minmax(82px, 1fr)); gap: 12px; }
 .company { font-size: 18px; font-weight: 800; }
 .batch-title { margin-top: 4px; color: var(--muted); font-size: 13px; }
 .meta { min-width: 0; }
@@ -63,34 +64,28 @@ fieldset { margin: 0; padding: 0; border: 0; }
 .meta strong { display: block; overflow: hidden; text-overflow: ellipsis; font-size: 13px; white-space: nowrap; }
 .deadline-soon strong { color: var(--red); }
 .official-link { color: var(--brand); font-weight: 700; text-decoration: none; }
-.positions { width: 100%; border-collapse: collapse; }
-.positions th { padding: 10px 16px; color: var(--muted); background: #fbfcfe; font-size: 11px; text-align: left; }
-.positions td { padding: 13px 16px; border-top: 1px solid #edf1f6; vertical-align: top; }
-.position-title { border: 0; padding: 0; background: transparent; color: #244ecb; font-weight: 750; text-align: left; }
+.position-overview { display: grid; grid-template-columns: minmax(0, 2fr) minmax(220px, .8fr); gap: 28px; padding: 18px 20px; }
+.overview-label { display: block; margin-bottom: 9px; color: var(--muted); font-size: 11px; font-weight: 800; }
+.position-tags, .location-tags { display: flex; flex-wrap: wrap; gap: 7px; }
+.position-tag { display: inline-block; padding: 6px 9px; border-radius: 8px; color: #244ecb; background: #eef3ff; font-size: 13px; font-weight: 700; }
+.more-count { align-self: center; color: var(--muted); font-size: 12px; }
 .location-tags { display: flex; flex-wrap: wrap; gap: 5px; }
 .tag { display: inline-block; padding: 3px 7px; border-radius: 7px; background: #eef3ff; color: #2d4e9f; font-size: 12px; }
 .tag.special { background: #e3f7f0; color: #08785b; }
-.progress-select { min-width: 116px; margin: 0; padding: 8px; }
-.apply-link { color: var(--brand); font-weight: 700; }
-.description-row[hidden], .extra-position[hidden] { display: none; }
-.description-box { max-width: 900px; padding: 14px; color: #405169; background: #f8fafc; border-radius: 10px; white-space: pre-line; line-height: 1.65; }
-.batch-footer { display: flex; justify-content: center; padding: 10px; border-top: 1px solid var(--line); }
-.expand-button { border: 0; color: var(--brand); background: transparent; font-weight: 700; }
 .empty { padding: 60px 20px; color: var(--muted); text-align: center; background: var(--paper); border: 1px dashed #cbd5e1; border-radius: var(--radius); }
-#toast { position: fixed; right: 24px; bottom: 24px; transform: translateY(20px); padding: 12px 16px; color: #fff; background: #17345f; border-radius: 10px; opacity: 0; pointer-events: none; transition: .2s ease; }
-#toast.show { transform: translateY(0); opacity: 1; }
 [data-hidden="true"] { display: none !important; }
 @media (max-width: 1050px) {
   .shell { width: min(100% - 24px, 960px); }
   .hero { align-items: flex-start; flex-direction: column; }
   .metrics { grid-template-columns: repeat(2, 1fr); }
   .filters form { grid-template-columns: repeat(2, 1fr); }
-  .batch-head { grid-template-columns: 1fr 1fr; }
-  .positions { min-width: 860px; }
-  .batch-card { overflow-x: auto; }
+  .batch-head { grid-template-columns: 1fr; }
+  .batch-metadata { grid-template-columns: repeat(3, 1fr); }
+  .position-overview { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
   .metrics, .filters form { grid-template-columns: 1fr; }
   .prototype-note, .health-panel { align-items: flex-start; flex-direction: column; }
+  .batch-metadata { grid-template-columns: repeat(2, 1fr); }
   .wide { grid-column: 1; }
 }
