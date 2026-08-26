@@ -34,8 +34,6 @@ class RecruitmentPositionVM:
     application_url: str | None
     uses_batch_page: bool
     effective_updated_on: date
-    progress_value: str
-    progress_label: str
     is_current: bool = True
 
 
@@ -51,6 +49,8 @@ class RecruitmentBatchVM:
     deadline: date | None
     status: str
     official_page_url: str
+    progress_value: str
+    progress_label: str
     positions: tuple[RecruitmentPositionVM, ...]
 
     @property

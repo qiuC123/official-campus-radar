@@ -40,7 +40,7 @@ class HistoricalProjectionTests(TestCase):
     def test_withdrawn_history_filters_use_the_prior_trusted_event_projection(self) -> None:
         candidate, batch = self.publish(identity_key="withdrawn-history")
         progress = ApplicationProgress.objects.create(
-            position=batch.positions.get(),
+            batch=batch,
             status=ApplicationProgress.Status.INTERVIEWED,
         )
         publish_candidates(

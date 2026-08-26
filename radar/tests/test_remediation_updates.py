@@ -3,6 +3,7 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 import requests
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from radar.collectors.base import FetchedPage, RecruitmentBatchCandidate, PositionCandidate
@@ -68,6 +69,8 @@ class UpdateStatusRemediationTests(TestCase):
         self.assertTrue(scheduled_run_is_missing(now))
 
     def test_manual_update_with_no_sources_does_not_claim_completion(self) -> None:
+        administrator = get_user_model().objects.create_superuser("owner", "owner@example.test", "test")
+        self.client.force_login(administrator)
         response = self.client.post("/update-now/", follow=True)
         self.assertContains(response, "未执行")
         self.assertNotContains(response, "手动更新完成")

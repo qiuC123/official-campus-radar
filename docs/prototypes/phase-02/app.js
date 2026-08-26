@@ -182,6 +182,7 @@ function rowMarkup(batch) {
   const allLocations = [...new Set(positions.flatMap(([, locations]) => locations))];
   const progress = batchProgress(batch);
   const options = statuses.map(status => `<option ${status === progress ? "selected" : ""}>${status}</option>`).join("");
+  const positionDetails = positions.map(([title, locations, updated]) => `<li><strong>${title}</strong><span>${locations.join("、")} · 更新 ${updated}</span></li>`).join("");
   return `<tr data-batch-id="${batch.id}">
     <td class="company-cell"><strong>${batch.company}</strong><small title="${batch.title}">${batch.title}</small></td>
     <td><span class="badge company-${typeClass(batch.companyType)}">${batch.companyType}</span></td>
@@ -189,13 +190,13 @@ function rowMarkup(batch) {
     <td><span class="badge recruit-badge">${batch.recruitmentType}</span></td>
     <td><span class="badge audience-badge">${batch.audience}</span></td>
     <td class="locations-cell">${allLocations.join("、")}</td>
-    <td><button type="button" class="positions-summary" title="${positionText}">${positionText}</button></td>
+    <td><button type="button" class="positions-summary" aria-expanded="false" title="点击查看全部岗位">${positionText}</button></td>
     <td><select class="batch-progress" aria-label="${batch.company}投递进度">${options}</select></td>
     <td class="date-cell">${batch.updated}</td>
-    <td class="deadline-cell">${batch.deadline || "招满为止"}</td>
+    <td class="deadline-cell">${batch.deadline || "未说明"}</td>
     <td><a class="action-link apply" href="${batch.official}" onclick="return false">投递</a></td>
-    <td><a class="action-link notice" href="${batch.official}" onclick="return false">公告</a></td>
-  </tr>`;
+    <td><a class="action-link notice" href="${batch.official}" onclick="return false">官方页</a></td>
+  </tr><tr class="positions-detail-row" data-detail-for="${batch.id}" hidden><td colspan="12"><div class="positions-detail"><strong>全部岗位</strong><ul>${positionDetails}</ul></div></td></tr>`;
 }
 
 function tableMarkup() {
@@ -203,7 +204,7 @@ function tableMarkup() {
   return `<table class="recruitment-table">
     <thead><tr>
       <th>公司名称</th><th>公司类型</th><th>所属行业</th><th>招聘类型</th><th>招聘对象</th><th>工作地点</th>
-      <th>岗位 <small>（代表岗位）</small></th><th>投递进度</th><th>更新时间</th><th>投递截止</th><th>相关链接</th><th>招聘公告</th>
+      <th>岗位 <small>（点击查看全部）</small></th><th>投递进度</th><th>更新时间</th><th>投递截止</th><th>相关链接</th><th>批次官网</th>
     </tr></thead>
     <tbody>${filteredBatches.map(rowMarkup).join("")}</tbody>
   </table>`;
@@ -260,6 +261,14 @@ document.querySelector("#batch-list").addEventListener("change", event => {
   toast.textContent = `模拟保存：${event.target.value}`;
   toast.classList.add("show");
   setTimeout(() => toast.classList.remove("show"), 1500);
+});
+document.querySelector("#batch-list").addEventListener("click", event => {
+  const trigger = event.target.closest(".positions-summary");
+  if (!trigger) return;
+  const row = trigger.closest("tr");
+  const details = row.nextElementSibling;
+  details.hidden = !details.hidden;
+  trigger.setAttribute("aria-expanded", String(!details.hidden));
 });
 
 filterBatches();

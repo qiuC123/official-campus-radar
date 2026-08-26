@@ -75,7 +75,7 @@ class NewAdmissionAndExistingLifecycleTests(TestCase):
             candidate = replace(candidate, positions=candidate.positions + (second,))
         result = publish_candidates(self.source, [candidate], self.version())[0]
         progress = ApplicationProgress.objects.create(
-            position=self.source.recruitment_batches.get(pk=result.batch_id).positions.order_by("pk").first(),
+            batch=self.source.recruitment_batches.get(pk=result.batch_id),
             status="interviewed",
         )
         return candidate, result, progress

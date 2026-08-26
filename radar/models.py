@@ -518,6 +518,6 @@ class ApplicationProgress(models.Model):
         PASSED_INTERVIEW = "passed_interview", "面试通过"
         NOT_APPLYING = "not_applying", "暂不投递"
 
-    position = models.OneToOneField(RecruitmentPosition, on_delete=models.PROTECT, related_name="application_progress")
+    batch = models.OneToOneField(RecruitmentBatch, on_delete=models.PROTECT, related_name="application_progress")
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.NOT_APPLIED)
     updated_at = models.DateTimeField(auto_now=True)

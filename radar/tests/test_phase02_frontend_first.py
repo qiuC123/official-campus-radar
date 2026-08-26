@@ -79,39 +79,35 @@ class Phase02FrontendFirstTests(TestCase):
         self.assertContains(self.client.get("/preview/phase-02/?health=failure"), "模拟：1 个来源失败")
         self.assertContains(self.client.get("/preview/phase-02/?health=normal"), "模拟运行状态")
 
-    def test_two_positions_in_one_batch_keep_independent_progress(self):
+    def test_two_positions_in_one_batch_share_one_manual_progress(self):
         batch = publish_formal_notice(self.source, identity_key="two-progress")
-        first = batch.positions.get()
-        second = RecruitmentPosition.objects.create(
+        RecruitmentPosition.objects.create(
             batch=batch,
             position_key="two",
             title="产品经理",
             location_text="杭州市",
             normalized_locations=["杭州"],
         )
-        ApplicationProgress.objects.create(position=first, status="applied")
-        ApplicationProgress.objects.create(position=second, status="interviewed")
-        self.assertEqual(first.application_progress.status, "applied")
-        self.assertEqual(second.application_progress.status, "interviewed")
+        ApplicationProgress.objects.create(batch=batch, status="interviewed")
+        self.assertEqual(batch.application_progress.status, "interviewed")
+        self.assertEqual(batch.positions.count(), 2)
 
     def test_progress_endpoint_returns_json_and_rejects_unknown_status(self):
         batch = publish_formal_notice(self.source, identity_key="json-progress")
-        position = batch.positions.get()
         response = self.client.post(
-            f"/positions/{position.pk}/progress/", {"status": "written_test"}
+            f"/batches/{batch.pk}/progress/", {"status": "written_test"}
         )
         self.assertEqual(response.json(), {"ok": True, "status": "written_test", "label": "已笔试"})
         self.assertEqual(
-            self.client.post(f"/positions/{position.pk}/progress/", {"status": "invalid"}).status_code,
+            self.client.post(f"/batches/{batch.pk}/progress/", {"status": "invalid"}).status_code,
             400,
         )
 
     def test_progress_endpoint_enforces_csrf(self):
         batch = publish_formal_notice(self.source, identity_key="csrf-progress")
-        position = batch.positions.get()
         client = Client(enforce_csrf_checks=True)
         self.assertEqual(
-            client.post(f"/positions/{position.pk}/progress/", {"status": "applied"}).status_code,
+            client.post(f"/batches/{batch.pk}/progress/", {"status": "applied"}).status_code,
             403,
         )
 
@@ -128,7 +124,8 @@ class Phase02FrontendFirstTests(TestCase):
         candidate = complete_candidate(self.source, identity_key="link-change")
         result = publish_candidates(self.source, [candidate], self.version())[0]
         position = RecruitmentBatch.objects.get(pk=result.batch_id).positions.get()
-        ApplicationProgress.objects.create(position=position, status="applied")
+        batch = RecruitmentBatch.objects.get(pk=result.batch_id)
+        ApplicationProgress.objects.create(batch=batch, status="applied")
         original = position.content_changed_at
         new_url = "https://phase02.test/apply/new"
         changed_position = replace(
@@ -146,7 +143,7 @@ class Phase02FrontendFirstTests(TestCase):
         )
         position.refresh_from_db()
         self.assertGreater(position.content_changed_at, original)
-        self.assertEqual(position.application_progress.status, "applied")
+        self.assertEqual(batch.application_progress.status, "applied")
 
     def test_all_locations_and_location_arrays_are_retained(self):
         candidate = complete_candidate(self.source, identity_key="all-city", location="火星基地")
@@ -293,12 +290,11 @@ class Phase02FrontendFirstTests(TestCase):
             identity_key="history-progress",
             status=RecruitmentBatch.Status.EXPIRED,
         )
-        position = batch.positions.get()
         self.assertContains(self.client.get("/history/"), batch.official_page_url)
-        self.client.post(f"/positions/{position.pk}/progress/", {"status": "interviewed"})
-        self.assertEqual(position.application_progress.status, "interviewed")
+        self.client.post(f"/batches/{batch.pk}/progress/", {"status": "interviewed"})
+        self.assertEqual(batch.application_progress.status, "interviewed")
 
-    def test_progress_endpoint_rejects_position_outside_trusted_history_projection(self):
+    def test_removed_position_progress_route_is_not_retained(self):
         batch = publish_formal_notice(
             self.source, identity_key="hidden-progress", status=RecruitmentBatch.Status.EXPIRED
         )
@@ -313,7 +309,7 @@ class Phase02FrontendFirstTests(TestCase):
             f"/positions/{hidden.pk}/progress/", {"status": "applied"}
         )
         self.assertEqual(response.status_code, 404)
-        self.assertFalse(ApplicationProgress.objects.filter(position=hidden).exists())
+        self.assertFalse(ApplicationProgress.objects.filter(batch=batch).exists())
 
     def test_formal_home_never_contains_preview_companies(self):
         response = self.client.get("/")

@@ -1,6 +1,6 @@
 # Phase 02 页面数据契约
 
-状态：实现候选已完成，等待 H1/H2 后正式冻结
+状态：H1 已通过，批次进度修正已实现，等待 H2
 
 日期：2026-08-26
 
@@ -10,9 +10,9 @@
 
 ## ViewModel
 
-`RecruitmentPositionVM` 提供：岗位 ID、标题、地点列表、详情、投递入口、是否回退到批次官网、有效更新时间、个人进度和是否仍在招聘。
+`RecruitmentPositionVM` 提供：岗位 ID、标题、地点列表、详情、投递入口、是否回退到批次官网、有效更新时间和是否仍在招聘。
 
-`RecruitmentBatchVM` 提供：批次 ID、公司、公司类型、行业、批次标题、招聘类型、招聘对象、截止时间、状态、批次官方页和岗位列表。
+`RecruitmentBatchVM` 提供：批次 ID、公司、公司类型、行业、批次标题、招聘类型、招聘对象、截止时间、状态、批次官方页、手动投递进度和岗位列表。
 
 `DashboardSummaryVM` 提供：招聘中岗位、近 3 天变化、7 天内截止、求职进行中四个数字。
 
@@ -25,7 +25,7 @@ JSON 适配器的批次配置使用 `batch` / `official_page_url`。旧 HTML 适
 | 来源层 | 字段示例 | 存放位置与空值/错误规则 |
 | --- | --- | --- |
 | 外部采集 | 批次标题/类型/对象、岗位标题、地点、详情、官方页、直投链接、官网更新时间、截止时间 | 来源静态配置存放在 `OfficialSource.parser_config`；采集候选经准入和逐字段证据校验后进入批次/岗位表。未知地点保留原文，未知时间为 `None`，解析或证据失败时拒绝发布，不把猜测值交给页面。 |
-| 本地数据库 | 公司、公司类型、行业等 `Organization` 准入目录字段；`first_seen_at`、`content_changed_at`、岗位上下线状态、`ApplicationProgress.status` | Django 模型持久化。个人进度只属于 `RecruitmentPosition`，采集更新不得覆盖；非法进度拒绝保存，网络失败由前端恢复原值。 |
+| 本地数据库 | 公司、公司类型、行业等 `Organization` 准入目录字段；`first_seen_at`、`content_changed_at`、岗位上下线状态、`ApplicationProgress.status` | Django 模型持久化。个人进度只属于 `RecruitmentBatch` 并由用户手动维护，采集更新不得覆盖；非法进度拒绝保存，网络失败由前端恢复原值。 |
 | 页面派生 | 有效更新时间、四项统计、前三岗位、剩余数量、可选城市、批次官网回退标记 | `radar/services/dashboard_data.py` 生成 ViewModel。缺截止时间不计入临近截止；缺直投链接时生成可点击的批次官网回退；模板只负责展示。 |
 
 枚举等稳定静态配置位于 Django 模型 Choices；筛选字段和七个可隐藏字段由 `radar/viewmodels.py` 的配置单点定义，View 再注入当前值和动态选项；开发预览的六组模拟批次位于 `radar/services/dashboard_data.py`，仅由 Mock provider 使用，不进入数据库。
@@ -41,11 +41,11 @@ JSON 适配器的批次配置使用 `batch` / `official_page_url`。旧 HTML 适
 
 - `GET /`：只显示通过正式准入和证据链的招聘中批次。
 - `GET /history/`：只显示可信历史投影中的截止或撤回批次。
-- `GET /batches/<id>/positions/`：在同一信任边界内返回岗位 HTML 片段，并继续应用当前城市、岗位和进度筛选。
-- `POST /positions/<id>/progress/`：只允许修改当前正式投影或可信历史投影中的岗位；非法状态返回 400，越界岗位返回 404，CSRF 失败返回 403。
+- `GET /batches/<id>/positions/`：在同一信任边界内返回岗位 HTML 片段，并继续应用当前城市和岗位筛选。
+- `POST /batches/<id>/progress/`：只允许修改当前正式投影或可信历史投影中的招聘批次；非法状态返回 400，越界批次返回 404，CSRF 失败返回 403。
 - `GET /preview/phase-02/`：仅在 `DEBUG` 模式存在，只读 Mock provider，不查询正式业务表，也不触发真实更新。
 
-旧的公告级进度路由不保留。
+旧的岗位级进度路由不保留。
 
 ## 筛选、排序和降级
 

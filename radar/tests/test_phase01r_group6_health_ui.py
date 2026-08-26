@@ -1,6 +1,7 @@
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from radar.models import FetchRun, RecruitmentPosition, OfficialSource, Organization, UpdateRun
@@ -14,6 +15,8 @@ from radar.tests.helpers import valid_html_parser_config
 
 class CurrentPositionAndHealthViewTests(TestCase):
     def setUp(self) -> None:
+        administrator = get_user_model().objects.create_superuser("owner", "owner@example.test", "test")
+        self.client.force_login(administrator)
         organization = Organization.objects.create(
             name="Health Org",
             company_type="internet",

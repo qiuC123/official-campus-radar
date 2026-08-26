@@ -31,7 +31,7 @@ class PublicationTests(TestCase):
     def test_updates_notice_without_overwriting_personal_progress(self) -> None:
         created = publish_candidate(self.source, self.candidate(), self.version)
         progress = ApplicationProgress.objects.create(
-            position=self.source.recruitment_batches.get(pk=created.batch_id).positions.get(),
+            batch=self.source.recruitment_batches.get(pk=created.batch_id),
             status="interviewed",
         )
         updated = publish_candidate(self.source, self.candidate(title="2027 校招更新"), self.version)

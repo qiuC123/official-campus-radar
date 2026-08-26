@@ -1,11 +1,12 @@
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
-from radar.models import ApplicationProgress, Organization, RecruitmentBatch, RecruitmentPosition
+from radar.models import ApplicationProgress, Organization, RecruitmentBatch
 from radar.services.dashboard_data import (
     _position_vm,
     available_city_choices,
@@ -60,6 +61,7 @@ def _render_dashboard(request: HttpRequest, *, history: bool = False) -> HttpRes
         "optional_columns": OPTIONAL_COLUMN_CHOICES,
         "filter_fields": _filter_fields(request),
         "multi_filter_labels": dict(MULTI_FILTER_LABELS),
+        "show_operations": request.user.is_staff,
     })
 
 
@@ -93,6 +95,7 @@ def phase02_preview(request: HttpRequest) -> HttpResponse:
         "optional_columns": OPTIONAL_COLUMN_CHOICES,
         "filter_fields": _filter_fields(request),
         "multi_filter_labels": dict(MULTI_FILTER_LABELS),
+        "show_operations": True,
     })
 
 
@@ -109,7 +112,7 @@ def batch_positions(request: HttpRequest, batch_id: int) -> HttpResponse:
         if projection is None:
             raise Http404
         positions = batch.positions.filter(pk__in=projection.position_ids)
-    positions = positions.prefetch_related("application_progress", "application_links")
+    positions = positions.prefetch_related("application_links")
     position_vms = [
             _position_vm(
                 position,
@@ -123,20 +126,18 @@ def batch_positions(request: HttpRequest, batch_id: int) -> HttpResponse:
     position_vms.sort(key=lambda item: item.effective_updated_on, reverse=True)
     return render(request, "radar/position_rows.html", {
         "positions": position_vms,
-        "progress_choices": ApplicationProgress.Status.choices,
         "is_preview": False,
     })
 
 
 @require_POST
-def update_progress(request: HttpRequest, position_id: int) -> JsonResponse:
-    position = get_object_or_404(RecruitmentPosition, pk=position_id)
-    if position.batch.status == RecruitmentBatch.Status.ACTIVE:
-        visible = position.is_current and RecruitmentBatch.objects.formal().filter(pk=position.batch_id).exists()
+def update_progress(request: HttpRequest, batch_id: int) -> JsonResponse:
+    batch = get_object_or_404(RecruitmentBatch, pk=batch_id)
+    if batch.status == RecruitmentBatch.Status.ACTIVE:
+        visible = RecruitmentBatch.objects.formal().filter(pk=batch_id).exists()
     else:
-        batch = RecruitmentBatch.objects.historical().filter(pk=position.batch_id).first()
-        projection = trusted_historical_projection(batch) if batch else None
-        visible = projection is not None and position.pk in projection.position_ids
+        historical_batch = RecruitmentBatch.objects.historical().filter(pk=batch_id).first()
+        visible = historical_batch is not None and trusted_historical_projection(historical_batch) is not None
     if not visible:
         raise Http404
     status = request.POST.get("status", "")
@@ -144,12 +145,13 @@ def update_progress(request: HttpRequest, position_id: int) -> JsonResponse:
     if status not in valid:
         return JsonResponse({"ok": False, "error": "投递状态无效。"}, status=400)
     progress, _ = ApplicationProgress.objects.update_or_create(
-        position=position, defaults={"status": status}
+        batch=batch, defaults={"status": status}
     )
     return JsonResponse({"ok": True, "status": progress.status, "label": progress.get_status_display()})
 
 
 @require_POST
+@staff_member_required
 def update_now(request: HttpRequest) -> HttpResponse:
     try:
         summary = run_update(trigger="manual")

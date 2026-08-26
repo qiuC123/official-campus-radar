@@ -26,10 +26,6 @@ def _position_vm(
     include_historical_links: bool = False,
     allowed_link_ids: set[int] | None = None,
 ) -> RecruitmentPositionVM:
-    try:
-        progress = position.application_progress
-    except ApplicationProgress.DoesNotExist:
-        progress = None
     link = next(
         (
             item.url
@@ -49,22 +45,18 @@ def _position_vm(
         application_url=link or batch_official_page_url,
         uses_batch_page=link is None,
         effective_updated_on=_effective_date(position),
-        progress_value=progress.status if progress else ApplicationProgress.Status.NOT_APPLIED,
-        progress_label=progress.get_status_display() if progress else "未投递",
         is_current=position.is_current,
     )
 
 
 def filter_position_vms(positions, params):
     selected_cities = params.getlist("city")
-    selected_progress = set(params.getlist("progress"))
     position_keyword = params.get("position", "").casefold()
     return [
         item
         for item in positions
         if (not selected_cities or matches_selected_cities(item.locations, selected_cities))
         and (not position_keyword or position_keyword in item.title.casefold())
-        and (not selected_progress or item.progress_value in selected_progress)
     ]
 def build_orm_dashboard(params, *, history: bool = False):
     queryset = RecruitmentBatch.objects.historical() if history else RecruitmentBatch.objects.formal()
@@ -72,8 +64,8 @@ def build_orm_dashboard(params, *, history: bool = False):
         status__in=(RecruitmentBatch.Status.EXPIRED, RecruitmentBatch.Status.WITHDRAWN)
         if history
         else (RecruitmentBatch.Status.ACTIVE,)
-    ).select_related("organization").prefetch_related(
-        "positions__application_progress", "positions__application_links"
+    ).select_related("organization", "application_progress").prefetch_related(
+        "positions__application_links"
     )
     if params.get("company"):
         queryset = queryset.filter(organization__name__icontains=params["company"])
@@ -90,6 +82,14 @@ def build_orm_dashboard(params, *, history: bool = False):
 
     batches: list[RecruitmentBatchVM] = []
     for batch in queryset:
+        try:
+            progress = batch.application_progress
+        except ApplicationProgress.DoesNotExist:
+            progress = None
+        progress_value = progress.status if progress else ApplicationProgress.Status.NOT_APPLIED
+        selected_progress = set(params.getlist("progress"))
+        if selected_progress and progress_value not in selected_progress:
+            continue
         if history:
             projection = trusted_historical_projection(batch)
             trusted_ids = set(projection.position_ids) if projection else set()
@@ -121,6 +121,8 @@ def build_orm_dashboard(params, *, history: bool = False):
                 deadline=batch.deadline,
                 status=batch.get_status_display(),
                 official_page_url=batch.official_page_url,
+                progress_value=progress_value,
+                progress_label=progress.get_status_display() if progress else "未投递",
                 positions=tuple(position_vms),
             )
         )
@@ -136,8 +138,8 @@ def build_orm_dashboard(params, *, history: bool = False):
             if batch.deadline and today <= batch.deadline <= today + timedelta(days=7)
         ),
         applications_in_progress=sum(
-            item.progress_value in {"applied", "written_test", "interviewed"}
-            for item in positions
+            batch.progress_value in {"applied", "written_test", "interviewed"}
+            for batch in batches
         ),
     )
     city_choices = available_city_choices(batches)
@@ -167,8 +169,6 @@ def mock_dashboard(params, *, history: bool = False):
                 application_url=batch_url if index == 2 and number == 2 else "https://example.invalid/apply",
                 uses_batch_page=index == 2 and number == 2,
                 effective_updated_on=today - timedelta(days=index + number - 2),
-                progress_value="applied" if number == 2 else "not_applied",
-                progress_label="已投递" if number == 2 else "未投递",
                 is_current=index != 6,
             )
             for number in range(1, count + 1)
@@ -179,7 +179,10 @@ def mock_dashboard(params, *, history: bool = False):
                 industry=industry, title=title, recruitment_type="校园招聘" if index != 3 else "实习",
                 target_audience="2027届", deadline=None if index == 2 else today + timedelta(days=index),
                 status="已截止" if index == 6 else "招聘中",
-                official_page_url=batch_url, positions=positions,
+                official_page_url=batch_url,
+                progress_value="applied" if index == 2 else "not_applied",
+                progress_label="已投递" if index == 2 else "未投递",
+                positions=positions,
             )
         )
     visible = [item for item in batches if (item.status != "招聘中") == history]
@@ -208,16 +211,15 @@ def mock_dashboard(params, *, history: bool = False):
             item for item in batch.positions
             if (not position_keyword or position_keyword in item.title.casefold())
             and matches_selected_cities(item.locations, selected_cities)
-            and (not selected_progress or item.progress_value in selected_progress)
         ]
-        if positions:
+        if positions and (not selected_progress or batch.progress_value in selected_progress):
             filtered.append(RecruitmentBatchVM(**{**batch.__dict__, "positions": tuple(positions)}))
     positions = [item for batch in filtered for item in batch.positions]
     summary = DashboardSummaryVM(
         sum(item.is_current for item in positions),
         sum(item.effective_updated_on >= today - timedelta(days=2) for item in positions),
         sum(len(batch.positions) for batch in filtered if batch.deadline and today <= batch.deadline <= today + timedelta(days=7)),
-        sum(item.progress_value in {"applied", "written_test", "interviewed"} for item in positions),
+        sum(batch.progress_value in {"applied", "written_test", "interviewed"} for batch in filtered),
     )
     return filtered, summary
 

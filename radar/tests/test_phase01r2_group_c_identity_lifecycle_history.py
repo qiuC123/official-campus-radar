@@ -37,7 +37,7 @@ class IdentityAndLifecycleTests(TestCase):
         initial = complete_candidate(self.source)
         created = publish_candidates(self.source, [initial], self.version())[0]
         progress = ApplicationProgress.objects.create(
-            position=RecruitmentBatch.objects.get(pk=created.batch_id).positions.get(),
+            batch=RecruitmentBatch.objects.get(pk=created.batch_id),
             status=ApplicationProgress.Status.INTERVIEWED,
         )
         hangzhou = PositionCandidate(

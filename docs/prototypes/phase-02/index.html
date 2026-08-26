@@ -10,7 +10,7 @@
   <main class="shell">
     <header class="hero">
       <div>
-        <p class="eyebrow">OFFICIAL CAMPUS RADAR · PROTOTYPE · CYCLE 06</p>
+        <p class="eyebrow">OFFICIAL CAMPUS RADAR · PROTOTYPE · CYCLE 07</p>
         <h1>校招岗位工作台</h1>
         <p class="subtitle">一行看完一家公司的招聘批次、代表岗位、地点、进度和官方入口。</p>
       </div>
@@ -26,9 +26,10 @@
       <span>这个页面只验证布局和交互，不连接 Django、数据库或企业网站。</span>
     </section>
 
-    <section class="health-panel" data-health="healthy">
+    <section class="health-panel" data-health="healthy" aria-label="管理员运维区">
       <div>
         <span class="health-dot"></span>
+        <small class="admin-only">仅管理员可见</small>
         <strong class="health-title">运行正常</strong>
         <span class="health-copy">最近成功更新：今天 08:20</span>
       </div>
@@ -60,7 +61,7 @@
           <button class="multi-trigger" type="button" aria-expanded="false">投递进度</button>
           <div class="multi-menu" hidden><div class="multi-options"></div><div class="multi-message"></div><footer><button type="button" class="multi-cancel">取消</button><button type="button" class="multi-confirm">确定</button></footer></div>
         </div>
-        <select name="deadlineWindow" aria-label="截止时间"><option value="">截止时间</option><option value="1">1 天内截止</option><option value="3">3 天内截止</option><option value="7">7 天内截止</option><option value="unknown">招满为止 / 未说明</option></select>
+        <select name="deadlineWindow" aria-label="截止时间"><option value="">截止时间</option><option value="1">1 天内截止</option><option value="3">3 天内截止</option><option value="7">7 天内截止</option><option value="unknown">未说明</option></select>
         <div class="form-actions wide"><button class="primary-button" type="submit">查询</button><button id="reset-filters" class="reset-button" type="button">重置</button><strong id="filter-summary"></strong></div>
       </form>
     </section>

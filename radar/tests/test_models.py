@@ -36,10 +36,7 @@ class RecruitmentModelTests(TestCase):
             title="2027 校园招聘",
             official_page_url="https://careers.example.com/another",
         )
-        position = RecruitmentPosition.objects.create(
-            batch=batch, position_key="one", title="工程师", location_text="杭州"
-        )
-        progress = ApplicationProgress.objects.create(position=position)
+        progress = ApplicationProgress.objects.create(batch=batch)
         self.assertEqual(progress.status, ApplicationProgress.Status.NOT_APPLIED)
 
     def test_partial_failure_is_a_successful_update_run(self) -> None:

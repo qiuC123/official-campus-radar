@@ -9,7 +9,7 @@ class LocalDemoCommandTests(TestCase):
         call_command("load_local_demo")
         organization = Organization.objects.get(official_domain="demo.invalid")
         self.assertEqual(RecruitmentBatch.objects.filter(organization=organization).count(), 3)
-        self.assertTrue(ApplicationProgress.objects.filter(position__batch__organization=organization, status="interviewed").exists())
+        self.assertTrue(ApplicationProgress.objects.filter(batch__organization=organization, status="interviewed").exists())
         self.assertTrue(UpdateRun.objects.filter(error_message="local_demo").exists())
         source = organization.official_sources.get()
         self.assertTrue(source.is_active)

@@ -32,6 +32,7 @@ nav { display: flex; gap: 8px; }
 .health-panel[data-health="missing"] .health-dot { background: var(--amber); box-shadow: 0 0 0 5px #fff0d7; }
 .health-panel[data-health="failure"] .health-dot { background: var(--red); box-shadow: 0 0 0 5px #fde5eb; }
 .health-copy { color: var(--muted); }
+.admin-only { padding: 3px 6px; border-radius: 5px; color: #73510a; background: #fff2c7; font-weight: 700; }
 .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0; }
 .metrics article { min-height: 120px; padding: 18px; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); }
 .metrics span, .metrics small { display: block; color: var(--muted); }
@@ -105,6 +106,12 @@ fieldset { margin: 0; padding: 0; border: 0; }
 .audience-badge { color: #08785b; background: #e4f8f1; }
 .locations-cell { line-height: 1.8; }
 .positions-summary { width: 100%; max-height: 104px; overflow: hidden; padding: 9px 10px; color: #4279ef; background: #f0f6ff; border: 1px solid #b9d3ff; border-radius: 4px; font-size: 12px; line-height: 1.8; text-align: left; }
+.positions-summary[aria-expanded="true"] { color: #fff; background: #4d8df7; }
+.positions-detail-row td { padding: 0 18px 18px; background: #f8fbff; }
+.positions-detail { padding: 14px 18px; border: 1px solid #cfe0fb; border-radius: 8px; background: #fff; }
+.positions-detail ul { display: grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap: 10px 18px; margin: 10px 0 0; padding: 0; list-style: none; }
+.positions-detail li { display: flex; flex-direction: column; gap: 3px; padding: 9px 10px; background: #f5f8fc; border-radius: 6px; }
+.positions-detail li span { color: var(--muted); font-size: 12px; }
 .batch-progress { min-width: 105px; margin: 0; padding: 8px 9px; }
 .date-cell, .deadline-cell { color: #254a82; white-space: nowrap; }
 .action-link { display: inline-block; padding: 8px 12px; border-radius: 5px; color: #fff; font-weight: 700; text-decoration: none; white-space: nowrap; }
@@ -125,5 +132,6 @@ fieldset { margin: 0; padding: 0; border: 0; }
   .metrics, .filters form { grid-template-columns: 1fr; }
   .compact-filters form { grid-template-columns: 1fr; }
   .prototype-note, .health-panel { align-items: flex-start; flex-direction: column; }
+  .positions-detail ul { grid-template-columns: 1fr; }
   .wide { grid-column: 1; }
 }

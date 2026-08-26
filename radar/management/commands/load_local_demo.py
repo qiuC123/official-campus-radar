@@ -152,7 +152,7 @@ class Command(BaseCommand):
                 )
             if row.get("progress"):
                 ApplicationProgress.objects.create(
-                    position=batch.positions.get(), status=row["progress"]
+                    batch=batch, status=row["progress"]
                 )
         UpdateRun.objects.create(
             trigger="scheduled",
@@ -175,7 +175,7 @@ class Command(BaseCommand):
         versions = SourceVersion.objects.filter(source__in=sources)
         batches.update(latest_publication_event=None)
         Evidence.objects.filter(batch__in=batches).delete()
-        ApplicationProgress.objects.filter(position__batch__in=batches).delete()
+        ApplicationProgress.objects.filter(batch__in=batches).delete()
         ApplicationLink.objects.filter(batch__in=batches).delete()
         RecruitmentPosition.objects.filter(batch__in=batches).delete()
         PublicationEvent.objects.filter(source_version__in=versions).delete()
