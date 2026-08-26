@@ -10,7 +10,7 @@
   <main class="shell">
     <header class="hero">
       <div>
-        <p class="eyebrow">OFFICIAL CAMPUS RADAR · PROTOTYPE · CYCLE 04</p>
+        <p class="eyebrow">OFFICIAL CAMPUS RADAR · PROTOTYPE · CYCLE 05</p>
         <h1>校招岗位工作台</h1>
         <p class="subtitle">一行看完一家公司的招聘批次、代表岗位、地点、进度和官方入口。</p>
       </div>
@@ -42,12 +42,24 @@
     <section class="panel filters compact-filters">
       <form id="filter-form">
         <input name="company" aria-label="公司名称" placeholder="公司名称">
-        <select name="companyType" aria-label="公司类型"><option value="">公司类型</option><option>民企</option><option>国企</option><option>外企</option><option>其他</option></select>
-        <input name="location" aria-label="地点" placeholder="地点（多个用逗号隔开；-全国可排除）">
-        <select name="recruitmentType" aria-label="招聘类型"><option value="">招聘类型</option><option>校园招聘</option><option>实习招聘</option></select>
+        <div class="multi-filter" data-filter="companyType" data-label="公司类型">
+          <button class="multi-trigger" type="button" aria-expanded="false">公司类型</button>
+          <div class="multi-menu" hidden><div class="multi-options"></div><div class="multi-message"></div><footer><button type="button" class="multi-cancel">取消</button><button type="button" class="multi-confirm">确定</button></footer></div>
+        </div>
+        <div class="multi-filter" data-filter="location" data-label="地点" data-max="5">
+          <button class="multi-trigger" type="button" aria-expanded="false">地点（省份，最多 5 个）</button>
+          <div class="multi-menu province-menu" hidden><div class="multi-options"></div><div class="multi-message">最多选择 5 个省份</div><footer><button type="button" class="multi-cancel">取消</button><button type="button" class="multi-confirm">确定</button></footer></div>
+        </div>
+        <div class="multi-filter" data-filter="recruitmentType" data-label="招聘类型">
+          <button class="multi-trigger" type="button" aria-expanded="false">招聘类型</button>
+          <div class="multi-menu" hidden><div class="multi-options"></div><div class="multi-message"></div><footer><button type="button" class="multi-cancel">取消</button><button type="button" class="multi-confirm">确定</button></footer></div>
+        </div>
         <select name="audience" aria-label="招聘对象"><option value="">招聘对象</option><option>2024届</option><option>2025届</option><option>2026届</option><option>2027届</option><option>2028届</option><option>实习生</option></select>
         <input name="position" aria-label="岗位" placeholder="岗位（多个用逗号隔开）">
-        <select name="progress" aria-label="投递进度"><option value="">投递进度</option><option>未投递</option><option>已投递</option><option>已笔试</option><option>已面试</option><option>未通过</option><option>面试通过</option><option>暂不投递</option></select>
+        <div class="multi-filter" data-filter="progress" data-label="投递进度">
+          <button class="multi-trigger" type="button" aria-expanded="false">投递进度</button>
+          <div class="multi-menu" hidden><div class="multi-options"></div><div class="multi-message"></div><footer><button type="button" class="multi-cancel">取消</button><button type="button" class="multi-confirm">确定</button></footer></div>
+        </div>
         <select name="deadlineWindow" aria-label="截止时间"><option value="">截止时间</option><option value="1">1 天内截止</option><option value="3">3 天内截止</option><option value="7">7 天内截止</option><option value="unknown">招满为止 / 未说明</option></select>
         <div class="form-actions wide"><button class="primary-button" type="submit">查询</button><button id="reset-filters" class="reset-button" type="button">重置</button><strong id="filter-summary"></strong></div>
       </form>

@@ -1,10 +1,12 @@
 # Phase 02 页面原型验收记录 / Cycle 04
 
-状态：Awaiting H1 user review
+状态：Changes requested（历史记录）
 
 日期：2026-08-26
 
 交互原型：`docs/prototypes/phase-02/index.html`
+
+冻结提交：`1f08fa6`（当前路径已进入 Cycle 05，历史版本以该提交为准）
 
 视觉参考：`https://www.givemeoc.com/?aff=10265`
 
@@ -30,4 +32,6 @@
 - [ ] 筛选区与横向结果表组合后整体方向正确。
 - [ ] 可以据此同步 Django 预览页。
 
-如未通过，新建 Cycle 05，不覆盖本文件。
+## H1 结果
+
+用户要求公司类型、招聘类型和投递进度改为可勾选的多选弹层；地点改为省份多选，最多同时选择 5 个。Cycle 04 未通过，修改转入 Cycle 05；本文件不追认为通过。
