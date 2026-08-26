@@ -1,8 +1,5 @@
+const statuses = ["未投递", "已投递", "已笔试", "已面试", "未通过", "面试通过", "暂不投递"];
 const cities = ["北京", "上海", "杭州", "深圳", "广州", "成都", "武汉", "全国", "远程"];
-const optionalColumns = [
-  ["companyType", "公司类型"], ["industry", "行业"], ["recruitmentType", "招聘类型"],
-  ["audience", "招聘对象"], ["updated", "更新时间"], ["deadline", "截止时间"], ["official", "官方招聘页"],
-];
 
 const batches = [
   {
@@ -50,7 +47,6 @@ function choiceMarkup(name, values) {
 }
 
 document.querySelector("#city-options").innerHTML = choiceMarkup("city", cities);
-document.querySelector("#column-options").innerHTML = optionalColumns.map(([key, label]) => `<label class="choice"><input type="checkbox" data-column-toggle="${key}" checked>${label}</label>`).join("");
 
 function selected(form, name) {
   return [...form.querySelectorAll(`[name="${name}"]:checked`)].map(item => item.value);
@@ -80,33 +76,46 @@ function filterBatches() {
   render();
 }
 
-function batchMarkup(batch) {
-  const positions = effectivePositions(batch, document.querySelector("#filter-form"));
-  const representative = positions.slice(0, 5);
-  const allLocations = [...new Set(positions.flatMap(([, locations]) => locations))];
-  const deadlineSoon = batch.deadline && batch.deadline <= "2026-09-02";
-  const positionTags = representative.map(([title]) => `<span class="position-tag">${title}</span>`).join("");
-  const remaining = positions.length > representative.length ? `<span class="more-count">另有 ${positions.length - representative.length} 个岗位</span>` : "";
-  const locationTags = allLocations.map(city => `<span class="tag ${city === "全国" || city === "远程" ? "special" : ""}">${city}</span>`).join("");
+function typeClass(companyType) {
+  return { "民企": "private", "国企": "state", "外企": "foreign" }[companyType] || "other";
+}
 
-  return `<article class="batch-card">
-    <header class="batch-head">
-      <div class="batch-identity"><div class="company">${batch.company}</div><div class="batch-title">${batch.title} · 共 ${positions.length} 个匹配岗位</div></div>
-      <div class="batch-metadata">
-        <div class="meta" data-column="companyType"><span>公司类型</span><strong>${batch.companyType}</strong></div>
-        <div class="meta" data-column="industry"><span>所属行业</span><strong>${batch.industry}</strong></div>
-        <div class="meta" data-column="recruitmentType"><span>招聘类型</span><strong>${batch.recruitmentType}</strong></div>
-        <div class="meta" data-column="audience"><span>招聘对象</span><strong>${batch.audience}</strong></div>
-        <div class="meta" data-column="updated"><span>更新时间</span><strong>${batch.updated}</strong></div>
-        <div class="meta ${deadlineSoon ? "deadline-soon" : ""}" data-column="deadline"><span>截止时间</span><strong>${batch.deadline || "未说明"}</strong></div>
-      </div>
-      <a class="official-link" data-column="official" href="${batch.official}" onclick="return false">官方招聘页</a>
-    </header>
-    <section class="position-overview">
-      <div class="overview-group"><span class="overview-label">代表岗位</span><div class="position-tags">${positionTags}${remaining}</div></div>
-      <div class="overview-group locations-overview"><span class="overview-label">工作地点</span><div class="location-tags">${locationTags}</div></div>
-    </section>
-  </article>`;
+function batchProgress(batch) {
+  return localStorage.getItem(`prototype-batch-progress-${batch.id}`) || "未投递";
+}
+
+function rowMarkup(batch) {
+  const positions = effectivePositions(batch, document.querySelector("#filter-form"));
+  const representative = positions.slice(0, 5).map(([title]) => title);
+  const positionText = `${representative.join("、")}${positions.length > representative.length ? `，另有 ${positions.length - representative.length} 个岗位` : ""}`;
+  const allLocations = [...new Set(positions.flatMap(([, locations]) => locations))];
+  const progress = batchProgress(batch);
+  const options = statuses.map(status => `<option ${status === progress ? "selected" : ""}>${status}</option>`).join("");
+  return `<tr data-batch-id="${batch.id}">
+    <td class="company-cell"><strong>${batch.company}</strong><small title="${batch.title}">${batch.title}</small></td>
+    <td><span class="badge company-${typeClass(batch.companyType)}">${batch.companyType}</span></td>
+    <td>${batch.industry}</td>
+    <td><span class="badge recruit-badge">${batch.recruitmentType}</span></td>
+    <td><span class="badge audience-badge">${batch.audience}</span></td>
+    <td class="locations-cell">${allLocations.join("、")}</td>
+    <td><button type="button" class="positions-summary" title="${positionText}">${positionText}</button></td>
+    <td><select class="batch-progress" aria-label="${batch.company}投递进度">${options}</select></td>
+    <td class="date-cell">${batch.updated}</td>
+    <td class="deadline-cell">${batch.deadline || "招满为止"}</td>
+    <td><a class="action-link apply" href="${batch.official}" onclick="return false">投递</a></td>
+    <td><a class="action-link notice" href="${batch.official}" onclick="return false">公告</a></td>
+  </tr>`;
+}
+
+function tableMarkup() {
+  if (!filteredBatches.length) return `<div class="empty">当前条件下没有${currentView === "active" ? "招聘中的" : "历史"}批次。</div>`;
+  return `<table class="recruitment-table">
+    <thead><tr>
+      <th>公司名称</th><th>公司类型</th><th>所属行业</th><th>招聘类型</th><th>招聘对象</th><th>工作地点</th>
+      <th>岗位 <small>（代表岗位）</small></th><th>投递进度</th><th>更新时间</th><th>投递截止</th><th>相关链接</th><th>招聘公告</th>
+    </tr></thead>
+    <tbody>${filteredBatches.map(rowMarkup).join("")}</tbody>
+  </table>`;
 }
 
 function updateMetrics() {
@@ -117,19 +126,11 @@ function updateMetrics() {
   document.querySelector("#metric-companies").textContent = new Set(filteredBatches.map(batch => batch.company)).size;
 }
 
-function applyColumns() {
-  document.querySelectorAll("[data-column-toggle]").forEach(control => {
-    const hidden = !control.checked;
-    document.querySelectorAll(`[data-column="${control.dataset.columnToggle}"]`).forEach(node => node.dataset.hidden = hidden);
-  });
-}
-
 function render() {
-  document.querySelector("#batch-list").innerHTML = filteredBatches.length ? filteredBatches.map(batchMarkup).join("") : `<div class="empty">当前条件下没有${currentView === "active" ? "招聘中的" : "历史"}批次。</div>`;
+  document.querySelector("#batch-list").innerHTML = tableMarkup();
   document.querySelector("#batch-count").textContent = `${filteredBatches.length} 个招聘批次 · 原型每页最多 20 个`;
   document.querySelector("#result-hint").textContent = `找到 ${filteredBatches.length} 个招聘批次`;
   updateMetrics();
-  applyColumns();
 }
 
 document.querySelector("#filter-form").addEventListener("submit", event => { event.preventDefault(); filterBatches(); });
@@ -152,11 +153,14 @@ document.querySelectorAll("[data-health-choice]").forEach(button => button.addEv
   panel.querySelector(".health-title").textContent = content[0];
   panel.querySelector(".health-copy").textContent = content[1];
 }));
-document.querySelector("#column-options").addEventListener("change", event => {
-  if (!event.target.dataset.columnToggle) return;
-  localStorage.setItem(`prototype-column-${event.target.dataset.columnToggle}`, event.target.checked ? "show" : "hide");
-  applyColumns();
+document.querySelector("#batch-list").addEventListener("change", event => {
+  if (!event.target.matches(".batch-progress")) return;
+  const batchId = event.target.closest("tr").dataset.batchId;
+  localStorage.setItem(`prototype-batch-progress-${batchId}`, event.target.value);
+  const toast = document.querySelector("#toast");
+  toast.textContent = `模拟保存：${event.target.value}`;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 1500);
 });
-document.querySelectorAll("[data-column-toggle]").forEach(control => control.checked = localStorage.getItem(`prototype-column-${control.dataset.columnToggle}`) !== "hide");
 
 filterBatches();

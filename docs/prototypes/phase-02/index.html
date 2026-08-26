@@ -10,9 +10,9 @@
   <main class="shell">
     <header class="hero">
       <div>
-        <p class="eyebrow">OFFICIAL CAMPUS RADAR · PROTOTYPE · CYCLE 02</p>
+        <p class="eyebrow">OFFICIAL CAMPUS RADAR · PROTOTYPE · CYCLE 03</p>
         <h1>校招岗位工作台</h1>
-        <p class="subtitle">先按公司性质、行业和毕业届次缩小范围，再快速浏览代表岗位方向。</p>
+        <p class="subtitle">一行看完一家公司的招聘批次、代表岗位、地点、进度和官方入口。</p>
       </div>
       <nav aria-label="页面视图">
         <button class="nav-button active" data-view="active">招聘中</button>
@@ -64,17 +64,13 @@
       </form>
     </section>
 
-    <section class="panel column-panel">
-      <div class="panel-heading"><div><span class="section-index">02</span><h2>显示信息</h2></div><small>代表岗位与工作地点始终显示</small></div>
-      <div id="column-options" class="choice-row"></div>
-    </section>
-
     <section class="results-heading">
-      <div><span class="section-index">03</span><h2 id="results-title">招聘中的批次</h2></div>
+      <div><span class="section-index">02</span><h2 id="results-title">招聘中的批次</h2></div>
       <span id="batch-count"></span>
     </section>
-    <section id="batch-list" class="batch-list" aria-live="polite"></section>
+    <section id="batch-list" class="table-shell" aria-live="polite"></section>
   </main>
+  <div id="toast" role="status" aria-live="polite"></div>
   <script src="app.js"></script>
 </body>
 </html>
