@@ -5,8 +5,8 @@ from zoneinfo import ZoneInfo
 import requests
 from django.test import TestCase
 
-from radar.collectors.base import FetchedPage, NoticeCandidate, PositionCandidate
-from radar.models import FetchRun, OfficialSource, Organization, RecruitmentNotice, SourceVersion, UpdateRun
+from radar.collectors.base import FetchedPage, RecruitmentBatchCandidate, PositionCandidate
+from radar.models import FetchRun, OfficialSource, Organization, RecruitmentBatch, SourceVersion, UpdateRun
 from radar.services.admission import transition_source
 from radar.services.update_runner import run_update
 from radar.services.update_status import scheduled_run_is_missing
@@ -37,7 +37,7 @@ class UpdateCorrectnessTests(TestCase):
             first = run_update(trigger="manual")
             second = run_update(trigger="manual")
         self.assertEqual(SourceVersion.objects.filter(source=source).count(), 1)
-        self.assertEqual(second.notices_updated, 0)
+        self.assertEqual(second.batches_updated, 0)
 
     def test_one_request_failure_creates_one_failed_fetch_run(self) -> None:
         source = self.source("Fetch", "fetch")
@@ -54,10 +54,10 @@ class UpdateCorrectnessTests(TestCase):
         for source in (source_a, source_b):
             transition_source(source, to_state="verified", actor_label="owner", reason="verified", evidence="review")
             transition_source(source, to_state="enabled", actor_label="owner", reason="enabled", evidence="fixture")
-        RecruitmentNotice.objects.create(organization=organization, source=source_a, identity_key="old-a", title="A", official_notice_url="https://official.test/a/old", deadline=date(2026, 8, 16))
+        RecruitmentBatch.objects.create(organization=organization, source=source_a, identity_key="old-a", title="A", official_page_url="https://official.test/a/old", deadline=date(2026, 8, 16))
         with patch("radar.services.update_runner.AdapterRegistry.get", side_effect=[FailingAdapter(), SamePageAdapter()]):
             run_update(trigger="scheduled", now=datetime(2026, 8, 17, 22, 1, tzinfo=ZoneInfo("Asia/Shanghai")))
-        self.assertEqual(RecruitmentNotice.objects.get(source=source_a).status, "active")
+        self.assertEqual(RecruitmentBatch.objects.get(source=source_a).status, "active")
 
 
 class UpdateStatusRemediationTests(TestCase):

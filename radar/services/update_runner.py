@@ -8,9 +8,16 @@ from zoneinfo import ZoneInfo
 from django.db import transaction
 from django.utils import timezone
 
-from radar.collectors.base import FetchedPage, NoticeCandidate
+from radar.collectors.base import FetchedPage, RecruitmentBatchCandidate
 from radar.collectors.registry import AdapterRegistry
-from radar.models import FetchRun, OfficialSource, RecruitmentNotice, SourceVersion, UpdateRun
+from radar.models import (
+    FetchRun,
+    OfficialSource,
+    RecruitmentBatch,
+    RecruitmentPosition,
+    SourceVersion,
+    UpdateRun,
+)
 from radar.services.admission import source_is_admitted
 from radar.services.publication import PublicationResult, publish_candidates
 
@@ -20,9 +27,9 @@ class UpdateSummary:
     update_run_id: int
     sources_checked: int
     sources_failed: int
-    notices_created: int
-    notices_updated: int
-    notices_rejected: int
+    batches_created: int
+    batches_updated: int
+    batches_rejected: int
     status: str = "failed"
     error_message: str = ""
 
@@ -52,7 +59,7 @@ def _apply_source_page(
     update_run: UpdateRun,
     source: OfficialSource,
     page: FetchedPage,
-    candidates: list[NoticeCandidate],
+    candidates: list[RecruitmentBatchCandidate],
     local_date,
 ) -> list[PublicationResult]:
     source = OfficialSource.objects.select_for_update().get(pk=source.pk)
@@ -99,11 +106,18 @@ def _apply_source_page(
         version.save(update_fields=["is_applied", "applied_at"])
         fetch_run.status = FetchRun.Status.SUCCESS
         fetch_run.save(update_fields=["status"])
-    RecruitmentNotice.objects.filter(
+    expiring = RecruitmentBatch.objects.filter(
         source=source,
-        status=RecruitmentNotice.Status.ACTIVE,
+        status=RecruitmentBatch.Status.ACTIVE,
         deadline__lt=local_date,
-    ).update(status=RecruitmentNotice.Status.EXPIRED)
+    )
+    expiring_ids = list(expiring.values_list("pk", flat=True))
+    if expiring_ids:
+        expired_at = timezone.now()
+        RecruitmentPosition.objects.filter(
+            batch_id__in=expiring_ids, is_current=True
+        ).update(content_changed_at=expired_at)
+        expiring.update(status=RecruitmentBatch.Status.EXPIRED)
     source.last_checked_at = timezone.now()
     source.last_etag = page.etag or source.last_etag
     source.last_error = ""

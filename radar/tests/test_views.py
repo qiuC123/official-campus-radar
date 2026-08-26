@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from radar.models import NoticePosition, Organization, RecruitmentNotice
+from radar.models import RecruitmentPosition, Organization, RecruitmentBatch
 from radar.services.update_runner import UpdateSummary
 from radar.tests.helpers import create_enabled_source, publish_formal_notice
 
@@ -16,23 +16,26 @@ class DashboardViewTests(TestCase):
 
     def test_city_filter_only_shows_matching_notice(self) -> None:
         response = self.client.get("/?city=北京")
-        self.assertContains(response, self.beijing.official_notice_url)
-        self.assertNotContains(response, self.hangzhou.official_notice_url)
+        self.assertContains(response, self.beijing.official_page_url)
+        self.assertNotContains(response, self.hangzhou.official_page_url)
 
     def test_dashboard_displays_human_readable_recruitment_type(self) -> None:
         response = self.client.get("/")
         self.assertContains(response, "校园招聘")
-        self.assertNotContains(response, self.beijing.recruitment_type)
+        self.assertContains(response, f'value="{self.beijing.recruitment_type}"')
+        self.assertContains(response, '<span data-column-content="recruitment-type">校园招聘</span>')
 
     def test_progress_endpoint_accepts_only_known_choice(self) -> None:
-        response = self.client.post(f"/notices/{self.beijing.pk}/progress/", {"status": "interviewed"}, follow=True)
+        position = self.beijing.positions.get()
+        response = self.client.post(f"/positions/{position.pk}/progress/", {"status": "interviewed"})
         self.assertEqual(response.status_code, 200)
-        self.beijing.application_progress.refresh_from_db()
-        self.assertEqual(self.beijing.application_progress.status, "interviewed")
+        position.application_progress.refresh_from_db()
+        self.assertEqual(position.application_progress.status, "interviewed")
+        self.assertEqual(self.client.post(f"/positions/{position.pk}/progress/", {"status": "bad"}).status_code, 400)
 
     def test_default_listing_hides_expired_but_status_filter_shows_it(self) -> None:
-        self.assertNotContains(self.client.get("/"), self.expired.official_notice_url)
-        self.assertContains(self.client.get("/?status=expired"), self.expired.official_notice_url)
+        self.assertNotContains(self.client.get("/"), self.expired.official_page_url)
+        self.assertContains(self.client.get("/history/"), self.expired.official_page_url)
 
     @patch("radar.views.run_update")
     def test_manual_update_reports_actual_summary(self, run_update) -> None:
@@ -44,5 +47,5 @@ class DashboardViewTests(TestCase):
     @patch("radar.views.scheduled_run_is_missing", return_value=True)
     def test_missing_schedule_displays_a_factual_update_banner(self, _missing) -> None:
         response = self.client.get("/")
-        self.assertContains(response, 'class="scheduled-alert"')
+        self.assertContains(response, 'class="health warning scheduled-alert"')
         self.assertContains(response, 'action="/update-now/"')

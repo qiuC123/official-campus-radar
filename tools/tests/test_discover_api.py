@@ -347,6 +347,10 @@ class PureConfigurationAndReportingTests(unittest.TestCase):
         self.assertEqual(draft["list_path"], "Data.Posts")
         self.assertEqual(draft["total_path"], "Data.Count")
         self.assertEqual(draft["success"], {"path": "Code", "expect": 200})
+        self.assertEqual(
+            set(draft["batch"]),
+            {"identity_key", "title", "official_page_url", "recruitment_type", "target_audience"},
+        )
 
     def test_offset_pagination_requires_manual_review_instead_of_page_index(self):
         build_config_draft = self.require_function("build_config_draft")

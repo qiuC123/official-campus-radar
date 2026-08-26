@@ -17,7 +17,7 @@ from radar.models import (
     Evidence,
     OfficialSource,
     Organization,
-    RecruitmentNotice,
+    RecruitmentBatch,
     SourceVersion,
 )
 from radar.services.admission import transition_source
@@ -38,10 +38,10 @@ BASE_CONFIG = {
     },
     "list_path": "Data.Posts",
     "total_path": "Data.Count",
-    "notice": {
+    "batch": {
         "identity_key": "example-campus-2027",
         "title": "Example 2027 校园招聘",
-        "official_notice_url": "https://careers.example.test/campus",
+        "official_page_url": "https://careers.example.test/campus",
         "recruitment_type": "campus_recruitment",
         "target_audience": "2027届",
         "published_on": "2026-08-20",
@@ -89,10 +89,10 @@ CTRIP_CONFIG = {
     "total_path": "retValue.total",
     "success": {"path": "retCode", "expect": "201"},
     "html_fields": ["raw_text"],
-    "notice": {
+    "batch": {
         "identity_key": "ctrip-campus-2027",
         "title": "携程 2027 校园招聘",
-        "official_notice_url": "https://careers.ctrip.com/",
+        "official_page_url": "https://careers.ctrip.com/",
         "recruitment_type": "campus_recruitment",
         "target_audience": "2027届",
         "published_on": "2026-08-20",
@@ -423,7 +423,7 @@ class JsonApiConfigurationTests(SimpleTestCase):
         self.assertIsNotNone(adapter, "JsonApiSourceAdapter must exist")
         for name in ("published_on", "deadline"):
             config = copy.deepcopy(BASE_CONFIG)
-            config["notice"].pop(name)
+            config["batch"].pop(name)
             config["field_map"].pop(name, None)
             with self.subTest(name=name):
                 with self.assertRaisesRegex(ValueError, name):
@@ -432,22 +432,22 @@ class JsonApiConfigurationTests(SimpleTestCase):
     def test_fixed_notice_dates_must_be_valid_iso_dates(self) -> None:
         for name in ("published_on", "deadline"):
             config = copy.deepcopy(BASE_CONFIG)
-            config["notice"][name] = "not-a-date"
+            config["batch"][name] = "not-a-date"
             with self.subTest(name=name):
                 with self.assertRaisesRegex(ValueError, name):
                     JsonApiSourceAdapter.validate_source_config(
                         make_source(config)
                     )
 
-    def test_official_notice_url_must_be_https_on_source_host(self) -> None:
+    def test_official_page_url_must_be_https_on_source_host(self) -> None:
         for url in (
             "http://careers.example.test/campus",
             "https://jobs.example.test/campus",
         ):
             config = copy.deepcopy(BASE_CONFIG)
-            config["notice"]["official_notice_url"] = url
+            config["batch"]["official_page_url"] = url
             with self.subTest(url=url):
-                with self.assertRaisesRegex(ValueError, "official_notice_url"):
+                with self.assertRaisesRegex(ValueError, "official_page_url"):
                     JsonApiSourceAdapter.validate_source_config(
                         make_source(config)
                     )
@@ -723,15 +723,15 @@ class JsonApiFetchTests(SimpleTestCase):
         payload = {"Data": {"Count": 0, "Posts": []}}
         request.side_effect = [json_response(payload), json_response(payload)]
         changed_config = copy.deepcopy(BASE_CONFIG)
-        changed_config["notice"]["title"] = "Updated campus notice"
+        changed_config["batch"]["title"] = "Updated campus batch"
 
         first = self.fetch(BASE_CONFIG)
         second = self.fetch(changed_config)
 
         self.assertNotEqual(first.content_hash, second.content_hash)
         self.assertEqual(
-            json.loads(second.body)["_radar"]["notice"]["title"],
-            "Updated campus notice",
+            json.loads(second.body)["_radar"]["batch"]["title"],
+            "Updated campus batch",
         )
 
     @patch("radar.collectors.json_api.requests.Session.request")
@@ -846,6 +846,12 @@ class JsonApiFetchTests(SimpleTestCase):
             "535f2df5-32a7-4857-9fdf-fad0acef18bb",
         )
         self.assertTrue(document["_radar"]["positions_complete"])
+        candidate = JsonApiSourceAdapter().extract(source, page)[0]
+        self.assertEqual(candidate.positions[0].source_updated_on, date(2026, 8, 20))
+        self.assertEqual(
+            candidate.positions[0].field_evidence["source_updated_on"].parsed_value,
+            "2026-08-20",
+        )
 
     @patch("radar.collectors.json_api.requests.Session.request")
     def test_ctrip_fixture_rejects_its_configured_business_failure(
@@ -930,7 +936,7 @@ class JsonApiExtractionTests(SimpleTestCase):
         )
         self.assertEqual(
             candidate.field_evidence["title"].locator,
-            "$._radar.notice.title",
+            "$._radar.batch.title",
         )
         self.assertEqual(
             candidate.field_evidence["deadline"].parsed_value,
@@ -939,7 +945,7 @@ class JsonApiExtractionTests(SimpleTestCase):
 
     def test_published_on_can_come_from_a_mapped_chinese_date(self) -> None:
         config = copy.deepcopy(BASE_CONFIG)
-        config["notice"].pop("published_on")
+        config["batch"].pop("published_on")
         config["field_map"]["published_on"] = "LastUpdateTime"
 
         candidate = self.extract(config)[0]
@@ -1112,13 +1118,14 @@ class JsonApiExtractionTests(SimpleTestCase):
             candidate.positions[0].field_evidence["position_title"].locator,
             "$.Data.Posts[0].RecruitPostName",
         )
+        self.assertEqual(candidate.positions[0].source_updated_on, date(2026, 8, 20))
 
     @patch("radar.collectors.json_api.requests.Session.request")
     def test_ctrip_iso_date_can_feed_a_mapped_notice_date(
         self, request: Mock
     ) -> None:
         config = copy.deepcopy(CTRIP_CONFIG)
-        config["notice"].pop("published_on")
+        config["batch"].pop("published_on")
         config["field_map"]["published_on"] = "publishDate"
         request.return_value = json_response(
             load_json_fixture("json_api_ctrip.json")
@@ -1230,9 +1237,20 @@ class JsonApiPublicationIntegrationTests(TestCase):
         self.assertEqual(result.action, "created")
         version.is_applied = True
         version.save(update_fields=["is_applied"])
-        notice = RecruitmentNotice.objects.formal().get(pk=result.notice_id)
-        self.assertEqual(notice.source, self.source)
-        self.assertEqual(notice.positions.filter(is_current=True).count(), 2)
+        batch = RecruitmentBatch.objects.formal().get(pk=result.batch_id)
+        self.assertEqual(batch.source, self.source)
+        self.assertEqual(batch.positions.filter(is_current=True).count(), 2)
+        position = batch.positions.get(position_key="2034975730101809152")
+        self.assertEqual(position.source_updated_on, date(2026, 8, 20))
+        self.assertTrue(
+            Evidence.objects.filter(
+                batch=batch,
+                position=position,
+                field_name="source_updated_on",
+                parsed_value="2026-08-20",
+            ).exists()
+        )
+        self.assertContains(self.client.get("/"), position.title)
 
     def test_html_raw_text_evidence_is_persisted_with_a_plain_excerpt(
         self,

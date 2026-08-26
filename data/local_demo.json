@@ -1,8 +1,8 @@
 {
   "organization_name": "本地演示招聘主体",
-  "notices": [
+  "batches": [
     {"identity_key": "demo-active", "title": "本地演示：北京研发校招", "city": "北京", "status": "active", "progress": "interviewed"},
     {"identity_key": "demo-expired", "title": "本地演示：已截止岗位", "city": "上海", "status": "expired"},
-    {"identity_key": "demo-withdrawn", "title": "本地演示：已撤回公告", "city": "深圳", "status": "withdrawn"}
+    {"identity_key": "demo-withdrawn", "title": "本地演示：已撤回批次", "city": "深圳", "status": "withdrawn"}
   ]
 }

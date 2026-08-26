@@ -5,20 +5,20 @@ from typing import Iterable, Literal
 from django.db import transaction
 from django.utils import timezone
 
-from radar.collectors.base import FieldEvidenceValue, NoticeCandidate
+from radar.collectors.base import FieldEvidenceValue, RecruitmentBatchCandidate
 from radar.models import (
     ApplicationLink,
     Evidence,
-    NoticePosition,
+    RecruitmentPosition,
     OfficialSource,
     PublicationEvent,
-    RecruitmentNotice,
+    RecruitmentBatch,
     SourceVersion,
 )
 from radar.services.admission import (
     source_is_admitted,
     source_permits_application_url,
-    source_permits_notice_url,
+    source_permits_batch_url,
 )
 from radar.services.evidence import (
     candidate_evidence_is_valid,
@@ -26,58 +26,38 @@ from radar.services.evidence import (
 )
 from radar.services.locations import normalized_target_locations
 from radar.services.normalization import canonicalize_url
+from radar.services.recruitment import classify_recruitment
 
 
 @dataclass(frozen=True)
 class PublicationResult:
     action: Literal["created", "updated", "rejected", "unchanged"]
-    notice_id: int | None
+    batch_id: int | None
     reasons: tuple[str, ...]
 
 
-NOTICE_EVIDENCE_FIELDS = {
+BATCH_EVIDENCE_FIELDS = {
     "title",
     "recruitment_type",
     "target_audience",
     "published_on",
     "deadline",
-    "notice_url",
+    "official_page_url",
 }
 POSITION_EVIDENCE_FIELDS = {"position_title", "location"}
-OPTIONAL_POSITION_EVIDENCE_FIELDS = {"raw_text"}
+OPTIONAL_POSITION_EVIDENCE_FIELDS = {"raw_text", "source_updated_on"}
 
 
-def classify_recruitment(value: str) -> str:
-    normalized = (value or "").strip().casefold()
-    if any(term in normalized for term in ("招商", "招标", "招聘会", "采购")):
-        return RecruitmentNotice.RecruitmentType.OTHER
-    if normalized in {
-        RecruitmentNotice.RecruitmentType.CAMPUS_RECRUITMENT,
-        RecruitmentNotice.RecruitmentType.INTERNSHIP,
-    }:
-        return normalized
-    if any(term in normalized for term in ("实习", "intern")):
-        return RecruitmentNotice.RecruitmentType.INTERNSHIP
-    if any(
-        term in normalized
-        for term in ("校园招聘", "校招", "应届生", "graduate program")
-    ):
-        return RecruitmentNotice.RecruitmentType.CAMPUS_RECRUITMENT
-    if any(term in normalized for term in ("社会招聘", "社招", "招聘")):
-        return RecruitmentNotice.RecruitmentType.OTHER
-    return RecruitmentNotice.RecruitmentType.UNKNOWN
-
-
-def _candidate_conflict_indexes(candidates: list[NoticeCandidate]) -> set[int]:
+def _candidate_conflict_indexes(candidates: list[RecruitmentBatchCandidate]) -> set[int]:
     by_identity: dict[str, list[int]] = {}
     by_url: dict[str, list[int]] = {}
     for index, candidate in enumerate(candidates):
         identity_key = candidate.identity_key.strip()
         if identity_key:
             by_identity.setdefault(identity_key, []).append(index)
-        if candidate.official_notice_url:
+        if candidate.official_page_url:
             by_url.setdefault(
-                canonicalize_url(candidate.official_notice_url), []
+                canonicalize_url(candidate.official_page_url), []
             ).append(index)
     conflicts: set[int] = set()
     for indexes in by_identity.values():
@@ -90,18 +70,33 @@ def _candidate_conflict_indexes(candidates: list[NoticeCandidate]) -> set[int]:
     return conflicts
 
 
+def _drop_unproven_position_details(position):
+    if not position.raw_text:
+        return position
+    evidence = position.field_evidence.get("raw_text")
+    if (
+        evidence is not None
+        and str(evidence.raw_value or "").strip()
+        and str(evidence.locator or "").strip()
+        and normalize_evidence_value("raw_text", evidence.parsed_value)
+        == normalize_evidence_value("raw_text", position.raw_text)
+    ):
+        return position
+    return replace(position, raw_text="")
+
+
 def _event(
     *,
     version: SourceVersion,
-    candidate: NoticeCandidate,
+    candidate: RecruitmentBatchCandidate,
     event_type: str,
-    notice: RecruitmentNotice | None = None,
+    batch: RecruitmentBatch | None = None,
     reasons: Iterable[str] = (),
     evidence_complete: bool = False,
 ) -> PublicationEvent:
     return PublicationEvent.objects.create(
         source_version=version,
-        notice=notice,
+        batch=batch,
         event_type=event_type,
         identity_key=candidate.identity_key,
         candidate_title=candidate.title,
@@ -111,25 +106,25 @@ def _event(
 
 
 def _has_complete_evidence(
-    candidate: NoticeCandidate, positions, recruitment_type: str
+    candidate: RecruitmentBatchCandidate, positions, recruitment_type: str
 ) -> bool:
     return candidate_evidence_is_valid(candidate, positions, recruitment_type)
 
 
 def _write_evidence(
     *,
-    notice: RecruitmentNotice,
+    batch: RecruitmentBatch,
     version: SourceVersion,
     event: PublicationEvent,
     field_name: str,
     value: FieldEvidenceValue,
-    position: NoticePosition | None = None,
+    position: RecruitmentPosition | None = None,
     application_link: ApplicationLink | None = None,
 ) -> None:
     parsed = normalize_evidence_value(field_name, value.parsed_value)
     excerpt = value.raw_value if value.excerpt is None else value.excerpt
     Evidence.objects.create(
-        notice=notice,
+        batch=batch,
         source_version=version,
         publication_event=event,
         position=position,
@@ -145,12 +140,12 @@ def _write_evidence(
 
 def _reject(
     source: OfficialSource,
-    candidate: NoticeCandidate,
+    candidate: RecruitmentBatchCandidate,
     version: SourceVersion,
     reasons: list[str],
     *,
     ambiguous: bool = False,
-    notice: RecruitmentNotice | None = None,
+    batch: RecruitmentBatch | None = None,
 ) -> PublicationResult:
     _event(
         version=version,
@@ -160,7 +155,7 @@ def _reject(
             if ambiguous
             else PublicationEvent.EventType.REJECTED
         ),
-        notice=notice,
+        batch=batch,
         reasons=reasons,
     )
     return PublicationResult("rejected", None, tuple(reasons))
@@ -168,27 +163,27 @@ def _reject(
 
 def _publish_candidate(
     source: OfficialSource,
-    candidate: NoticeCandidate,
+    candidate: RecruitmentBatchCandidate,
     version: SourceVersion,
 ) -> PublicationResult:
     identity_key = candidate.identity_key.strip()
-    notice_url = (
-        canonicalize_url(candidate.official_notice_url)
-        if candidate.official_notice_url
+    official_page_url = (
+        canonicalize_url(candidate.official_page_url)
+        if candidate.official_page_url
         else ""
     )
     existing_by_identity = (
-        RecruitmentNotice.objects.filter(
+        RecruitmentBatch.objects.filter(
             source=source, identity_key=identity_key
         ).first()
         if identity_key
         else None
     )
     existing_by_url = (
-        RecruitmentNotice.objects.filter(
-            source=source, official_notice_url=notice_url
+        RecruitmentBatch.objects.filter(
+            source=source, official_page_url=official_page_url
         ).first()
-        if notice_url
+        if official_page_url
         else None
     )
     if existing_by_url is not None and (
@@ -201,96 +196,82 @@ def _publish_candidate(
             version,
             ["ambiguous_identity"],
             ambiguous=True,
-            notice=existing_by_identity or existing_by_url,
+            batch=existing_by_identity or existing_by_url,
         )
-    existing_notice = existing_by_identity
+    existing_batch = existing_by_identity
     target_positions = [
-        position
+        _drop_unproven_position_details(position)
         for position in candidate.positions
-        if normalized_target_locations(position.location_text)
     ]
     lifecycle_identity_is_trusted = (
-        existing_notice is not None
+        existing_batch is not None
         and source_is_admitted(source)
-        and bool(candidate.official_notice_url)
-        and source_permits_notice_url(source, candidate.official_notice_url)
+        and bool(candidate.official_page_url)
+        and source_permits_batch_url(source, candidate.official_page_url)
     )
     if lifecycle_identity_is_trusted and candidate.withdrawn:
+        withdrawn_at = timezone.now()
         event = _event(
             version=version,
             candidate=candidate,
             event_type=PublicationEvent.EventType.WITHDRAWN,
-            notice=existing_notice,
+            batch=existing_batch,
             reasons=("explicit_source_withdrawal",),
         )
-        existing_notice.status = RecruitmentNotice.Status.WITHDRAWN
-        existing_notice.latest_publication_event = event
-        existing_notice.last_verified_at = timezone.now()
-        existing_notice.save(
+        existing_batch.status = RecruitmentBatch.Status.WITHDRAWN
+        existing_batch.latest_publication_event = event
+        existing_batch.last_verified_at = withdrawn_at
+        existing_batch.save(
             update_fields=["status", "latest_publication_event", "last_verified_at"]
         )
-        NoticePosition.objects.filter(
-            notice=existing_notice, is_current=True
-        ).update(is_current=False, removed_at=timezone.now())
+        RecruitmentPosition.objects.filter(
+            batch=existing_batch, is_current=True
+        ).update(
+            is_current=False,
+            removed_at=withdrawn_at,
+            content_changed_at=withdrawn_at,
+        )
         ApplicationLink.objects.filter(
-            notice=existing_notice, is_current=True
-        ).update(is_current=False, removed_at=timezone.now())
-        return PublicationResult("updated", existing_notice.pk, ())
+            batch=existing_batch, is_current=True
+        ).update(is_current=False, removed_at=withdrawn_at)
+        return PublicationResult("updated", existing_batch.pk, ())
     if lifecycle_identity_is_trusted and not candidate.positions_complete:
         return _reject(
             source,
             candidate,
             version,
             ["incomplete_position_coverage"],
-            notice=existing_notice,
+            batch=existing_batch,
         )
-    if (
-        lifecycle_identity_is_trusted
-        and candidate.positions_complete
-        and not target_positions
-    ):
-        event = _event(
-            version=version,
-            candidate=candidate,
-            event_type=PublicationEvent.EventType.OUT_OF_SCOPE,
-            notice=existing_notice,
-            reasons=("complete_position_coverage_has_no_target_position",),
+    if source.adapter_name == "json_api" and not candidate.positions_complete:
+        return _reject(
+            source,
+            candidate,
+            version,
+            ["incomplete_position_coverage"],
         )
-        NoticePosition.objects.filter(
-            notice=existing_notice, is_current=True
-        ).update(is_current=False, removed_at=timezone.now())
-        ApplicationLink.objects.filter(
-            notice=existing_notice, is_current=True
-        ).update(is_current=False, removed_at=timezone.now())
-        existing_notice.latest_publication_event = event
-        existing_notice.last_verified_at = timezone.now()
-        existing_notice.save(
-            update_fields=["latest_publication_event", "last_verified_at"]
-        )
-        return PublicationResult("updated", existing_notice.pk, ())
-
     reasons: list[str] = []
     if not candidate.identity_key.strip():
         reasons.append("missing_stable_identity")
     if not source_is_admitted(source):
         reasons.append("source_not_admitted")
-    if not candidate.official_notice_url or not source_permits_notice_url(
-        source, candidate.official_notice_url
+    if not candidate.official_page_url or not source_permits_batch_url(
+        source, candidate.official_page_url
     ):
-        reasons.append("missing_official_notice_url")
+        reasons.append("missing_official_page_url")
     classification_text = " ".join(
         [candidate.recruitment_type, candidate.title]
-        + [position.title for position in candidate.positions]
-        + [position.raw_text for position in candidate.positions]
+        + [position.title for position in target_positions]
+        + [position.raw_text for position in target_positions]
     )
     recruitment_type = classify_recruitment(classification_text)
     if recruitment_type not in {
-        RecruitmentNotice.RecruitmentType.CAMPUS_RECRUITMENT,
-        RecruitmentNotice.RecruitmentType.INTERNSHIP,
+        RecruitmentBatch.RecruitmentType.CAMPUS_RECRUITMENT,
+        RecruitmentBatch.RecruitmentType.INTERNSHIP,
     }:
         reasons.append("not_eligible_recruitment_type")
     if not target_positions:
-        reasons.append("missing_target_location")
+        reasons.append("missing_positions")
     if any(not position.position_key.strip() for position in target_positions):
         reasons.append("missing_stable_position_identity")
     if len({position.position_key for position in target_positions}) != len(
@@ -308,30 +289,41 @@ def _publish_candidate(
     if reasons:
         return _reject(source, candidate, version, reasons)
 
-    notice = existing_notice
-    created = notice is None
-    if notice is None:
-        notice = RecruitmentNotice.objects.create(
+    batch = existing_batch
+    created = batch is None
+    batch_content_changed = False
+    content_change_time = timezone.now()
+    if batch is None:
+        batch = RecruitmentBatch.objects.create(
             organization=source.organization,
             source=source,
             identity_key=identity_key,
             title=candidate.title,
-            official_notice_url=notice_url,
+            official_page_url=official_page_url,
             recruitment_type=recruitment_type,
             target_audience=candidate.target_audience,
             published_on=candidate.published_on,
             deadline=candidate.deadline,
         )
     else:
-        notice.title = candidate.title
-        notice.official_notice_url = notice_url
-        notice.recruitment_type = recruitment_type
-        notice.target_audience = candidate.target_audience
-        notice.published_on = candidate.published_on
-        notice.deadline = candidate.deadline
-        notice.status = RecruitmentNotice.Status.ACTIVE
-        notice.last_verified_at = timezone.now()
-        notice.save()
+        batch_content_changed = any((
+            batch.title != candidate.title,
+            batch.official_page_url != official_page_url,
+            batch.recruitment_type != recruitment_type,
+            batch.target_audience != candidate.target_audience,
+            batch.published_on != candidate.published_on,
+            batch.deadline != candidate.deadline,
+            batch.status != RecruitmentBatch.Status.ACTIVE,
+        ))
+        batch.title = candidate.title
+        batch.official_page_url = official_page_url
+        batch.recruitment_type = recruitment_type
+        batch.target_audience = candidate.target_audience
+        batch.published_on = candidate.published_on
+        batch.deadline = candidate.deadline
+        batch.status = RecruitmentBatch.Status.ACTIVE
+        batch.last_verified_at = timezone.now()
+        batch.save()
     event = _event(
         version=version,
         candidate=candidate,
@@ -340,27 +332,33 @@ def _publish_candidate(
             if created
             else PublicationEvent.EventType.UPDATED
         ),
-        notice=notice,
+        batch=batch,
         evidence_complete=True,
     )
-    if candidate.positions_complete:
-        NoticePosition.objects.filter(notice=notice, is_current=True).update(
-            is_current=False, removed_at=timezone.now()
-        )
-        ApplicationLink.objects.filter(notice=notice, is_current=True).update(
-            is_current=False, removed_at=timezone.now()
-        )
-    for field_name in NOTICE_EVIDENCE_FIELDS:
+    for field_name in BATCH_EVIDENCE_FIELDS:
         _write_evidence(
-            notice=notice,
+            batch=batch,
             version=version,
             event=event,
             field_name=field_name,
             value=candidate.field_evidence[field_name],
         )
+    current_position_keys: set[str] = set()
+    current_link_ids: set[int] = set()
     for position_candidate in target_positions:
-        position, _ = NoticePosition.objects.update_or_create(
-            notice=notice,
+        current_position_keys.add(position_candidate.position_key)
+        previous_application_url = (
+            ApplicationLink.objects.filter(
+                batch=batch,
+                position__position_key=position_candidate.position_key,
+                link_type=ApplicationLink.LinkType.APPLICATION,
+                is_current=True,
+            )
+            .values_list("url", flat=True)
+            .first()
+        )
+        position, position_created = RecruitmentPosition.objects.get_or_create(
+            batch=batch,
             position_key=position_candidate.position_key,
             defaults={
                 "title": position_candidate.title,
@@ -369,13 +367,37 @@ def _publish_candidate(
                     position_candidate.location_text
                 ),
                 "raw_text": position_candidate.raw_text,
+                "source_updated_on": position_candidate.source_updated_on,
                 "is_current": True,
                 "removed_at": None,
             },
         )
+        if not position_created:
+            new_values = {
+                "title": position_candidate.title,
+                "location_text": position_candidate.location_text,
+                "normalized_locations": normalized_target_locations(
+                    position_candidate.location_text
+                ),
+                "raw_text": position_candidate.raw_text,
+                "source_updated_on": position_candidate.source_updated_on,
+                "is_current": True,
+                "removed_at": None,
+            }
+            changed = batch_content_changed or (
+                any(getattr(position, key) != value for key, value in new_values.items())
+                or previous_application_url != position_candidate.application_url
+            )
+            for key, value in new_values.items():
+                setattr(position, key, value)
+            update_fields = list(new_values)
+            if changed:
+                position.content_changed_at = content_change_time
+                update_fields.append("content_changed_at")
+            position.save(update_fields=update_fields)
         for field_name in POSITION_EVIDENCE_FIELDS:
             _write_evidence(
-                notice=notice,
+                batch=batch,
                 version=version,
                 event=event,
                 field_name=field_name,
@@ -386,7 +408,7 @@ def _publish_candidate(
             value = position_candidate.field_evidence.get(field_name)
             if value is not None:
                 _write_evidence(
-                    notice=notice,
+                    batch=batch,
                     version=version,
                     event=event,
                     field_name=field_name,
@@ -396,17 +418,18 @@ def _publish_candidate(
         if position_candidate.application_url:
             if not candidate.positions_complete:
                 ApplicationLink.objects.filter(
-                    notice=notice, position=position, is_current=True
+                    batch=batch, position=position, is_current=True
                 ).update(is_current=False, removed_at=timezone.now())
             link, _ = ApplicationLink.objects.update_or_create(
-                notice=notice,
+                batch=batch,
                 position=position,
                 url=position_candidate.application_url,
                 link_type=ApplicationLink.LinkType.APPLICATION,
                 defaults={"is_current": True, "removed_at": None},
             )
+            current_link_ids.add(link.pk)
             _write_evidence(
-                notice=notice,
+                batch=batch,
                 version=version,
                 event=event,
                 field_name="application_link",
@@ -414,24 +437,47 @@ def _publish_candidate(
                 position=position,
                 application_link=link,
             )
-    notice.latest_publication_event = event
-    notice.save(update_fields=["latest_publication_event"])
-    return PublicationResult("created" if created else "updated", notice.pk, ())
+    if candidate.positions_complete:
+        retired_at = timezone.now()
+        RecruitmentPosition.objects.filter(
+            batch=batch, is_current=True
+        ).exclude(position_key__in=current_position_keys).update(
+            is_current=False,
+            removed_at=retired_at,
+            content_changed_at=retired_at,
+        )
+        ApplicationLink.objects.filter(
+            batch=batch,
+            is_current=True,
+            link_type=ApplicationLink.LinkType.APPLICATION,
+        ).exclude(pk__in=current_link_ids).update(
+            is_current=False,
+            removed_at=retired_at,
+        )
+    if batch_content_changed:
+        RecruitmentPosition.objects.filter(
+            batch=batch, is_current=True
+        ).exclude(position_key__in=current_position_keys).update(
+            content_changed_at=content_change_time
+        )
+    batch.latest_publication_event = event
+    batch.save(update_fields=["latest_publication_event"])
+    return PublicationResult("created" if created else "updated", batch.pk, ())
 
 
 @transaction.atomic
 def publish_candidates(
     source: OfficialSource,
-    candidates: Iterable[NoticeCandidate],
+    candidates: Iterable[RecruitmentBatchCandidate],
     version: SourceVersion,
 ) -> list[PublicationResult]:
     candidate_list = [
         replace(
             candidate,
             identity_key=candidate.identity_key.strip(),
-            official_notice_url=(
-                canonicalize_url(candidate.official_notice_url)
-                if candidate.official_notice_url
+            official_page_url=(
+                canonicalize_url(candidate.official_page_url)
+                if candidate.official_page_url
                 else ""
             ),
         )
@@ -457,7 +503,7 @@ def publish_candidates(
 
 def publish_candidate(
     source: OfficialSource,
-    candidate: NoticeCandidate,
+    candidate: RecruitmentBatchCandidate,
     version: SourceVersion,
 ) -> PublicationResult:
     return publish_candidates(source, [candidate], version)[0]

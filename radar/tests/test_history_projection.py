@@ -5,8 +5,8 @@ from django.test import TestCase
 from radar.models import (
     ApplicationLink,
     ApplicationProgress,
-    NoticePosition,
-    RecruitmentNotice,
+    RecruitmentPosition,
+    RecruitmentBatch,
     SourceVersion,
 )
 from radar.services.publication import publish_candidates
@@ -35,12 +35,12 @@ class HistoricalProjectionTests(TestCase):
             application_url=f"https://official.test/apply/{identity_key}",
         )
         result = publish_candidates(self.source, [candidate], self.version())[0]
-        return candidate, RecruitmentNotice.objects.get(pk=result.notice_id)
+        return candidate, RecruitmentBatch.objects.get(pk=result.batch_id)
 
     def test_withdrawn_history_filters_use_the_prior_trusted_event_projection(self) -> None:
-        candidate, notice = self.publish(identity_key="withdrawn-history")
+        candidate, batch = self.publish(identity_key="withdrawn-history")
         progress = ApplicationProgress.objects.create(
-            notice=notice,
+            position=batch.positions.get(),
             status=ApplicationProgress.Status.INTERVIEWED,
         )
         publish_candidates(
@@ -50,44 +50,42 @@ class HistoricalProjectionTests(TestCase):
         )
 
         by_city = self.client.get(
-            "/", {"status": RecruitmentNotice.Status.WITHDRAWN, "city": "北京"}
+            "/history/", {"city": "北京"}
         )
         by_position = self.client.get(
-            "/",
-            {"status": RecruitmentNotice.Status.WITHDRAWN, "position": "Engineer"},
+            "/history/", {"position": "Engineer"},
         )
 
-        self.assertContains(by_city, notice.official_notice_url)
+        self.assertContains(by_city, batch.official_page_url)
         self.assertContains(by_city, "Engineer")
-        self.assertContains(by_position, notice.official_notice_url)
+        self.assertContains(by_position, batch.official_page_url)
         progress.refresh_from_db()
         self.assertEqual(progress.status, ApplicationProgress.Status.INTERVIEWED)
 
     def test_expired_history_filters_use_the_trusted_event_projection(self) -> None:
-        _, notice = self.publish(identity_key="expired-history", location="上海")
-        notice.status = RecruitmentNotice.Status.EXPIRED
-        notice.save(update_fields=["status"])
+        _, batch = self.publish(identity_key="expired-history", location="上海")
+        batch.status = RecruitmentBatch.Status.EXPIRED
+        batch.save(update_fields=["status"])
 
         by_city = self.client.get(
-            "/", {"status": RecruitmentNotice.Status.EXPIRED, "city": "上海"}
+            "/history/", {"city": "上海"}
         )
         by_position = self.client.get(
-            "/",
-            {"status": RecruitmentNotice.Status.EXPIRED, "position": "Engineer"},
+            "/history/", {"position": "Engineer"},
         )
 
-        self.assertContains(by_city, notice.official_notice_url)
-        self.assertContains(by_position, notice.official_notice_url)
+        self.assertContains(by_city, batch.official_page_url)
+        self.assertContains(by_position, batch.official_page_url)
 
     def test_history_does_not_display_or_filter_by_children_outside_selected_event(self) -> None:
-        candidate, notice = self.publish(identity_key="event-bound-history")
+        candidate, batch = self.publish(identity_key="event-bound-history")
         publish_candidates(
             self.source,
             [replace(candidate, withdrawn=True, positions=(), field_evidence={})],
             self.version(),
         )
-        unrelated_position = NoticePosition.objects.create(
-            notice=notice,
+        unrelated_position = RecruitmentPosition.objects.create(
+            batch=batch,
             position_key="unrelated-position",
             title="Ghost Analyst",
             location_text="深圳",
@@ -97,7 +95,7 @@ class HistoricalProjectionTests(TestCase):
         )
         unrelated_url = "https://official.test/apply/unrelated"
         ApplicationLink.objects.create(
-            notice=notice,
+            batch=batch,
             position=unrelated_position,
             url=unrelated_url,
             link_type=ApplicationLink.LinkType.APPLICATION,
@@ -105,27 +103,26 @@ class HistoricalProjectionTests(TestCase):
         )
 
         unfiltered = self.client.get(
-            "/", {"status": RecruitmentNotice.Status.WITHDRAWN}
+            "/history/"
         )
         by_unrelated_city = self.client.get(
-            "/", {"status": RecruitmentNotice.Status.WITHDRAWN, "city": "深圳"}
+            "/history/", {"city": "深圳"}
         )
         by_unrelated_position = self.client.get(
-            "/",
-            {"status": RecruitmentNotice.Status.WITHDRAWN, "position": "Ghost"},
+            "/history/", {"position": "Ghost"},
         )
 
         self.assertContains(unfiltered, "Engineer")
         self.assertContains(unfiltered, "https://official.test/apply/event-bound-history")
         self.assertNotContains(unfiltered, unrelated_position.title)
         self.assertNotContains(unfiltered, unrelated_url)
-        self.assertNotContains(by_unrelated_city, notice.official_notice_url)
-        self.assertNotContains(by_unrelated_position, notice.official_notice_url)
+        self.assertNotContains(by_unrelated_city, batch.official_page_url)
+        self.assertNotContains(by_unrelated_position, batch.official_page_url)
 
     def test_current_filters_ignore_non_current_historical_positions(self) -> None:
-        _, notice = self.publish(identity_key="current-projection")
-        NoticePosition.objects.create(
-            notice=notice,
+        _, batch = self.publish(identity_key="current-projection")
+        RecruitmentPosition.objects.create(
+            batch=batch,
             position_key="legacy-position",
             title="Legacy Analyst",
             location_text="深圳",
@@ -138,7 +135,7 @@ class HistoricalProjectionTests(TestCase):
         by_legacy_city = self.client.get("/", {"city": "深圳"})
         by_legacy_position = self.client.get("/", {"position": "Legacy"})
 
-        self.assertContains(current, notice.official_notice_url)
+        self.assertContains(current, batch.official_page_url)
         self.assertNotContains(current, "Legacy Analyst")
-        self.assertNotContains(by_legacy_city, notice.official_notice_url)
-        self.assertNotContains(by_legacy_position, notice.official_notice_url)
+        self.assertNotContains(by_legacy_city, batch.official_page_url)
+        self.assertNotContains(by_legacy_position, batch.official_page_url)

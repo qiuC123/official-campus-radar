@@ -1,7 +1,7 @@
 from datetime import date
 
-from radar.collectors.base import FieldEvidenceValue, NoticeCandidate, PositionCandidate
-from radar.models import OfficialSource, Organization, RecruitmentNotice, SourceVersion
+from radar.collectors.base import FieldEvidenceValue, RecruitmentBatchCandidate, PositionCandidate
+from radar.models import OfficialSource, Organization, RecruitmentBatch, SourceVersion
 from radar.services.admission import transition_source
 from radar.services.publication import publish_candidates
 
@@ -67,27 +67,30 @@ def create_enabled_source(
 def complete_candidate(
     source: OfficialSource,
     *,
-    identity_key: str = "notice-2027",
+    identity_key: str = "batch-2027",
     title: str = "2027 Campus",
     location: str = "北京",
     position_key: str = "position-1",
     application_url: str | None = None,
-    notice_url: str | None = None,
+    official_page_url: str | None = None,
     withdrawn: bool = False,
-) -> NoticeCandidate:
+) -> RecruitmentBatchCandidate:
     base = source.source_url.rstrip("/")
-    url = notice_url or f"{base}/notices/{identity_key}"
+    url = official_page_url or f"{base}/batches/{identity_key}"
     position_evidence = {
         "position_title": field_evidence("Engineer", f"#{position_key} .title"),
         "location": field_evidence(location, f"#{position_key} .location"),
+        "raw_text": field_evidence(
+            f"Engineer {location}", f"#{position_key} .description"
+        ),
     }
     if application_url:
         position_evidence["application_link"] = field_evidence(
             application_url, f"#{position_key} a.apply@href"
         )
-    return NoticeCandidate(
+    return RecruitmentBatchCandidate(
         title=title,
-        official_notice_url=url,
+        official_page_url=url,
         recruitment_type="校园招聘",
         target_audience="2027届",
         published_on=date(2026, 8, 1),
@@ -113,7 +116,7 @@ def complete_candidate(
             "target_audience": field_evidence("2027届", f"#{identity_key} .audience"),
             "published_on": field_evidence("2026-08-01", f"#{identity_key} .published"),
             "deadline": field_evidence("2026-12-31", f"#{identity_key} .deadline"),
-            "notice_url": field_evidence(url, f"#{identity_key} a.notice@href"),
+            "official_page_url": field_evidence(url, f"#{identity_key} a.notice@href"),
         },
         positions_complete=True,
     )
@@ -122,12 +125,12 @@ def complete_candidate(
 def publish_formal_notice(
     source: OfficialSource,
     *,
-    identity_key: str = "notice-2027",
+    identity_key: str = "batch-2027",
     title: str = "2027 Campus",
     location: str = "北京",
-    status: str = RecruitmentNotice.Status.ACTIVE,
+    status: str = RecruitmentBatch.Status.ACTIVE,
     hash_character: str = "a",
-) -> RecruitmentNotice:
+) -> RecruitmentBatch:
     version = SourceVersion.objects.create(
         source=source,
         canonical_url=source.source_url,
@@ -146,8 +149,8 @@ def publish_formal_notice(
         ],
         version,
     )[0]
-    notice = RecruitmentNotice.objects.get(pk=result.notice_id)
-    if status != RecruitmentNotice.Status.ACTIVE:
-        notice.status = status
-        notice.save(update_fields=["status"])
-    return notice
+    batch = RecruitmentBatch.objects.get(pk=result.batch_id)
+    if status != RecruitmentBatch.Status.ACTIVE:
+        batch.status = status
+        batch.save(update_fields=["status"])
+    return batch

@@ -6,14 +6,14 @@ from django.test import SimpleTestCase, TestCase
 from radar.collectors.base import (
     FieldEvidenceValue,
     FetchedPage,
-    NoticeCandidate,
+    RecruitmentBatchCandidate,
     PositionCandidate,
 )
 from radar.collectors.html import HtmlSourceAdapter
 from radar.models import Evidence, OfficialSource, Organization, PublicationEvent, SourceVersion
 from radar.services.admission import transition_source
 from radar.services.publication import (
-    NOTICE_EVIDENCE_FIELDS,
+    BATCH_EVIDENCE_FIELDS,
     classify_recruitment,
     publish_candidates,
 )
@@ -73,17 +73,17 @@ class StableIdentityAndEvidenceTests(TestCase):
     def candidate(
         self,
         *,
-        identity_key: str = "notice-2027",
-        url: str = "https://official.test/notices/2027",
+        identity_key: str = "batch-2027",
+        url: str = "https://official.test/batches/2027",
         title: str = "2027 Campus",
-    ) -> NoticeCandidate:
+    ) -> RecruitmentBatchCandidate:
         notice_evidence = {
-            "title": self.evidence(title, "article[data-notice-id='notice-2027'] h2"),
+            "title": self.evidence(title, "article[data-notice-id='batch-2027'] h2"),
             "recruitment_type": self.evidence("校园招聘", "article .type", "campus_recruitment"),
             "target_audience": self.evidence("2027届", "article .audience"),
             "published_on": self.evidence("2026-08-01", "article time.published"),
             "deadline": self.evidence("2026-09-01", "article time.deadline"),
-            "notice_url": self.evidence(url, "article a.notice", url),
+            "official_page_url": self.evidence(url, "article a.notice", url),
         }
         position_evidence = {
             "position_title": self.evidence("Engineer", "article .position"),
@@ -93,9 +93,9 @@ class StableIdentityAndEvidenceTests(TestCase):
                 "article a.apply@href",
             ),
         }
-        return NoticeCandidate(
+        return RecruitmentBatchCandidate(
             title=title,
-            official_notice_url=url,
+            official_page_url=url,
             recruitment_type="校园招聘",
             target_audience="2027届",
             published_on=date(2026, 8, 1),
@@ -125,14 +125,14 @@ class StableIdentityAndEvidenceTests(TestCase):
         self.assertIn("missing_stable_identity", results[0].reasons)
         event = PublicationEvent.objects.get()
         self.assertEqual(event.event_type, "rejected")
-        self.assertIsNone(event.notice_id)
+        self.assertIsNone(event.batch_id)
 
     def test_identity_or_canonical_url_conflict_is_ambiguous_and_never_merged(self) -> None:
         first = self.candidate(identity_key="same", title="First")
         second = self.candidate(identity_key="same", title="Different")
         third = self.candidate(
             identity_key="other",
-            url="https://official.test/notices/2027#second-node",
+            url="https://official.test/batches/2027#second-node",
             title="Third",
         )
         results = publish_candidates(self.source, [first, second, third], self.version)
@@ -141,12 +141,12 @@ class StableIdentityAndEvidenceTests(TestCase):
             set(PublicationEvent.objects.values_list("event_type", flat=True)),
             {"ambiguous"},
         )
-        self.assertFalse(self.source.recruitment_notices.exists())
+        self.assertFalse(self.source.recruitment_batches.exists())
 
     def test_every_display_field_has_immutable_event_scoped_evidence(self) -> None:
         result = publish_candidates(self.source, [self.candidate()], self.version)[0]
         self.assertEqual(result.action, "created")
-        event = PublicationEvent.objects.get(notice_id=result.notice_id)
+        event = PublicationEvent.objects.get(batch_id=result.batch_id)
         self.assertTrue(event.evidence_complete)
         evidence = Evidence.objects.filter(publication_event=event)
         self.assertEqual(
@@ -157,7 +157,7 @@ class StableIdentityAndEvidenceTests(TestCase):
                 "target_audience",
                 "published_on",
                 "deadline",
-                "notice_url",
+                "official_page_url",
                 "position_title",
                 "location",
                 "application_link",
@@ -190,8 +190,8 @@ class StableIdentityAndEvidenceTests(TestCase):
         page = FetchedPage(
             self.source.source_url,
             """
-            <article class="job" data-notice-id="notice-2027" data-position-id="position-1">
-              <a class="notice" href="/notices/2027">notice</a>
+            <article class="job" data-notice-id="batch-2027" data-position-id="position-1">
+              <a class="notice" href="/batches/2027">batch</a>
               <h2>2027 Campus</h2><span class="type">校园招聘</span>
               <span class="audience">2027届</span><time class="published">2026-08-01</time>
               <time class="deadline">2026-09-01</time><span class="position-title">Engineer</span><span class="location">北京</span>
@@ -204,15 +204,15 @@ class StableIdentityAndEvidenceTests(TestCase):
             None,
         )
         candidate = HtmlSourceAdapter().extract(self.source, page)[0]
-        self.assertEqual(candidate.identity_key, "notice-2027")
+        self.assertEqual(candidate.identity_key, "batch-2027")
         self.assertEqual(candidate.positions[0].position_key, "position-1")
-        self.assertEqual(set(candidate.field_evidence), NOTICE_EVIDENCE_FIELDS)
+        self.assertEqual(set(candidate.field_evidence), BATCH_EVIDENCE_FIELDS)
         self.assertEqual(
             set(candidate.positions[0].field_evidence),
-            {"position_title", "location", "application_link"},
+            {"position_title", "location", "raw_text", "application_link"},
         )
         self.assertEqual(
-            candidate.field_evidence["notice_url"].raw_value,
-            "/notices/2027",
+            candidate.field_evidence["official_page_url"].raw_value,
+            "/batches/2027",
         )
         self.assertFalse(candidate.positions_complete)

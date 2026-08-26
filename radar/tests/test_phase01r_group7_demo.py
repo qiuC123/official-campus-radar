@@ -4,7 +4,7 @@ from django.conf import settings
 from django.core.management import call_command
 from django.test import TestCase
 
-from radar.models import OfficialSource, Organization, RecruitmentNotice
+from radar.models import OfficialSource, Organization, RecruitmentBatch
 
 
 class OfflineDemoFixtureTests(TestCase):
@@ -17,12 +17,12 @@ class OfflineDemoFixtureTests(TestCase):
         source = organization.official_sources.get()
         self.assertEqual(source.admission_state, "enabled")
         self.assertEqual(source.adapter_name, "local_demo_disabled")
-        notices = RecruitmentNotice.objects.filter(organization=organization)
-        self.assertEqual(notices.count(), 3)
-        self.assertFalse(notices.filter(source__isnull=True).exists())
-        self.assertFalse(notices.filter(latest_publication_event__isnull=True).exists())
-        active = notices.get(status="active")
-        self.assertTrue(RecruitmentNotice.objects.formal().filter(pk=active.pk).exists())
+        batches = RecruitmentBatch.objects.filter(organization=organization)
+        self.assertEqual(batches.count(), 3)
+        self.assertFalse(batches.filter(source__isnull=True).exists())
+        self.assertFalse(batches.filter(latest_publication_event__isnull=True).exists())
+        active = batches.get(status="active")
+        self.assertTrue(RecruitmentBatch.objects.formal().filter(pk=active.pk).exists())
         self.assertGreater(active.latest_publication_event.evidence.count(), 0)
 
     def test_demo_cleanup_preserves_non_demo_data(self) -> None:

@@ -6,8 +6,8 @@ from django.test import TestCase
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
-from radar.collectors.base import FetchedPage, NoticeCandidate, PositionCandidate
-from radar.models import OfficialSource, Organization, RecruitmentNotice
+from radar.collectors.base import FetchedPage, RecruitmentBatchCandidate, PositionCandidate
+from radar.models import OfficialSource, Organization, RecruitmentBatch, RecruitmentPosition
 from radar.services.update_runner import run_update
 from radar.tests.helpers import complete_candidate, create_enabled_source
 
@@ -37,16 +37,26 @@ class UpdateRunnerTests(TestCase):
             summary = run_update(trigger="scheduled", now=datetime(2026, 8, 17, 22, 0, tzinfo=ZoneInfo("Asia/Shanghai")))
         self.assertEqual(summary.sources_checked, 2)
         self.assertEqual(summary.sources_failed, 1)
-        self.assertEqual(summary.notices_created, 1)
+        self.assertEqual(summary.batches_created, 1)
         self.assertTrue(summary.update_run_id)
 
     def test_expiration_requires_a_successful_source_check(self) -> None:
-        RecruitmentNotice.objects.create(organization=self.good_org, source=self.good, identity_key="good-old", title="已过期", official_notice_url="https://good.example.test/old", deadline=date(2026, 8, 16))
-        RecruitmentNotice.objects.create(organization=self.bad_org, source=self.bad, identity_key="bad-old", title="失败来源保留", official_notice_url="https://bad.example.test/old", deadline=date(2026, 8, 16))
+        good_batch = RecruitmentBatch.objects.create(organization=self.good_org, source=self.good, identity_key="good-old", title="已过期", official_page_url="https://good.example.test/old", deadline=date(2026, 8, 16))
+        good_position = RecruitmentPosition.objects.create(
+            batch=good_batch,
+            position_key="old-position",
+            title="旧岗位",
+            location_text="北京",
+            normalized_locations=["北京"],
+        )
+        original_changed_at = good_position.content_changed_at
+        RecruitmentBatch.objects.create(organization=self.bad_org, source=self.bad, identity_key="bad-old", title="失败来源保留", official_page_url="https://bad.example.test/old", deadline=date(2026, 8, 16))
         with patch("radar.services.update_runner.AdapterRegistry.get", side_effect=[HealthyAdapter(), FailingAdapter()]):
             run_update(trigger="scheduled", now=datetime(2026, 8, 17, 22, 0, tzinfo=ZoneInfo("Asia/Shanghai")))
-        self.assertEqual(RecruitmentNotice.objects.get(organization=self.good_org, official_notice_url="https://good.example.test/old").status, "expired")
-        self.assertEqual(RecruitmentNotice.objects.get(organization=self.bad_org, official_notice_url="https://bad.example.test/old").status, "active")
+        self.assertEqual(RecruitmentBatch.objects.get(organization=self.good_org, official_page_url="https://good.example.test/old").status, "expired")
+        self.assertEqual(RecruitmentBatch.objects.get(organization=self.bad_org, official_page_url="https://bad.example.test/old").status, "active")
+        good_position.refresh_from_db()
+        self.assertGreater(good_position.content_changed_at, original_changed_at)
 
     def test_command_fails_when_no_active_admitted_source_can_complete(self) -> None:
         OfficialSource.objects.update(is_active=False)

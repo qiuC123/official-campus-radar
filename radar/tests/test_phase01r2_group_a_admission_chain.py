@@ -8,7 +8,7 @@ from radar.models import (
     OfficialSource,
     Organization,
     PublicationEvent,
-    RecruitmentNotice,
+    RecruitmentBatch,
     SourceAdmissionEvent,
     SourceVersion,
 )
@@ -69,24 +69,24 @@ class AdmissionChainIntegrityTests(TestCase):
 
     def test_formal_query_rechecks_latest_admission_event(self) -> None:
         source = create_enabled_source(name="Stale Chain Org")
-        notice = publish_formal_notice(source)
+        batch = publish_formal_notice(source)
         latest = source.admission_events.order_by("-pk").first()
         SourceAdmissionEvent.objects.filter(pk=latest.pk).update(
             to_state=OfficialSource.AdmissionState.SUSPENDED
         )
 
-        self.assertFalse(RecruitmentNotice.objects.formal().filter(pk=notice.pk).exists())
+        self.assertFalse(RecruitmentBatch.objects.formal().filter(pk=batch.pk).exists())
 
     def test_formal_query_rejects_cross_source_and_cross_notice_publication_links(self) -> None:
         source_a = create_enabled_source(name="Projection A", host="a.test")
         source_b = create_enabled_source(name="Projection B", host="b.test")
-        notice_a = publish_formal_notice(source_a, identity_key="notice-a")
-        notice_b = publish_formal_notice(source_b, identity_key="notice-b")
+        notice_a = publish_formal_notice(source_a, identity_key="batch-a")
+        notice_b = publish_formal_notice(source_b, identity_key="batch-b")
         original_event = notice_a.latest_publication_event
         foreign_version = notice_b.latest_publication_event.source_version
         forged_event = PublicationEvent.objects.create(
             source_version=foreign_version,
-            notice=notice_b,
+            batch=notice_b,
             event_type=PublicationEvent.EventType.UPDATED,
             identity_key=notice_a.identity_key,
             candidate_title=notice_a.title,
@@ -94,7 +94,7 @@ class AdmissionChainIntegrityTests(TestCase):
         )
         for item in Evidence.objects.filter(publication_event=original_event):
             Evidence.objects.create(
-                notice=notice_a,
+                batch=notice_a,
                 source_version=foreign_version,
                 publication_event=forged_event,
                 position=item.position,
@@ -109,7 +109,7 @@ class AdmissionChainIntegrityTests(TestCase):
         notice_a.latest_publication_event = forged_event
         notice_a.save(update_fields=["latest_publication_event"])
 
-        self.assertFalse(RecruitmentNotice.objects.formal().filter(pk=notice_a.pk).exists())
+        self.assertFalse(RecruitmentBatch.objects.formal().filter(pk=notice_a.pk).exists())
 
 
 class ApprovedHostIntegrityTests(TestCase):

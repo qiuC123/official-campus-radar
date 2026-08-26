@@ -5,7 +5,7 @@ from django.test import TestCase
 from radar.collectors.base import PositionCandidate
 from radar.models import (
     ApplicationProgress,
-    NoticePosition,
+    RecruitmentPosition,
     OfficialSource,
     Organization,
     PublicationEvent,
@@ -75,7 +75,8 @@ class NewAdmissionAndExistingLifecycleTests(TestCase):
             candidate = replace(candidate, positions=candidate.positions + (second,))
         result = publish_candidates(self.source, [candidate], self.version())[0]
         progress = ApplicationProgress.objects.create(
-            notice_id=result.notice_id, status="interviewed"
+            position=self.source.recruitment_batches.get(pk=result.batch_id).positions.order_by("pk").first(),
+            status="interviewed",
         )
         return candidate, result, progress
 
@@ -90,10 +91,10 @@ class NewAdmissionAndExistingLifecycleTests(TestCase):
         )
         lifecycle = publish_candidates(self.source, [withdrawn], self.version())[0]
         self.assertEqual(lifecycle.action, "updated")
-        notice = self.source.recruitment_notices.get(pk=result.notice_id)
-        self.assertEqual(notice.status, "withdrawn")
-        self.assertFalse(notice.positions.filter(is_current=True).exists())
-        self.assertEqual(notice.latest_publication_event.event_type, "withdrawn")
+        batch = self.source.recruitment_batches.get(pk=result.batch_id)
+        self.assertEqual(batch.status, "withdrawn")
+        self.assertFalse(batch.positions.filter(is_current=True).exists())
+        self.assertEqual(batch.latest_publication_event.event_type, "withdrawn")
         progress.refresh_from_db()
         self.assertEqual(progress.status, "interviewed")
 
@@ -108,26 +109,25 @@ class NewAdmissionAndExistingLifecycleTests(TestCase):
         lifecycle = publish_candidates(
             self.source, [no_current_positions], self.version()
         )[0]
-        self.assertEqual(lifecycle.action, "updated")
-        notice = self.source.recruitment_notices.get(pk=result.notice_id)
-        self.assertFalse(notice.positions.filter(is_current=True).exists())
-        self.assertEqual(notice.latest_publication_event.event_type, "out_of_scope")
-        self.assertFalse(self.source.recruitment_notices.formal().filter(pk=notice.pk).exists())
+        self.assertEqual(lifecycle.action, "rejected")
+        batch = self.source.recruitment_batches.get(pk=result.batch_id)
+        self.assertEqual(batch.positions.filter(is_current=True).count(), 2)
+        self.assertTrue(self.source.recruitment_batches.formal().filter(pk=batch.pk).exists())
         progress.refresh_from_db()
         self.assertEqual(progress.status, "interviewed")
 
-        new_url = "https://official.test/notices/brand-new"
+        new_url = "https://official.test/batches/brand-new"
         new_candidate = replace(
             no_current_positions,
             identity_key="brand-new",
-            official_notice_url=new_url,
+            official_page_url=new_url,
             field_evidence={
-                "notice_url": evidence(new_url, "a.brand-new@href"),
+                "official_page_url": evidence(new_url, "a.brand-new@href"),
             },
         )
         rejected = publish_candidates(self.source, [new_candidate], self.version())[0]
         self.assertEqual(rejected.action, "rejected")
-        self.assertIn("missing_target_location", rejected.reasons)
+        self.assertIn("missing_positions", rejected.reasons)
 
     def test_incomplete_position_coverage_does_not_remove_unseen_old_position(self) -> None:
         candidate, result, progress = self.publish_initial(two_positions=True)
@@ -144,14 +144,14 @@ class NewAdmissionAndExistingLifecycleTests(TestCase):
         partial_result = publish_candidates(self.source, [partial], self.version())[0]
         self.assertEqual(partial_result.action, "rejected")
         self.assertIn("incomplete_position_coverage", partial_result.reasons)
-        notice = self.source.recruitment_notices.get(pk=result.notice_id)
-        self.assertEqual(notice.title, "Initial")
+        batch = self.source.recruitment_batches.get(pk=result.batch_id)
+        self.assertEqual(batch.title, "Initial")
         self.assertTrue(
-            self.source.recruitment_notices.formal().filter(pk=notice.pk).exists()
+            self.source.recruitment_batches.formal().filter(pk=batch.pk).exists()
         )
         self.assertEqual(
             set(
-                NoticePosition.objects.filter(notice=notice, is_current=True).values_list(
+                RecruitmentPosition.objects.filter(batch=batch, is_current=True).values_list(
                     "position_key", flat=True
                 )
             ),
@@ -161,6 +161,6 @@ class NewAdmissionAndExistingLifecycleTests(TestCase):
         self.assertEqual(progress.status, "interviewed")
         self.assertFalse(
             PublicationEvent.objects.filter(
-                notice=notice, event_type="withdrawn"
+                batch=batch, event_type="withdrawn"
             ).exists()
         )

@@ -18,20 +18,22 @@ class PublicationTests(TestCase):
     def candidate(self, *, title="2027 校园招聘", location="北京", url="https://careers.example.test/2027"):
         return complete_candidate(
             self.source,
-            identity_key="notice-2027",
+            identity_key="batch-2027",
             title=title,
             location=location,
-            notice_url=url,
+            official_page_url=url,
         )
 
-    def test_rejects_candidate_without_target_city(self) -> None:
+    def test_accepts_candidate_outside_old_four_city_gate(self) -> None:
         result = publish_candidate(self.source, self.candidate(location="杭州"), self.version)
-        self.assertEqual(result.action, "rejected")
-        self.assertIn("missing_target_location", result.reasons)
+        self.assertEqual(result.action, "created")
 
     def test_updates_notice_without_overwriting_personal_progress(self) -> None:
         created = publish_candidate(self.source, self.candidate(), self.version)
-        progress = ApplicationProgress.objects.create(notice_id=created.notice_id, status="interviewed")
+        progress = ApplicationProgress.objects.create(
+            position=self.source.recruitment_batches.get(pk=created.batch_id).positions.get(),
+            status="interviewed",
+        )
         updated = publish_candidate(self.source, self.candidate(title="2027 校招更新"), self.version)
         self.assertEqual(updated.action, "updated")
         progress.refresh_from_db()

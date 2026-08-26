@@ -6,7 +6,7 @@ from django.test import TestCase
 from radar.collectors.base import (
     FieldEvidenceValue,
     FetchedPage,
-    NoticeCandidate,
+    RecruitmentBatchCandidate,
     PositionCandidate,
 )
 from radar.models import Evidence, FetchRun, OfficialSource, Organization, SourceVersion
@@ -19,11 +19,11 @@ def evidence(raw: str, locator: str, parsed: str | None = None) -> FieldEvidence
     return FieldEvidenceValue(raw, locator, raw if parsed is None else parsed)
 
 
-def complete_candidate(title: str) -> NoticeCandidate:
-    url = "https://official.test/notices/2027"
-    return NoticeCandidate(
+def complete_candidate(title: str) -> RecruitmentBatchCandidate:
+    url = "https://official.test/batches/2027"
+    return RecruitmentBatchCandidate(
         title=title,
-        official_notice_url=url,
+        official_page_url=url,
         recruitment_type="校园招聘",
         target_audience="2027届",
         published_on=date(2026, 8, 1),
@@ -43,14 +43,14 @@ def complete_candidate(title: str) -> NoticeCandidate:
                 },
             ),
         ),
-        identity_key="notice-2027",
+        identity_key="batch-2027",
         field_evidence={
             "title": evidence(title, "h2"),
             "recruitment_type": evidence("校园招聘", ".type", "campus_recruitment"),
             "target_audience": evidence("2027届", ".audience"),
             "published_on": evidence("2026-08-01", ".published"),
             "deadline": evidence("2026-09-01", ".deadline"),
-            "notice_url": evidence(url, "a.notice@href"),
+            "official_page_url": evidence(url, "a.notice@href"),
         },
         positions_complete=True,
     )
@@ -123,7 +123,7 @@ class AtomicPageUpdateTests(TestCase):
                 )
             )
         )
-        self.assertEqual(fourth.notices_updated, 0)
+        self.assertEqual(fourth.batches_updated, 0)
         self.assertEqual(
             FetchRun.objects.filter(source=self.source, status="unchanged").count(),
             1,
@@ -142,7 +142,7 @@ class AtomicPageUpdateTests(TestCase):
                 failed = run_update(trigger="manual")
             self.assertEqual(failed.sources_failed, 1)
             self.assertFalse(SourceVersion.objects.filter(source=self.source).exists())
-            self.assertFalse(self.source.recruitment_notices.exists())
+            self.assertFalse(self.source.recruitment_batches.exists())
             failed_runs = FetchRun.objects.filter(source=self.source, status="failed")
             self.assertEqual(failed_runs.count(), 1)
             self.assertFalse(
@@ -150,6 +150,6 @@ class AtomicPageUpdateTests(TestCase):
             )
 
             retried = run_update(trigger="manual")
-        self.assertEqual(retried.notices_created, 1)
+        self.assertEqual(retried.batches_created, 1)
         self.assertEqual(SourceVersion.objects.filter(source=self.source).count(), 1)
         self.assertTrue(SourceVersion.objects.get(source=self.source).is_applied)

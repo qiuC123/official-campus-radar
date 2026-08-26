@@ -5,6 +5,9 @@ from typing import Protocol
 from radar.models import OfficialSource
 
 
+EXPLICIT_MISSING = "[not-provided]"
+
+
 @dataclass(frozen=True)
 class FieldEvidenceValue:
     raw_value: str
@@ -33,12 +36,13 @@ class PositionCandidate:
     application_locator: str = ""
     position_key: str = ""
     field_evidence: dict[str, FieldEvidenceValue] = field(default_factory=dict)
+    source_updated_on: date | None = None
 
 
 @dataclass(frozen=True)
-class NoticeCandidate:
+class RecruitmentBatchCandidate:
     title: str
-    official_notice_url: str
+    official_page_url: str
     recruitment_type: str
     target_audience: str
     published_on: date | None
@@ -54,4 +58,4 @@ class NoticeCandidate:
 
 class SourceAdapter(Protocol):
     def fetch(self, source: OfficialSource) -> FetchedPage: ...
-    def extract(self, source: OfficialSource, page: FetchedPage) -> list[NoticeCandidate]: ...
+    def extract(self, source: OfficialSource, page: FetchedPage) -> list[RecruitmentBatchCandidate]: ...

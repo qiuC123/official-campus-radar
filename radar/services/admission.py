@@ -147,7 +147,7 @@ def valid_historical_source_ids() -> list[int]:
     return valid_ids
 
 
-def source_permits_notice_url(source: OfficialSource, url: str) -> bool:
+def source_permits_batch_url(source: OfficialSource, url: str) -> bool:
     return urlparse(url).scheme == "https" and _host(url) == _host(source.source_url)
 
 
@@ -185,7 +185,7 @@ def source_permits_url(
 ) -> bool:
     if application:
         return source_permits_application_url(source, url)
-    return source_permits_notice_url(source, url)
+    return source_permits_batch_url(source, url)
 
 
 def _validate_verification_candidate(source: OfficialSource) -> None:

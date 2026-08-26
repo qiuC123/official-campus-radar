@@ -5,7 +5,7 @@ from django.test import TestCase
 
 from radar.collectors.base import FetchedPage
 from radar.collectors.html import HtmlSourceAdapter
-from radar.models import Evidence, RecruitmentNotice, SourceVersion
+from radar.models import Evidence, RecruitmentBatch, SourceVersion
 from radar.services.publication import publish_candidates
 from radar.tests.helpers import (
     complete_candidate,
@@ -29,13 +29,13 @@ class ProjectionEvidenceBindingTests(TestCase):
             is_applied=True,
         )
 
-    def publish(self, *, application_url: str | None = None) -> RecruitmentNotice:
+    def publish(self, *, application_url: str | None = None) -> RecruitmentBatch:
         result = publish_candidates(
             self.source,
             [complete_candidate(self.source, application_url=application_url)],
             self.version(),
         )[0]
-        return RecruitmentNotice.objects.get(pk=result.notice_id)
+        return RecruitmentBatch.objects.get(pk=result.batch_id)
 
     def test_candidate_evidence_must_match_the_candidate_projection(self) -> None:
         candidate = complete_candidate(self.source)
@@ -43,7 +43,7 @@ class ProjectionEvidenceBindingTests(TestCase):
             candidate,
             field_evidence={
                 **candidate.field_evidence,
-                "title": field_evidence("old title", "#notice h2", "old title"),
+                "title": field_evidence("old title", "#batch h2", "old title"),
             },
         )
 
@@ -53,28 +53,28 @@ class ProjectionEvidenceBindingTests(TestCase):
         self.assertIn("incomplete_field_evidence", result.reasons)
 
     def test_formal_query_rejects_a_title_changed_after_evidence_was_written(self) -> None:
-        notice = self.publish()
-        RecruitmentNotice.objects.filter(pk=notice.pk).update(title="tampered title")
+        batch = self.publish()
+        RecruitmentBatch.objects.filter(pk=batch.pk).update(title="tampered title")
 
-        self.assertFalse(RecruitmentNotice.objects.formal().filter(pk=notice.pk).exists())
+        self.assertFalse(RecruitmentBatch.objects.formal().filter(pk=batch.pk).exists())
 
     def test_formal_query_rejects_a_position_or_link_changed_after_publication(self) -> None:
-        notice = self.publish(application_url="https://official.test/apply/1")
-        notice.positions.filter(is_current=True).update(location_text="深圳")
-        notice.application_links.filter(is_current=True).update(
+        batch = self.publish(application_url="https://official.test/apply/1")
+        batch.positions.filter(is_current=True).update(location_text="深圳")
+        batch.application_links.filter(is_current=True).update(
             url="https://official.test/apply/tampered"
         )
 
-        self.assertFalse(RecruitmentNotice.objects.formal().filter(pk=notice.pk).exists())
+        self.assertFalse(RecruitmentBatch.objects.formal().filter(pk=batch.pk).exists())
 
     def test_formal_query_recomputes_the_evidence_value_hash(self) -> None:
-        notice = self.publish()
+        batch = self.publish()
         Evidence.objects.filter(
-            publication_event=notice.latest_publication_event,
+            publication_event=batch.latest_publication_event,
             field_name="title",
         ).update(value_hash="0" * 64)
 
-        self.assertFalse(RecruitmentNotice.objects.formal().filter(pk=notice.pk).exists())
+        self.assertFalse(RecruitmentBatch.objects.formal().filter(pk=batch.pk).exists())
 
 
 class ClassificationAndLocatorTests(TestCase):
@@ -95,7 +95,7 @@ class ClassificationAndLocatorTests(TestCase):
                 **candidate.field_evidence,
                 "title": field_evidence(
                     "2027 校园招聘招商合作新闻",
-                    "#notice h2",
+                    "#batch h2",
                 ),
             },
         )
@@ -117,8 +117,8 @@ class ClassificationAndLocatorTests(TestCase):
         page = FetchedPage(
             self.source.source_url,
             """
-            <article class="job" data-notice-id="notice-1" data-position-id="position-1">
-              <a class="notice" href="/notice-1">notice</a>
+            <article class="job" data-notice-id="batch-1" data-position-id="position-1">
+              <a class="notice" href="/batch-1">batch</a>
               <h2>2027 Campus</h2><span class="type">校园招聘</span>
             </article>
             """,
@@ -141,7 +141,7 @@ class ClassificationAndLocatorTests(TestCase):
             self.source.source_url,
             """
             <article class="job">
-              <a class="notice" href="/notice-1">notice</a>
+              <a class="notice" href="/batch-1">batch</a>
               <h2>2027 Campus</h2><span class="type">校园招聘</span>
               <span class="audience">2027届</span><time class="published">2026-08-01</time>
               <time class="deadline">2026-09-01</time>

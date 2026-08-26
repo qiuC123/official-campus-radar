@@ -117,8 +117,8 @@ class HostTrustChainTests(TestCase):
 
     def test_notice_host_and_external_application_host_are_separate(self) -> None:
         self.assertTrue(
-            admission.source_permits_notice_url(
-                self.source, "https://official.test/notices/2027"
+            admission.source_permits_batch_url(
+                self.source, "https://official.test/batches/2027"
             )
         )
         self.assertFalse(
@@ -138,7 +138,7 @@ class HostTrustChainTests(TestCase):
             )
         )
         self.assertFalse(
-            admission.source_permits_notice_url(
+            admission.source_permits_batch_url(
                 self.source, "https://apply.ats.test/jobs/1"
             )
         )

@@ -310,50 +310,52 @@ class SourceVersion(models.Model):
     applied_at = models.DateTimeField(null=True, blank=True)
 
 
-class RecruitmentNoticeQuerySet(models.QuerySet):
+class RecruitmentBatchQuerySet(models.QuerySet):
     def formal(self):
         from radar.services.admission import valid_admitted_source_ids
-        from radar.services.evidence import notice_projection_has_valid_evidence
+        from radar.services.evidence import batch_projection_has_valid_evidence
 
         queryset = self.filter(
             source_id__in=valid_admitted_source_ids(),
+            organization_id=models.F("source__organization_id"),
             latest_publication_event__event_type__in=("published", "updated"),
             latest_publication_event__evidence_complete=True,
             latest_publication_event__source_version__is_applied=True,
-            latest_publication_event__notice_id=models.F("pk"),
+            latest_publication_event__batch_id=models.F("pk"),
             latest_publication_event__source_version__source_id=models.F(
                 "source_id"
             ),
         )
         valid_ids = [
-            notice.pk
-            for notice in queryset.select_related(
+            batch.pk
+            for batch in queryset.select_related(
                 "latest_publication_event__source_version"
             )
-            if notice_projection_has_valid_evidence(notice)
+            if batch_projection_has_valid_evidence(batch)
         ]
         return queryset.filter(pk__in=valid_ids).distinct()
 
     def historical(self):
         from radar.services.admission import valid_historical_source_ids
-        from radar.services.evidence import notice_has_trusted_history
+        from radar.services.evidence import batch_has_trusted_history
 
         queryset = self.filter(
             source_id__in=valid_historical_source_ids(),
+            organization_id=models.F("source__organization_id"),
             status__in=(
-                RecruitmentNotice.Status.EXPIRED,
-                RecruitmentNotice.Status.WITHDRAWN,
+                RecruitmentBatch.Status.EXPIRED,
+                RecruitmentBatch.Status.WITHDRAWN,
             ),
         )
         valid_ids = [
-            notice.pk
-            for notice in queryset.select_related("source")
-            if notice_has_trusted_history(notice)
+            batch.pk
+            for batch in queryset.select_related("source")
+            if batch_has_trusted_history(batch)
         ]
         return queryset.filter(pk__in=valid_ids).distinct()
 
 
-class RecruitmentNotice(models.Model):
+class RecruitmentBatch(models.Model):
     class Status(models.TextChoices):
         ACTIVE = "active", "招聘中"
         EXPIRED = "expired", "已截止"
@@ -365,11 +367,11 @@ class RecruitmentNotice(models.Model):
         OTHER = "other", "其他"
         UNKNOWN = "unknown", "未知"
 
-    organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name="recruitment_notices")
-    source = models.ForeignKey(OfficialSource, on_delete=models.PROTECT, related_name="recruitment_notices")
+    organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name="recruitment_batches")
+    source = models.ForeignKey(OfficialSource, on_delete=models.PROTECT, related_name="recruitment_batches")
     identity_key = models.CharField(max_length=255)
     title = models.CharField(max_length=300)
-    official_notice_url = models.URLField()
+    official_page_url = models.URLField()
     recruitment_type = models.CharField(
         max_length=32,
         choices=RecruitmentType.choices,
@@ -387,20 +389,20 @@ class RecruitmentNotice(models.Model):
         null=True,
         blank=True,
         on_delete=models.PROTECT,
-        related_name="current_for_notices",
+        related_name="current_for_batches",
     )
 
-    objects = RecruitmentNoticeQuerySet.as_manager()
+    objects = RecruitmentBatchQuerySet.as_manager()
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
                 fields=["source", "identity_key"],
-                name="unique_notice_identity_per_source",
+                name="unique_batch_identity_per_source",
             ),
             models.UniqueConstraint(
-                fields=["source", "official_notice_url"],
-                name="unique_notice_url_per_source",
+                fields=["source", "official_page_url"],
+                name="unique_batch_url_per_source",
             ),
         ]
 
@@ -422,8 +424,8 @@ class PublicationEvent(models.Model):
         on_delete=models.PROTECT,
         related_name="publication_events",
     )
-    notice = models.ForeignKey(
-        RecruitmentNotice,
+    batch = models.ForeignKey(
+        RecruitmentBatch,
         null=True,
         blank=True,
         on_delete=models.PROTECT,
@@ -445,32 +447,35 @@ class PublicationEvent(models.Model):
         raise ValidationError("PublicationEvent is append-only")
 
 
-class NoticePosition(models.Model):
-    notice = models.ForeignKey(RecruitmentNotice, on_delete=models.PROTECT, related_name="positions")
+class RecruitmentPosition(models.Model):
+    batch = models.ForeignKey(RecruitmentBatch, on_delete=models.PROTECT, related_name="positions")
     position_key = models.CharField(max_length=255)
     title = models.CharField(max_length=300)
     location_text = models.CharField(max_length=300)
     normalized_locations = models.JSONField(default=list, blank=True)
     raw_text = models.TextField(blank=True)
+    source_updated_on = models.DateField(null=True, blank=True)
+    first_seen_at = models.DateTimeField(auto_now_add=True)
+    content_changed_at = models.DateTimeField(default=timezone.now)
     is_current = models.BooleanField(default=True)
     removed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["notice", "position_key"],
-                name="unique_position_identity_per_notice",
+                fields=["batch", "position_key"],
+                name="unique_position_identity_per_batch",
             )
         ]
 
 
 class ApplicationLink(models.Model):
     class LinkType(models.TextChoices):
-        NOTICE = "notice", "公告页"
+        BATCH_PAGE = "batch_page", "招聘批次官方页面"
         APPLICATION = "application", "投递入口"
 
-    notice = models.ForeignKey(RecruitmentNotice, on_delete=models.PROTECT, related_name="application_links")
-    position = models.ForeignKey(NoticePosition, null=True, blank=True, on_delete=models.PROTECT, related_name="application_links")
+    batch = models.ForeignKey(RecruitmentBatch, on_delete=models.PROTECT, related_name="application_links")
+    position = models.ForeignKey(RecruitmentPosition, null=True, blank=True, on_delete=models.PROTECT, related_name="application_links")
     url = models.URLField()
     link_type = models.CharField(max_length=16, choices=LinkType.choices)
     verified_at = models.DateTimeField(default=timezone.now)
@@ -479,12 +484,12 @@ class ApplicationLink(models.Model):
 
 
 class Evidence(models.Model):
-    notice = models.ForeignKey(RecruitmentNotice, on_delete=models.PROTECT, related_name="evidence")
+    batch = models.ForeignKey(RecruitmentBatch, on_delete=models.PROTECT, related_name="evidence")
     source_version = models.ForeignKey(SourceVersion, on_delete=models.PROTECT, related_name="evidence")
     publication_event = models.ForeignKey(
         PublicationEvent, on_delete=models.PROTECT, related_name="evidence"
     )
-    position = models.ForeignKey(NoticePosition, null=True, blank=True, on_delete=models.PROTECT, related_name="evidence")
+    position = models.ForeignKey(RecruitmentPosition, null=True, blank=True, on_delete=models.PROTECT, related_name="evidence")
     application_link = models.ForeignKey(ApplicationLink, null=True, blank=True, on_delete=models.PROTECT, related_name="evidence")
     field_name = models.CharField(max_length=64)
     excerpt = models.TextField()
@@ -509,10 +514,10 @@ class ApplicationProgress(models.Model):
         APPLIED = "applied", "已投递"
         WRITTEN_TEST = "written_test", "已笔试"
         INTERVIEWED = "interviewed", "已面试"
-        REJECTED = "rejected", "已挂"
+        REJECTED = "rejected", "未通过"
         PASSED_INTERVIEW = "passed_interview", "面试通过"
         NOT_APPLYING = "not_applying", "暂不投递"
 
-    notice = models.OneToOneField(RecruitmentNotice, on_delete=models.PROTECT, related_name="application_progress")
+    position = models.OneToOneField(RecruitmentPosition, on_delete=models.PROTECT, related_name="application_progress")
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.NOT_APPLIED)
     updated_at = models.DateTimeField(auto_now=True)

@@ -1,9 +1,9 @@
 from django.contrib import admin
 
 from .models import (ApprovedApplicationHost, ApplicationLink,
-                     ApplicationProgress, Evidence, FetchRun, NoticePosition,
+                     ApplicationProgress, Evidence, FetchRun, RecruitmentPosition,
                      OfficialSource, Organization, OrganizationAlias,
-                     PublicationEvent, RecruitmentNotice,
+                     PublicationEvent, RecruitmentBatch,
                      SourceAdmissionEvent, SourceVersion, UpdateRun)
 
 
@@ -26,8 +26,8 @@ class SourceAuditAdmin(AuditReadOnlyAdmin):
 
 admin.site.register(Organization, AuditReadOnlyAdmin)
 admin.site.register(OfficialSource, SourceAuditAdmin)
-admin.site.register(RecruitmentNotice, AuditReadOnlyAdmin)
-admin.site.register(NoticePosition, AuditReadOnlyAdmin)
+admin.site.register(RecruitmentBatch, AuditReadOnlyAdmin)
+admin.site.register(RecruitmentPosition, AuditReadOnlyAdmin)
 admin.site.register(ApplicationLink, AuditReadOnlyAdmin)
 admin.site.register(ApplicationProgress)
 admin.site.register(UpdateRun, AuditReadOnlyAdmin)

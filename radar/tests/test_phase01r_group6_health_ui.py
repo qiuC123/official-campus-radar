@@ -3,7 +3,7 @@ from zoneinfo import ZoneInfo
 
 from django.test import TestCase
 
-from radar.models import FetchRun, NoticePosition, OfficialSource, Organization, UpdateRun
+from radar.models import FetchRun, RecruitmentPosition, OfficialSource, Organization, UpdateRun
 from radar.services.admission import transition_source
 from radar.services.publication import publish_candidates
 from radar.services.update_runner import sanitize_error
@@ -53,9 +53,9 @@ class CurrentPositionAndHealthViewTests(TestCase):
         result = publish_candidates(
             self.source, [complete_candidate("Searchable")], version
         )[0]
-        self.notice = self.source.recruitment_notices.get(pk=result.notice_id)
-        NoticePosition.objects.create(
-            notice=self.notice,
+        self.batch = self.source.recruitment_batches.get(pk=result.batch_id)
+        RecruitmentPosition.objects.create(
+            batch=self.batch,
             position_key="removed-position",
             title="Legacy Secret Role",
             location_text="北京",
@@ -65,11 +65,11 @@ class CurrentPositionAndHealthViewTests(TestCase):
 
     def test_position_keyword_matches_only_current_positions(self) -> None:
         self.assertContains(
-            self.client.get("/?position=Engineer"), self.notice.official_notice_url
+            self.client.get("/?position=Engineer"), self.batch.official_page_url
         )
         self.assertNotContains(
             self.client.get("/?position=Legacy+Secret"),
-            self.notice.official_notice_url,
+            self.batch.official_page_url,
         )
 
     def test_partial_failure_displays_source_degradation_summary(self) -> None:

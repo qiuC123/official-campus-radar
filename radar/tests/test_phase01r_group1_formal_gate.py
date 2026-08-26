@@ -10,11 +10,11 @@ from radar.models import (
     ApplicationLink,
     Evidence,
     FetchRun,
-    NoticePosition,
+    RecruitmentPosition,
     OfficialSource,
     Organization,
     OrganizationAlias,
-    RecruitmentNotice,
+    RecruitmentBatch,
     SourceAdmissionEvent,
     SourceVersion,
     UpdateRun,
@@ -57,21 +57,21 @@ class FormalListingGateTests(TestCase):
 
     def test_notice_source_is_database_required(self) -> None:
         with self.assertRaises(IntegrityError), transaction.atomic():
-            RecruitmentNotice.objects.create(
+            RecruitmentBatch.objects.create(
                 organization=self.organization,
                 title="Untraceable",
-                official_notice_url="https://official.test/untraceable",
+                official_page_url="https://official.test/untraceable",
             )
 
     def test_dashboard_requires_committed_publication_event_and_complete_evidence(self) -> None:
-        notice = RecruitmentNotice.objects.create(
+        batch = RecruitmentBatch.objects.create(
             organization=self.organization,
             source=self.source,
             title="2027 Campus",
-            official_notice_url="https://official.test/2027",
-            identity_key="notice-2027",
+            official_page_url="https://official.test/2027",
+            identity_key="batch-2027",
         )
-        self.assertNotContains(self.client.get("/"), notice.official_notice_url)
+        self.assertNotContains(self.client.get("/"), batch.official_page_url)
 
         try:
             publication_event_model = apps.get_model("radar", "PublicationEvent")
@@ -86,45 +86,45 @@ class FormalListingGateTests(TestCase):
         incomplete_event = publication_event_model.objects.create(
             source_version=version,
             event_type="published",
-            identity_key=notice.identity_key,
-            notice=notice,
+            identity_key=batch.identity_key,
+            batch=batch,
             evidence_complete=False,
         )
-        notice.latest_publication_event = incomplete_event
-        notice.save(update_fields=["latest_publication_event"])
-        self.assertNotContains(self.client.get("/"), notice.official_notice_url)
+        batch.latest_publication_event = incomplete_event
+        batch.save(update_fields=["latest_publication_event"])
+        self.assertNotContains(self.client.get("/"), batch.official_page_url)
 
         complete_event = publication_event_model.objects.create(
             source_version=version,
             event_type="updated",
-            identity_key=notice.identity_key,
-            notice=notice,
+            identity_key=batch.identity_key,
+            batch=batch,
             evidence_complete=True,
         )
-        notice.latest_publication_event = complete_event
-        notice.save(update_fields=["latest_publication_event"])
-        NoticePosition.objects.create(
-            notice=notice,
+        batch.latest_publication_event = complete_event
+        batch.save(update_fields=["latest_publication_event"])
+        RecruitmentPosition.objects.create(
+            batch=batch,
             position_key="position-1",
             title="Engineer",
             location_text="北京",
             normalized_locations=["北京"],
         )
-        self.assertNotContains(self.client.get("/"), notice.official_notice_url)
-        position = notice.positions.get()
-        notice_values = {
-            "title": notice.title,
-            "recruitment_type": notice.recruitment_type,
-            "target_audience": notice.target_audience,
-            "published_on": str(notice.published_on or ""),
-            "deadline": str(notice.deadline or ""),
-            "notice_url": notice.official_notice_url,
+        self.assertNotContains(self.client.get("/"), batch.official_page_url)
+        position = batch.positions.get()
+        batch_values = {
+            "title": batch.title,
+            "recruitment_type": batch.recruitment_type,
+            "target_audience": batch.target_audience,
+            "published_on": str(batch.published_on or ""),
+            "deadline": str(batch.deadline or ""),
+            "official_page_url": batch.official_page_url,
         }
-        notice.target_audience = "2027届"
-        notice.published_on = "2026-08-01"
-        notice.deadline = "2026-09-01"
-        notice.recruitment_type = RecruitmentNotice.RecruitmentType.CAMPUS_RECRUITMENT
-        notice.save(
+        batch.target_audience = "2027届"
+        batch.published_on = "2026-08-01"
+        batch.deadline = "2026-09-01"
+        batch.recruitment_type = RecruitmentBatch.RecruitmentType.CAMPUS_RECRUITMENT
+        batch.save(
             update_fields=[
                 "target_audience",
                 "published_on",
@@ -132,15 +132,15 @@ class FormalListingGateTests(TestCase):
                 "recruitment_type",
             ]
         )
-        notice_values.update(
+        batch_values.update(
             recruitment_type="campus_recruitment",
             target_audience="2027届",
             published_on="2026-08-01",
             deadline="2026-09-01",
         )
-        for field_name, value in notice_values.items():
+        for field_name, value in batch_values.items():
             Evidence.objects.create(
-                notice=notice,
+                batch=batch,
                 source_version=version,
                 publication_event=complete_event,
                 field_name=field_name,
@@ -155,7 +155,7 @@ class FormalListingGateTests(TestCase):
             ("location", position.location_text),
         ):
             Evidence.objects.create(
-                notice=notice,
+                batch=batch,
                 source_version=version,
                 publication_event=complete_event,
                 position=position,
@@ -166,11 +166,11 @@ class FormalListingGateTests(TestCase):
                 parsed_value=value,
                 value_hash=hashlib.sha256(value.encode("utf-8")).hexdigest(),
             )
-        self.assertContains(self.client.get("/"), notice.official_notice_url)
+        self.assertContains(self.client.get("/"), batch.official_page_url)
 
         self.source.admission_state = "revoked"
         self.source.save(update_fields=["admission_state"])
-        self.assertNotContains(self.client.get("/"), notice.official_notice_url)
+        self.assertNotContains(self.client.get("/"), batch.official_page_url)
 
 
 class AuditAdminBoundaryTests(TestCase):
@@ -186,8 +186,8 @@ class AuditAdminBoundaryTests(TestCase):
             Organization,
             OrganizationAlias,
             OfficialSource,
-            RecruitmentNotice,
-            NoticePosition,
+            RecruitmentBatch,
+            RecruitmentPosition,
             ApplicationLink,
             SourceVersion,
             Evidence,

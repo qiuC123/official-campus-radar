@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>校招岗位工作台 · Phase 02 原型</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">OFFICIAL CAMPUS RADAR · PROTOTYPE</p>
+        <h1>校招岗位工作台</h1>
+        <p class="subtitle">优先找到值得投的岗位，再跟进每一个岗位的投递状态。</p>
+      </div>
+      <nav aria-label="页面视图">
+        <button class="nav-button active" data-view="active">招聘中</button>
+        <button class="nav-button" data-view="history">历史</button>
+        <button class="update-button" disabled title="原型不会执行真实更新">立即更新</button>
+      </nav>
+    </header>
+
+    <section class="prototype-note" role="note">
+      <strong>模拟数据，不是线上岗位</strong>
+      <span>这个页面只验证布局和交互，不连接 Django、数据库或企业网站。</span>
+    </section>
+
+    <section class="health-panel" data-health="healthy">
+      <div>
+        <span class="health-dot"></span>
+        <strong class="health-title">运行正常</strong>
+        <span class="health-copy">最近成功更新：今天 08:20</span>
+      </div>
+      <div class="health-switch" aria-label="模拟运行状态">
+        <button data-health-choice="healthy" class="selected">正常</button>
+        <button data-health-choice="missing">漏跑</button>
+        <button data-health-choice="failure">来源失败</button>
+      </div>
+    </section>
+
+    <section class="metrics" aria-label="岗位概览">
+      <article><span>招聘中岗位</span><strong id="metric-active">0</strong><small>当前筛选</small></article>
+      <article><span>近 3 天变化</span><strong id="metric-recent">0</strong><small>真实上新或修改</small></article>
+      <article><span>7 天内截止</span><strong id="metric-deadline">0</strong><small>需要尽快处理</small></article>
+      <article><span>求职进行中</span><strong id="metric-progress">0</strong><small>已投 / 笔试 / 面试</small></article>
+    </section>
+
+    <section class="panel filters">
+      <div class="panel-heading">
+        <div><span class="section-index">01</span><h2>筛选岗位</h2></div>
+        <button id="reset-filters" class="text-button">重置</button>
+      </div>
+      <form id="filter-form">
+        <label>公司关键词<input name="company" placeholder="例如：腾讯"></label>
+        <label>公司类型<select name="companyType"><option value="">全部类型</option><option>互联网/科技</option><option>央企/国企</option><option>其他</option></select></label>
+        <label>行业<select name="industry"><option value="">全部行业</option><option>互联网</option><option>科技</option><option>新能源</option><option>金融</option></select></label>
+        <label>招聘类型<select name="recruitmentType"><option value="">全部类型</option><option>校园招聘</option><option>实习</option></select></label>
+        <label>招聘对象<select name="audience"><option value="">全部对象</option><option>2027届</option><option>2026/2027届</option><option>在校生</option></select></label>
+        <label>岗位关键词<input name="position" placeholder="算法、产品、财务"></label>
+        <label>截止日期<input type="date" name="deadline"></label>
+        <fieldset class="wide"><legend>目标城市（可多选）</legend><div id="city-options" class="choice-row"></div></fieldset>
+        <fieldset class="wide"><legend>投递进度（可多选）</legend><div id="progress-options" class="choice-row"></div></fieldset>
+        <div class="form-actions wide"><button class="primary-button" type="submit">查询</button><span id="result-hint"></span></div>
+      </form>
+    </section>
+
+    <section class="panel column-panel">
+      <div class="panel-heading"><div><span class="section-index">02</span><h2>显示信息</h2></div><small>关键岗位信息始终显示</small></div>
+      <div id="column-options" class="choice-row"></div>
+    </section>
+
+    <section class="results-heading">
+      <div><span class="section-index">03</span><h2 id="results-title">招聘中的批次</h2></div>
+      <span id="batch-count"></span>
+    </section>
+    <section id="batch-list" class="batch-list" aria-live="polite"></section>
+  </main>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

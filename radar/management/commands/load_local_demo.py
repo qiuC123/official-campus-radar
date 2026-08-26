@@ -9,19 +9,19 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 
-from radar.collectors.base import FieldEvidenceValue, NoticeCandidate, PositionCandidate
+from radar.collectors.base import FieldEvidenceValue, RecruitmentBatchCandidate, PositionCandidate
 from radar.models import (
     ApprovedApplicationHost,
     ApplicationLink,
     ApplicationProgress,
     Evidence,
     FetchRun,
-    NoticePosition,
+    RecruitmentPosition,
     OfficialSource,
     Organization,
     OrganizationAlias,
     PublicationEvent,
-    RecruitmentNotice,
+    RecruitmentBatch,
     SourceAdmissionEvent,
     SourceVersion,
     UpdateRun,
@@ -45,19 +45,19 @@ class Command(BaseCommand):
             self.stdout.write("local_demo_removed=true")
             return
         self._load()
-        self.stdout.write("local_demo_loaded=true notices=3 fixture=data/local_demo.json")
+        self.stdout.write("local_demo_loaded=true batches=3 fixture=data/local_demo.json")
 
     @staticmethod
     def _evidence(raw: str, locator: str, parsed: str | None = None):
         return FieldEvidenceValue(raw, locator, raw if parsed is None else parsed)
 
-    def _candidate(self, row: dict) -> NoticeCandidate:
+    def _candidate(self, row: dict) -> RecruitmentBatchCandidate:
         identity = row["identity_key"]
         city = row["city"]
-        notice_url = f"https://demo.invalid/notices/{identity}"
-        return NoticeCandidate(
+        official_page_url = f"https://demo.invalid/batches/{identity}"
+        return RecruitmentBatchCandidate(
             title=row["title"],
-            official_notice_url=notice_url,
+            official_page_url=official_page_url,
             recruitment_type="校园招聘",
             target_audience="本地演示对象",
             published_on=date(2026, 8, 1),
@@ -84,7 +84,7 @@ class Command(BaseCommand):
                 "target_audience": self._evidence("本地演示对象", f"#{identity} .audience"),
                 "published_on": self._evidence("2026-08-01", f"#{identity} .published"),
                 "deadline": self._evidence("2026-12-31", f"#{identity} .deadline"),
-                "notice_url": self._evidence(notice_url, f"#{identity} a.notice@href"),
+                "official_page_url": self._evidence(official_page_url, f"#{identity} a.notice@href"),
             },
             positions_complete=True,
         )
@@ -123,7 +123,7 @@ class Command(BaseCommand):
             evidence="adapter local_demo_disabled cannot access a live source",
         )
         source.refresh_from_db()
-        for row in fixture["notices"]:
+        for row in fixture["batches"]:
             candidate = self._candidate(row)
             version = SourceVersion.objects.create(
                 source=source,
@@ -133,10 +133,10 @@ class Command(BaseCommand):
                 applied_at=timezone.now(),
             )
             result = publish_candidates(source, [candidate], version)[0]
-            notice = RecruitmentNotice.objects.get(pk=result.notice_id)
+            batch = RecruitmentBatch.objects.get(pk=result.batch_id)
             if row["status"] == "expired":
-                notice.status = RecruitmentNotice.Status.EXPIRED
-                notice.save(update_fields=["status"])
+                batch.status = RecruitmentBatch.Status.EXPIRED
+                batch.save(update_fields=["status"])
             elif row["status"] == "withdrawn":
                 withdrawal_version = SourceVersion.objects.create(
                     source=source,
@@ -152,7 +152,7 @@ class Command(BaseCommand):
                 )
             if row.get("progress"):
                 ApplicationProgress.objects.create(
-                    notice=notice, status=row["progress"]
+                    position=batch.positions.get(), status=row["progress"]
                 )
         UpdateRun.objects.create(
             trigger="scheduled",
@@ -171,15 +171,15 @@ class Command(BaseCommand):
         if not organizations:
             UpdateRun.objects.filter(local_demo_key=LOCAL_DEMO_KEY).delete()
             return
-        notices = RecruitmentNotice.objects.filter(organization__in=organizations)
+        batches = RecruitmentBatch.objects.filter(organization__in=organizations)
         versions = SourceVersion.objects.filter(source__in=sources)
-        notices.update(latest_publication_event=None)
-        Evidence.objects.filter(notice__in=notices).delete()
-        ApplicationProgress.objects.filter(notice__in=notices).delete()
-        ApplicationLink.objects.filter(notice__in=notices).delete()
-        NoticePosition.objects.filter(notice__in=notices).delete()
+        batches.update(latest_publication_event=None)
+        Evidence.objects.filter(batch__in=batches).delete()
+        ApplicationProgress.objects.filter(position__batch__in=batches).delete()
+        ApplicationLink.objects.filter(batch__in=batches).delete()
+        RecruitmentPosition.objects.filter(batch__in=batches).delete()
         PublicationEvent.objects.filter(source_version__in=versions).delete()
-        notices.delete()
+        batches.delete()
         versions.delete()
         FetchRun.objects.filter(source__in=sources).delete()
         UpdateRun.objects.filter(local_demo_key=LOCAL_DEMO_KEY).delete()

@@ -1,7 +1,7 @@
 from django.db import IntegrityError
 from django.test import TestCase
 
-from radar.models import ApplicationProgress, OfficialSource, Organization, RecruitmentNotice, UpdateRun
+from radar.models import ApplicationProgress, OfficialSource, Organization, RecruitmentBatch, RecruitmentPosition, UpdateRun
 
 
 class RecruitmentModelTests(TestCase):
@@ -12,31 +12,34 @@ class RecruitmentModelTests(TestCase):
         self.source = OfficialSource.objects.create(organization=self.organization, source_type="website", source_url="https://careers.example.com", admission_evidence="reviewed")
 
     def test_same_organization_and_official_url_cannot_create_two_notices(self) -> None:
-        RecruitmentNotice.objects.create(
+        RecruitmentBatch.objects.create(
             organization=self.organization,
             source=self.source,
-            identity_key="notice-2027",
+            identity_key="batch-2027",
             title="2027 校园招聘",
-            official_notice_url="https://careers.example.com/2027",
+            official_page_url="https://careers.example.com/2027",
         )
         with self.assertRaises(IntegrityError):
-            RecruitmentNotice.objects.create(
+            RecruitmentBatch.objects.create(
                 organization=self.organization,
                 source=self.source,
-                identity_key="notice-2027",
+                identity_key="batch-2027",
                 title="重复标题不影响 URL 去重",
-                official_notice_url="https://careers.example.com/2027",
+                official_page_url="https://careers.example.com/2027",
             )
 
     def test_new_notice_progress_defaults_to_not_applied(self) -> None:
-        notice = RecruitmentNotice.objects.create(
+        batch = RecruitmentBatch.objects.create(
             organization=self.organization,
             source=self.source,
-            identity_key="notice-another",
+            identity_key="batch-another",
             title="2027 校园招聘",
-            official_notice_url="https://careers.example.com/another",
+            official_page_url="https://careers.example.com/another",
         )
-        progress = ApplicationProgress.objects.create(notice=notice)
+        position = RecruitmentPosition.objects.create(
+            batch=batch, position_key="one", title="工程师", location_text="杭州"
+        )
+        progress = ApplicationProgress.objects.create(position=position)
         self.assertEqual(progress.status, ApplicationProgress.Status.NOT_APPLIED)
 
     def test_partial_failure_is_a_successful_update_run(self) -> None:

@@ -6,13 +6,15 @@ from urllib.parse import urljoin
 import requests
 from bs4 import BeautifulSoup
 from radar.collectors.base import (
+    EXPLICIT_MISSING,
     FieldEvidenceValue,
     FetchedPage,
-    NoticeCandidate,
+    RecruitmentBatchCandidate,
     PositionCandidate,
 )
 from radar.models import OfficialSource
 from radar.services.normalization import canonicalize_url
+from radar.services.recruitment import classify_recruitment
 
 
 class HtmlSourceAdapter:
@@ -41,7 +43,7 @@ class HtmlSourceAdapter:
             str(config.get(key, "")).strip()
             for key in ("notice_id_attribute", "notice_id_selector")
         ):
-            raise ValueError("HTML parser contract requires a stable notice identity")
+            raise ValueError("HTML parser contract requires a stable batch identity")
         if not any(
             str(config.get(key, "")).strip()
             for key in ("position_id_attribute", "position_id_selector")
@@ -66,7 +68,7 @@ class HtmlSourceAdapter:
 
     def extract(
         self, source: OfficialSource, page: FetchedPage
-    ) -> list[NoticeCandidate]:
+    ) -> list[RecruitmentBatchCandidate]:
         if page.not_modified:
             return []
         config = source.parser_config
@@ -80,11 +82,11 @@ class HtmlSourceAdapter:
             not config.get(key) for key in required
         ):
             raise ValueError(
-                "selector configuration requires notice, URL, title, "
+                "selector configuration requires batch, URL, title, "
                 "and recruitment type selectors"
             )
         soup = BeautifulSoup(page.body, "html.parser")
-        candidates: list[NoticeCandidate] = []
+        candidates: list[RecruitmentBatchCandidate] = []
         for index, node in enumerate(soup.select(config["notice_selector"]), start=1):
             title_node = node.select_one(config["title_selector"])
             notice_link = node.select_one(config["notice_url_selector"])
@@ -122,7 +124,7 @@ class HtmlSourceAdapter:
                 published_on = None
             recruitment_type_text = recruitment_type_node.get_text(" ", strip=True)
             notice_href = str(notice_link.get("href"))
-            notice_url = canonicalize_url(urljoin(page.canonical_url, notice_href))
+            official_page_url = canonicalize_url(urljoin(page.canonical_url, notice_href))
             identity_attribute = config.get("notice_id_attribute")
             identity_selector = config.get("notice_id_selector")
             identity_key = (
@@ -152,7 +154,7 @@ class HtmlSourceAdapter:
                 field_evidence["recruitment_type"] = FieldEvidenceValue(
                     recruitment_type_text,
                     f"{locator} {config['recruitment_type_selector']}",
-                    recruitment_type_text,
+                    classify_recruitment(recruitment_type_text),
                 )
                 optional_notice_fields = (
                     ("target_audience", "target_audience_selector", target_audience, target_audience),
@@ -160,16 +162,21 @@ class HtmlSourceAdapter:
                     ("deadline", "deadline_selector", deadline_text, str(deadline or "")),
                 )
                 for field_name, selector_key, raw_value, parsed_value in optional_notice_fields:
-                    if selected(node, selector_key) is not None:
+                    selected_node = selected(node, selector_key)
+                    if selected_node is not None:
                         field_evidence[field_name] = FieldEvidenceValue(
-                            raw_value,
+                            raw_value or (
+                                EXPLICIT_MISSING
+                                if field_name in {"published_on", "deadline"}
+                                else raw_value
+                            ),
                             f"{locator} {config[selector_key]}",
                             parsed_value,
                         )
-                field_evidence["notice_url"] = FieldEvidenceValue(
+                field_evidence["official_page_url"] = FieldEvidenceValue(
                     notice_href,
                     f"{locator} {config['notice_url_selector']}@href",
-                    notice_url,
+                    official_page_url,
                 )
 
             position_selector = str(config.get("position_selector", "")).strip()
@@ -237,6 +244,13 @@ class HtmlSourceAdapter:
                         f"{position_locator} {config['location_selector']}",
                         location,
                     )
+                raw_text = position_node.get_text(" ", strip=True)
+                if identity_key and position_key and raw_text:
+                    position_evidence["raw_text"] = FieldEvidenceValue(
+                        raw_text,
+                        position_locator,
+                        raw_text,
+                    )
                 if identity_key and position_key and application_href:
                     position_evidence["application_link"] = FieldEvidenceValue(
                         application_href,
@@ -254,7 +268,7 @@ class HtmlSourceAdapter:
                     PositionCandidate(
                         position_title,
                         location,
-                        position_node.get_text(" ", strip=True),
+                        raw_text,
                         app_url,
                         position_locator,
                         application_locator,
@@ -264,9 +278,9 @@ class HtmlSourceAdapter:
                 )
 
             candidates.append(
-                NoticeCandidate(
+                RecruitmentBatchCandidate(
                     title=title_node.get_text(" ", strip=True),
-                    official_notice_url=notice_url,
+                    official_page_url=official_page_url,
                     recruitment_type=recruitment_type_text,
                     target_audience=target_audience,
                     published_on=published_on,
@@ -279,7 +293,7 @@ class HtmlSourceAdapter:
                         "recruitment_type": (
                             f"{locator} {config['recruitment_type_selector']}"
                         ),
-                        "notice_url": (
+                        "official_page_url": (
                             f"{locator} {config['notice_url_selector']}"
                         ),
                         "deadline": (

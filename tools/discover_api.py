@@ -667,6 +667,13 @@ def build_config_draft(
         "method": normalized_method,
         "list_path": list_path,
         "field_map": infer_field_map(rows),
+        "batch": {
+            "identity_key": "__REVIEW_REQUIRED__",
+            "title": "__REVIEW_REQUIRED__",
+            "official_page_url": "__REVIEW_REQUIRED__",
+            "recruitment_type": "__REVIEW_REQUIRED__",
+            "target_audience": "__REVIEW_REQUIRED__",
+        },
     }
     draft["params" if normalized_method == "GET" else "body"] = request_values
     if page_param is not None and size_param is not None:
@@ -1141,7 +1148,7 @@ def render_markdown_report(
                     "",
                     (
                         "The draft contains observed/inferred API fields only. Human "
-                        "review must add notice metadata and confirm campus scope."
+                        "review must add batch metadata and confirm campus scope."
                     ),
                     "",
                     "```json",

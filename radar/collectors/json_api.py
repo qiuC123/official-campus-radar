@@ -12,9 +12,10 @@ import requests
 from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
 
 from radar.collectors.base import (
+    EXPLICIT_MISSING,
     FieldEvidenceValue,
     FetchedPage,
-    NoticeCandidate,
+    RecruitmentBatchCandidate,
     PositionCandidate,
 )
 from radar.models import OfficialSource
@@ -167,43 +168,43 @@ class JsonApiSourceAdapter:
                     f"JSON API valid_values.{name} must be a non-empty list"
                 )
 
-        notice = config.get("notice")
-        if not isinstance(notice, dict):
-            raise ValueError("JSON API notice must be an object")
+        batch = config.get("batch")
+        if not isinstance(batch, dict):
+            raise ValueError("JSON API batch must be an object")
         for name in (
             "identity_key",
             "title",
-            "official_notice_url",
+            "official_page_url",
             "recruitment_type",
             "target_audience",
         ):
-            if not str(notice.get(name, "")).strip():
-                raise ValueError(f"JSON API notice.{name} is required")
+            if not str(batch.get(name, "")).strip():
+                raise ValueError(f"JSON API batch.{name} is required")
 
-        notice_url = urlparse(str(notice["official_notice_url"]).strip())
+        official_page_url = urlparse(str(batch["official_page_url"]).strip())
         source_url = urlparse(source.source_url)
         if (
-            notice_url.scheme != "https"
-            or not notice_url.hostname
-            or notice_url.hostname.lower()
+            official_page_url.scheme != "https"
+            or not official_page_url.hostname
+            or official_page_url.hostname.lower()
             != (source_url.hostname or "").lower()
         ):
             raise ValueError(
-                "JSON API notice.official_notice_url must use HTTPS on the source host"
+                "JSON API batch.official_page_url must use HTTPS on the source host"
             )
 
         for name in ("published_on", "deadline"):
-            fixed_value = str(notice.get(name, "")).strip()
+            fixed_value = str(batch.get(name, "")).strip()
             if not (fixed_value or str(field_map.get(name, "")).strip()):
                 raise ValueError(
-                    f"JSON API {name} requires a fixed notice value or field path"
+                    f"JSON API {name} requires a fixed batch value or field path"
                 )
             if fixed_value:
                 try:
                     date.fromisoformat(fixed_value)
                 except ValueError as error:
                     raise ValueError(
-                        f"JSON API notice.{name} must be an ISO date"
+                        f"JSON API batch.{name} must be an ISO date"
                     ) from error
 
         pagination = config.get("pagination")
@@ -380,7 +381,7 @@ class JsonApiSourceAdapter:
         aggregate_document["_radar"] = {
             "positions_complete": positions_complete,
             "list_path": list_path,
-            "notice": copy.deepcopy(config["notice"]),
+            "batch": copy.deepcopy(config["batch"]),
             "field_map": copy.deepcopy(config["field_map"]),
             "valid_values": copy.deepcopy(config.get("valid_values", {})),
             "html_fields": copy.deepcopy(config.get("html_fields", [])),
@@ -446,7 +447,7 @@ class JsonApiSourceAdapter:
 
     def extract(
         self, source: OfficialSource, page: FetchedPage
-    ) -> list[NoticeCandidate]:
+    ) -> list[RecruitmentBatchCandidate]:
         if page.not_modified:
             return []
         document = json.loads(page.body)
@@ -456,12 +457,12 @@ class JsonApiSourceAdapter:
         if not isinstance(metadata, dict):
             raise ValueError("JSON API canonical document is missing adapter metadata")
         list_path = str(metadata.get("list_path", "")).strip()
-        notice_config = metadata.get("notice")
+        batch_config = metadata.get("batch")
         field_map = metadata.get("field_map")
         valid_values = metadata.get("valid_values", {})
         raw_html_fields = metadata.get("html_fields", [])
-        if not list_path or not isinstance(notice_config, dict):
-            raise ValueError("JSON API canonical document has invalid notice metadata")
+        if not list_path or not isinstance(batch_config, dict):
+            raise ValueError("JSON API canonical document has invalid batch metadata")
         if (
             not isinstance(field_map, dict)
             or not isinstance(valid_values, dict)
@@ -511,6 +512,7 @@ class JsonApiSourceAdapter:
             application_path = str(
                 field_map.get("application_url", "")
             ).strip()
+            updated_path = str(field_map.get("updated_at", "")).strip()
             raw_title = _path_value(row, title_path, "")
             raw_location = (
                 _path_value(row, location_path, "") if location_path else ""
@@ -523,6 +525,8 @@ class JsonApiSourceAdapter:
                 if application_path
                 else ""
             )
+            raw_updated = _path_value(row, updated_path, "") if updated_path else ""
+            source_updated_on = self._parse_date(raw_updated)
             title = self._field_text("title", raw_title, html_fields).strip()
             location = self._field_text(
                 "location", raw_location, html_fields
@@ -576,6 +580,12 @@ class JsonApiSourceAdapter:
                         else None
                     ),
                 )
+            if updated_path and source_updated_on:
+                position_evidence["source_updated_on"] = FieldEvidenceValue(
+                    self._raw_text(raw_updated),
+                    f"{base_locator}.{updated_path}",
+                    source_updated_on.isoformat(),
+                )
             positions.append(
                 PositionCandidate(
                     title=title,
@@ -590,47 +600,55 @@ class JsonApiSourceAdapter:
                     ),
                     position_key=position_key,
                     field_evidence=position_evidence,
+                    source_updated_on=source_updated_on,
                 )
             )
             retained_rows.append((index, row))
 
-        def notice_text(field_name: str) -> tuple[str, str]:
-            raw_value = notice_config.get(field_name, "")
+        def batch_text(field_name: str) -> tuple[str, str]:
+            raw_value = batch_config.get(field_name, "")
             return (
                 self._raw_text(raw_value).strip(),
-                f"$._radar.notice.{field_name}",
+                f"$._radar.batch.{field_name}",
             )
 
-        def notice_date(field_name: str) -> tuple[date | None, FieldEvidenceValue]:
-            if str(notice_config.get(field_name, "")).strip():
-                raw_value = notice_config[field_name]
-                locator = f"$._radar.notice.{field_name}"
+        def batch_date(field_name: str) -> tuple[date | None, FieldEvidenceValue]:
+            has_missing_provenance = False
+            if field_name in batch_config:
+                raw_value = batch_config[field_name]
+                locator = f"$._radar.batch.{field_name}"
+                has_missing_provenance = True
             else:
                 field_path = str(field_map.get(field_name, "")).strip()
-                if retained_rows:
+                if retained_rows and field_path:
                     index, row = retained_rows[0]
                     raw_value = _path_value(row, field_path, "")
                     locator = f"$.{list_path}[{index}].{field_path}"
+                    has_missing_provenance = True
                 else:
                     raw_value = ""
                     locator = f"$._radar.field_map.{field_name}"
             parsed_date = self._parse_date(raw_value)
             parsed_value = parsed_date.isoformat() if parsed_date else ""
             return parsed_date, FieldEvidenceValue(
-                self._raw_text(raw_value), locator, parsed_value
+                self._raw_text(raw_value) or (
+                    EXPLICIT_MISSING if has_missing_provenance else ""
+                ),
+                locator,
+                parsed_value,
             )
 
-        title, title_locator = notice_text("title")
-        recruitment_type, recruitment_type_locator = notice_text(
+        title, title_locator = batch_text("title")
+        recruitment_type, recruitment_type_locator = batch_text(
             "recruitment_type"
         )
-        target_audience, target_audience_locator = notice_text(
+        target_audience, target_audience_locator = batch_text(
             "target_audience"
         )
-        notice_url, notice_url_locator = notice_text("official_notice_url")
-        notice_url = canonicalize_url(notice_url)
-        published_on, published_evidence = notice_date("published_on")
-        deadline, deadline_evidence = notice_date("deadline")
+        official_page_url, notice_url_locator = batch_text("official_page_url")
+        official_page_url = canonicalize_url(official_page_url)
+        published_on, published_evidence = batch_date("published_on")
+        deadline, deadline_evidence = batch_date("deadline")
         field_evidence = {
             "title": FieldEvidenceValue(title, title_locator, title),
             "recruitment_type": FieldEvidenceValue(
@@ -645,16 +663,16 @@ class JsonApiSourceAdapter:
             ),
             "published_on": published_evidence,
             "deadline": deadline_evidence,
-            "notice_url": FieldEvidenceValue(
-                self._raw_text(notice_config.get("official_notice_url", "")),
+            "official_page_url": FieldEvidenceValue(
+                self._raw_text(batch_config.get("official_page_url", "")),
                 notice_url_locator,
-                notice_url,
+                official_page_url,
             ),
         }
         return [
-            NoticeCandidate(
+            RecruitmentBatchCandidate(
                 title=title,
-                official_notice_url=notice_url,
+                official_page_url=official_page_url,
                 recruitment_type=recruitment_type,
                 target_audience=target_audience,
                 published_on=published_on,
@@ -671,7 +689,7 @@ class JsonApiSourceAdapter:
                     for name, evidence in field_evidence.items()
                 },
                 identity_key=self._raw_text(
-                    notice_config.get("identity_key", "")
+                    batch_config.get("identity_key", "")
                 ).strip(),
                 field_evidence=field_evidence,
                 positions_complete=bool(

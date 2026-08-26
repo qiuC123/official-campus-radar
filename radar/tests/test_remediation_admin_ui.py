@@ -36,18 +36,17 @@ class AuditAdminAndColumnTests(TestCase):
 
     def test_every_confirmed_column_has_its_own_control(self) -> None:
         response = self.client.get("/")
-        columns = ("company_name", "company_type", "industry", "recruitment_type", "target_audience", "locations", "positions", "progress", "updated", "deadline", "application_link", "notice_link", "notes")
-        self.assertEqual(response.content.count(b'type="checkbox" data-column='), 13)
+        columns = (
+            "company-type", "industry", "recruitment-type", "target-audience",
+            "updated", "deadline", "official-page",
+        )
+        self.assertEqual(response.content.count(b'type="checkbox" data-column='), 7)
         for column in columns:
             self.assertContains(response, f'<input type="checkbox" data-column="{column}" checked>')
 
-    def test_column_visibility_script_targets_only_table_cells(self) -> None:
-        script = (Path(__file__).resolve().parents[1] / "static" / "radar" / "dashboard.js").read_text(encoding="utf-8")
+    def test_column_visibility_script_targets_declared_optional_content(self) -> None:
+        script = (Path(__file__).resolve().parents[1] / "static" / "radar" / "phase02.js").read_text(encoding="utf-8")
         self.assertIn(
-            'document.querySelectorAll(`th[data-column="${control.dataset.column}"], td[data-column="${control.dataset.column}"]`)',
-            script,
-        )
-        self.assertNotIn(
-            'document.querySelectorAll(`[data-column="${control.dataset.column}"]`)',
+            'document.querySelectorAll(`[data-column-content="${input.dataset.column}"]`)',
             script,
         )

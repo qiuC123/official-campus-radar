@@ -1,145 +1,152 @@
+from django.conf import settings
 from django.contrib import messages
-from django.db.models import Prefetch
-from django.http import HttpRequest, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
-from radar.forms import ApplicationProgressForm, NoticeFilterForm
-from radar.models import (ApplicationLink, ApplicationProgress, NoticePosition,
-                          RecruitmentNotice)
+from radar.models import ApplicationProgress, Organization, RecruitmentBatch, RecruitmentPosition
+from radar.services.dashboard_data import (
+    _position_vm,
+    available_city_choices,
+    build_orm_dashboard,
+    filter_position_vms,
+    mock_dashboard,
+)
 from radar.services.evidence import trusted_historical_projection
 from radar.services.update_runner import run_update
-from radar.services.update_status import (expected_scheduled_date,
-                                          latest_source_failures,
-                                          latest_successful_update,
-                                          scheduled_run_is_missing)
+from radar.services.update_status import latest_source_failures, latest_successful_update, scheduled_run_is_missing
+from radar.viewmodels import FILTER_FIELD_SPECS, MULTI_FILTER_LABELS, OPTIONAL_COLUMN_CHOICES
+
+
+def _filter_fields(request: HttpRequest):
+    choice_map = {
+        "company_type": Organization.CompanyType.choices,
+        "recruitment_type": RecruitmentBatch.RecruitmentType.choices,
+    }
+    return tuple(
+        {
+            "name": name,
+            "label": label,
+            "kind": kind,
+            "placeholder": placeholder,
+            "value": request.GET.get(name, ""),
+            "choices": choice_map.get(name, ()),
+        }
+        for name, label, kind, placeholder in FILTER_FIELD_SPECS
+    )
+
+def _render_dashboard(request: HttpRequest, *, history: bool = False) -> HttpResponse:
+    page, summary, city_choices = build_orm_dashboard(request.GET, history=history)
+    preserved_query = request.GET.copy()
+    preserved_query.pop("page", None)
+    return render(request, "radar/phase02_dashboard.html", {
+        "page": page,
+        "batches": page.object_list,
+        "summary": summary,
+        "history": history,
+        "is_preview": False,
+        "progress_choices": ApplicationProgress.Status.choices,
+        "company_type_choices": Organization.CompanyType.choices,
+        "recruitment_type_choices": RecruitmentBatch.RecruitmentType.choices,
+        "city_choices": tuple(dict.fromkeys((*city_choices, *request.GET.getlist("city")))),
+        "selected_cities": request.GET.getlist("city"),
+        "selected_progress": request.GET.getlist("progress"),
+        "scheduled_run_missing": scheduled_run_is_missing(timezone.now()),
+        "last_successful_update": latest_successful_update(),
+        "source_failures": latest_source_failures(),
+        "query_without_page": preserved_query.urlencode(),
+        "current_query": request.GET.urlencode(),
+        "optional_columns": OPTIONAL_COLUMN_CHOICES,
+        "filter_fields": _filter_fields(request),
+        "multi_filter_labels": dict(MULTI_FILTER_LABELS),
+    })
 
 
 def dashboard(request: HttpRequest) -> HttpResponse:
-    form = NoticeFilterForm(request.GET)
-    form.is_valid()
-    values = form.cleaned_data if form.is_valid() else {}
-    status = values.get("status") or RecruitmentNotice.Status.ACTIVE
-    history_requested = status in {
-        RecruitmentNotice.Status.EXPIRED,
-        RecruitmentNotice.Status.WITHDRAWN,
-    }
-    base_notices = (
-        RecruitmentNotice.objects.historical()
-        if history_requested
-        else RecruitmentNotice.objects.formal()
-    )
-    notices = base_notices.filter(status=status).select_related(
-        "organization"
-    ).order_by("organization__name", "title")
-    if values.get("company"):
-        notices = notices.filter(organization__name__icontains=values["company"])
-    for field, lookup in (("company_type", "organization__company_type"), ("industry", "organization__industry"), ("recruitment_type", "recruitment_type"), ("target_audience", "target_audience")):
-        if values.get(field):
-            notices = notices.filter(**{f"{lookup}__icontains": values[field]})
-    if values.get("deadline_before"):
-        notices = notices.filter(deadline__lte=values["deadline_before"])
-    if history_requested:
-        historical_notices = list(notices.prefetch_related("application_progress"))
-        projections = {
-            notice.pk: trusted_historical_projection(notice)
-            for notice in historical_notices
-        }
-        position_ids = {
-            position_id
-            for projection in projections.values()
-            if projection is not None
-            for position_id in projection.position_ids
-        }
-        link_ids = {
-            link_id
-            for projection in projections.values()
-            if projection is not None
-            for link_id in projection.application_link_ids
-        }
-        positions_by_notice: dict[int, list[NoticePosition]] = {}
-        for position in NoticePosition.objects.filter(pk__in=position_ids).order_by("pk"):
-            positions_by_notice.setdefault(position.notice_id, []).append(position)
-        links_by_notice: dict[int, list[ApplicationLink]] = {}
-        for link in ApplicationLink.objects.filter(pk__in=link_ids).order_by("pk"):
-            links_by_notice.setdefault(link.notice_id, []).append(link)
-        projected_notices = []
-        city = values.get("city")
-        position_keyword = values.get("position", "").casefold()
-        for notice in historical_notices:
-            projection = projections[notice.pk]
-            if projection is None:
-                continue
-            notice.visible_positions = positions_by_notice.get(notice.pk, [])
-            notice.visible_application_links = links_by_notice.get(notice.pk, [])
-            if city and not any(
-                city in position.normalized_locations
-                for position in notice.visible_positions
-            ):
-                continue
-            if position_keyword and not any(
-                position_keyword in position.title.casefold()
-                for position in notice.visible_positions
-            ):
-                continue
-            projected_notices.append(notice)
-        notices = projected_notices
-    else:
-        if values.get("city"):
-            notice_ids = [
-                position.notice_id
-                for position in NoticePosition.objects.filter(is_current=True)
-                if values["city"] in position.normalized_locations
-            ]
-            notices = notices.filter(pk__in=notice_ids)
-        if values.get("position"):
-            matching_notice_ids = NoticePosition.objects.filter(
-                is_current=True,
-                title__icontains=values["position"],
-            ).values_list("notice_id", flat=True)
-            notices = notices.filter(pk__in=matching_notice_ids)
-        notices = notices.distinct().prefetch_related(
-            Prefetch(
-                "positions",
-                queryset=NoticePosition.objects.filter(is_current=True),
-                to_attr="visible_positions",
-            ),
-            Prefetch(
-                "application_links",
-                queryset=ApplicationLink.objects.filter(is_current=True),
-                to_attr="visible_application_links",
-            ),
-            "application_progress",
-        )
-    for notice in notices:
-        try:
-            notice.current_progress = notice.application_progress
-        except ApplicationProgress.DoesNotExist:
-            notice.current_progress = None
-    now = timezone.now()
-    return render(request, "radar/dashboard.html", {
-        "filter_form": form,
-        "notices": notices,
+    return _render_dashboard(request)
+
+
+def history(request: HttpRequest) -> HttpResponse:
+    return _render_dashboard(request, history=True)
+
+
+def phase02_preview(request: HttpRequest) -> HttpResponse:
+    if not settings.DEBUG:
+        raise Http404
+    history = request.GET.get("view") == "history"
+    batches, summary = mock_dashboard(request.GET, history=history)
+    return render(request, "radar/phase02_dashboard.html", {
+        "batches": batches,
+        "summary": summary,
+        "history": history,
+        "is_preview": True,
         "progress_choices": ApplicationProgress.Status.choices,
-        "scheduled_run_missing": scheduled_run_is_missing(now),
-        "expected_scheduled_date": expected_scheduled_date(now),
-        "last_successful_update": latest_successful_update(),
-        "source_failures": latest_source_failures(),
+        "company_type_choices": Organization.CompanyType.choices,
+        "recruitment_type_choices": RecruitmentBatch.RecruitmentType.choices,
+        "city_choices": tuple(dict.fromkeys((*available_city_choices(batches), *request.GET.getlist("city")))),
+        "selected_cities": request.GET.getlist("city"),
+        "selected_progress": request.GET.getlist("progress"),
+        "preview_health": request.GET.get("health", "normal"),
+        "scheduled_run_missing": False,
+        "source_failures": (),
+        "optional_columns": OPTIONAL_COLUMN_CHOICES,
+        "filter_fields": _filter_fields(request),
+        "multi_filter_labels": dict(MULTI_FILTER_LABELS),
+    })
+
+
+@require_GET
+def batch_positions(request: HttpRequest, batch_id: int) -> HttpResponse:
+    batch = get_object_or_404(RecruitmentBatch, pk=batch_id)
+    projection = None
+    if batch.status == RecruitmentBatch.Status.ACTIVE:
+        batch = get_object_or_404(RecruitmentBatch.objects.formal(), pk=batch_id)
+        positions = batch.positions.filter(is_current=True)
+    else:
+        batch = get_object_or_404(RecruitmentBatch.objects.historical(), pk=batch_id)
+        projection = trusted_historical_projection(batch)
+        if projection is None:
+            raise Http404
+        positions = batch.positions.filter(pk__in=projection.position_ids)
+    positions = positions.prefetch_related("application_progress", "application_links")
+    position_vms = [
+            _position_vm(
+                position,
+                batch_official_page_url=batch.official_page_url,
+                include_historical_links=batch.status != RecruitmentBatch.Status.ACTIVE,
+                allowed_link_ids=(set(projection.application_link_ids) if projection else None),
+            )
+            for position in positions
+        ]
+    position_vms = filter_position_vms(position_vms, request.GET)
+    position_vms.sort(key=lambda item: item.effective_updated_on, reverse=True)
+    return render(request, "radar/position_rows.html", {
+        "positions": position_vms,
+        "progress_choices": ApplicationProgress.Status.choices,
+        "is_preview": False,
     })
 
 
 @require_POST
-def update_progress(request: HttpRequest, notice_id: int) -> HttpResponse:
-    notice = get_object_or_404(RecruitmentNotice, pk=notice_id)
-    progress, _ = ApplicationProgress.objects.get_or_create(notice=notice)
-    form = ApplicationProgressForm(request.POST, instance=progress)
-    if form.is_valid():
-        form.save()
-        messages.success(request, "投递进度已更新。")
+def update_progress(request: HttpRequest, position_id: int) -> JsonResponse:
+    position = get_object_or_404(RecruitmentPosition, pk=position_id)
+    if position.batch.status == RecruitmentBatch.Status.ACTIVE:
+        visible = position.is_current and RecruitmentBatch.objects.formal().filter(pk=position.batch_id).exists()
     else:
-        messages.error(request, "投递进度无效，未保存。")
-    return redirect("dashboard")
+        batch = RecruitmentBatch.objects.historical().filter(pk=position.batch_id).first()
+        projection = trusted_historical_projection(batch) if batch else None
+        visible = projection is not None and position.pk in projection.position_ids
+    if not visible:
+        raise Http404
+    status = request.POST.get("status", "")
+    valid = dict(ApplicationProgress.Status.choices)
+    if status not in valid:
+        return JsonResponse({"ok": False, "error": "投递状态无效。"}, status=400)
+    progress, _ = ApplicationProgress.objects.update_or_create(
+        position=position, defaults={"status": status}
+    )
+    return JsonResponse({"ok": True, "status": progress.status, "label": progress.get_status_display()})
 
 
 @require_POST
@@ -151,8 +158,6 @@ def update_now(request: HttpRequest) -> HttpResponse:
         return redirect("dashboard")
     if summary.status == "failed":
         messages.error(request, "手动更新未执行：没有可成功完成的已启用核验来源。")
-    elif summary.status == "partial_failure":
-        messages.warning(request, f"手动更新部分失败：检查 {summary.sources_checked} 个来源，失败 {summary.sources_failed} 个，新增 {summary.notices_created} 条。")
     else:
-        messages.info(request, f"手动更新完成：检查 {summary.sources_checked} 个来源，失败 {summary.sources_failed} 个，新增 {summary.notices_created} 条，更新 {summary.notices_updated} 条，未发布 {summary.notices_rejected} 条。")
+        messages.info(request, f"更新完成：检查 {summary.sources_checked} 个来源，新增 {summary.batches_created} 条。")
     return redirect("dashboard")

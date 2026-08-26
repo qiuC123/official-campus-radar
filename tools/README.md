@@ -102,7 +102,7 @@ Query or nested body keys matching signature/credential indicators such as
 Their values are redacted from URLs and configuration drafts, and that request
 variant is conservatively marked non-integrable without replay, field removal,
 or reverse engineering. Human review must still confirm campus scope and add
-the adapter's notice metadata.
+the adapter's batch metadata, including `official_page_url`.
 
 Captured `Authorization`, `Proxy-Authorization`, and `X-API-Key` headers are
 credential-bearing inputs, not replay-ladder signature evidence. Their values
@@ -124,7 +124,7 @@ deduplication cannot discard the unsafe marker.
 Generated POST drafts place fixed JSON under `body`, and generated success
 checks use `success.expect`. The Phase 02 T1 JSON API supplement and this T2
 tool are now integrated on `main`. The Cycle 02 acceptance audit parsed the
-fresh Ctrip and Tencent drafts, supplemented only the human-owned notice
+fresh Ctrip and Tencent drafts, supplemented only the human-owned batch
 metadata and a positive delay, and confirmed that both pass the T1 adapter
 validator. T2 still intentionally neither changes nor imports `radar/`; the
 discovery tool remains separate from production application code.
@@ -151,5 +151,5 @@ Discovery is deliberately low-frequency and non-evasive:
 Run the offline tests without installing or launching a browser:
 
 ```powershell
-py -3.13 -m pytest tools/tests -v
+py -3.13 -m unittest tools.tests.test_discover_api
 ```

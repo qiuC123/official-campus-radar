@@ -8,7 +8,7 @@ from django.test import TestCase
 
 from radar.collectors.base import FetchedPage
 from radar.collectors.html import HtmlSourceAdapter
-from radar.models import OfficialSource, Organization, RecruitmentNotice
+from radar.models import OfficialSource, Organization, RecruitmentBatch
 from radar.services.admission import (approve_application_host,
                                       source_is_admitted, transition_source)
 from radar.services.publication import classify_recruitment
@@ -62,12 +62,12 @@ class NodeIdentityRemediationTests(TestCase):
     def test_nodes_require_distinct_notice_links_and_keep_them_separate(self) -> None:
         page = FetchedPage("https://official.test/careers", '<article class="job" data-notice-id="a" data-position-id="a-position"><a class="notice" href="/2027-a">a</a><h2>A</h2><span class="type">校园招聘</span><span class="location">北京</span></article><article class="job" data-notice-id="b" data-position-id="b-position"><a class="notice" href="/2027-b">b</a><h2>B</h2><span class="type">校园招聘</span><span class="location">上海</span></article>', "b" * 64, 200, None)
         candidates = HtmlSourceAdapter().extract(self.source, page)
-        self.assertEqual([candidate.official_notice_url for candidate in candidates], ["https://official.test/2027-a", "https://official.test/2027-b"])
-        self.assertEqual(len(set(candidate.official_notice_url for candidate in candidates)), 2)
+        self.assertEqual([candidate.official_page_url for candidate in candidates], ["https://official.test/2027-a", "https://official.test/2027-b"])
+        self.assertEqual(len(set(candidate.official_page_url for candidate in candidates)), 2)
 
     def test_notice_model_belongs_to_a_specific_source(self) -> None:
-        notice = RecruitmentNotice.objects.create(organization=self.source.organization, source=self.source, identity_key="2027-a", title="2027", official_notice_url="https://official.test/2027-a")
-        self.assertEqual(notice.source_id, self.source.pk)
+        batch = RecruitmentBatch.objects.create(organization=self.source.organization, source=self.source, identity_key="2027-a", title="2027", official_page_url="https://official.test/2027-a")
+        self.assertEqual(batch.source_id, self.source.pk)
 
     def test_explicit_withdrawal_selector_marks_candidate_withdrawn(self) -> None:
         self.source.parser_config["withdrawn_selector"] = ".withdrawn"

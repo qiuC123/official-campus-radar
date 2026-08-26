@@ -7,13 +7,15 @@ from django.test import TestCase
 from radar.collectors.base import FetchedPage
 from radar.collectors.html import HtmlSourceAdapter
 from radar.models import FetchRun, OfficialSource, Organization, SourceVersion
+from radar.services.publication import publish_candidates
+from radar.tests.helpers import create_enabled_source
 
 
 class HtmlCollectionTests(TestCase):
     def setUp(self) -> None:
         organization = Organization.objects.create(name="示例公司", company_type="internet", industry="互联网", official_domain="careers.example.test")
         self.source = OfficialSource.objects.create(
-            organization=organization, source_type="website", source_url="https://careers.example.test/notices",
+            organization=organization, source_type="website", source_url="https://careers.example.test/batches",
             admission_evidence="官网招聘入口", is_verified=True, is_active=True, parser_config={
                 "adapter": "html_selector", "notice_selector": "article.job", "notice_url_selector": "a.notice", "title_selector": "h2", "recruitment_type_selector": ".type",
                 "location_selector": ".location", "deadline_selector": ".deadline",
@@ -82,8 +84,8 @@ class HtmlCollectionTests(TestCase):
         page = FetchedPage(
             self.source.source_url,
             """
-            <article class="job" data-notice-id="notice-2027">
-              <a class="notice" href="/notices/2027">notice</a>
+            <article class="job" data-notice-id="batch-2027">
+              <a class="notice" href="/batches/2027">batch</a>
               <h2>2027 Campus</h2><span class="type">campus_recruitment</span>
               <span class="audience">2027 graduates</span>
               <time class="published">2026-08-01</time>
@@ -137,13 +139,53 @@ class HtmlCollectionTests(TestCase):
         self.assertIn("position-2", candidate.positions[1].locator)
         self.assertTrue(candidate.positions_complete)
 
+    def test_chinese_html_type_extracts_and_publishes_end_to_end(self) -> None:
+        source = create_enabled_source(name="HTML 发布集成", host="html-publish.test")
+        source.parser_config = self.multi_position_config()
+        source.save(update_fields=["parser_config"])
+        page = FetchedPage(
+            source.source_url,
+            """
+            <article class="job" data-notice-id="batch-cn-2027">
+              <a class="notice" href="/batches/2027">batch</a>
+              <h2>2027 校园招聘</h2><span class="type">校园招聘</span>
+              <span class="audience">2027届</span>
+              <time class="published">2026-08-01</time>
+              <time class="deadline">2026-12-31</time>
+              <p class="description">正式校招岗位</p>
+              <div class="position" data-position-id="engineer">
+                <span class="position-title">工程师</span>
+                <span class="location">北京市</span>
+              </div>
+            </article>
+            """,
+            "9" * 64,
+            200,
+            None,
+        )
+        candidate = HtmlSourceAdapter().extract(source, page)[0]
+        version = SourceVersion.objects.create(
+            source=source,
+            canonical_url=source.source_url,
+            content_hash=page.content_hash,
+            is_applied=True,
+        )
+
+        result = publish_candidates(source, [candidate], version)[0]
+
+        self.assertEqual(
+            candidate.field_evidence["recruitment_type"].parsed_value,
+            "campus_recruitment",
+        )
+        self.assertEqual(result.action, "created")
+
     def test_zero_position_selector_matches_fail_closed(self) -> None:
         self.source.parser_config = self.multi_position_config()
         page = FetchedPage(
             self.source.source_url,
             """
-            <article class="job" data-notice-id="notice-2027">
-              <a class="notice" href="/notices/2027">notice</a>
+            <article class="job" data-notice-id="batch-2027">
+              <a class="notice" href="/batches/2027">batch</a>
               <h2>2027 Campus</h2><span class="type">campus_recruitment</span>
               <span class="audience">2027 graduates</span>
               <time class="published">2026-08-01</time>
@@ -168,8 +210,8 @@ class HtmlCollectionTests(TestCase):
         page = FetchedPage(
             self.source.source_url,
             """
-            <article class="job" data-notice-id="notice-2027">
-              <a class="notice" href="/notices/2027">notice</a>
+            <article class="job" data-notice-id="batch-2027">
+              <a class="notice" href="/batches/2027">batch</a>
               <h2>2027 Campus</h2><span class="type">campus_recruitment</span>
               <span class="audience">2027 graduates</span>
               <time class="published">2026-08-01</time>

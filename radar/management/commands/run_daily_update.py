@@ -12,8 +12,8 @@ class Command(BaseCommand):
         summary = run_update(trigger=options["trigger"], source_ids=options.get("source_id"))
         self.stdout.write(
             f"update_run_id={summary.update_run_id} sources_checked={summary.sources_checked} "
-            f"sources_failed={summary.sources_failed} notices_created={summary.notices_created} "
-            f"notices_updated={summary.notices_updated} notices_rejected={summary.notices_rejected}"
+            f"sources_failed={summary.sources_failed} batches_created={summary.batches_created} "
+            f"batches_updated={summary.batches_updated} batches_rejected={summary.batches_rejected}"
         )
         if summary.sources_checked == 0 or summary.sources_failed == summary.sources_checked:
             raise CommandError("no active admitted source completed")
