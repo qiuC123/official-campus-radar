@@ -2,7 +2,7 @@
 
 Last verified: 2026-08-26 Asia/Shanghai
 
-Phase and status: Phase 02 / H1 已通过；Cycle 08 高密度表格、多选筛选和视觉规则已同步到 Django Mock 预览页。H2 Cycle 02 技术候选通过，等待用户实际浏览器确认；G10 尚未正式接受，H3 尚未开始。
+Phase and status: Phase 02 / H1、H2 已通过；Cycle 08 高密度表格、多选筛选和视觉规则已同步到 Django Mock 预览页。G10 依据 Cycle 03 的 0 blocker 技术复核正式接受；当前停在 H3，T3 尚未开始。
 
 ## Current result
 
@@ -26,9 +26,9 @@ Phase and status: Phase 02 / H1 已通过；Cycle 08 高密度表格、多选筛
 ## Human gates
 
 - H1：Cycle 06 已于 2026-08-26 通过。Cycle 07 进一步修正批次官网术语、未知截止时间、岗位展开和批次级手动进度；Cycle 08 统一主蓝色、按钮层级、圆角、字距和表格密度。分类徽章低饱和方案已按用户要求撤回，保留原有分类配色；以上均未改变已通过的信息结构。
-- H2：Cycle 02 技术候选已通过，等待用户确认 Django 预览页的实际浏览器体验。
-- G10：Cycle 03 技术候选已通过；只有 H1/H2 先通过后，才可正式接受。
-- H3：确认企业名单、访问范围和最低成功线。H3 前禁止启动 T3 企业外网探测。
+- H2：Cycle 02 已于 2026-08-26 由用户完成浏览器验收并明确确认通过。
+- G10：Cycle 03 技术复核为 0 blocker；H1/H2 前置条件满足后已正式接受。
+- H3：待确认企业名单、访问范围和最低成功线。H3 前禁止启动 T3 企业外网探测。
 
 ## Explicitly not started
 
@@ -36,4 +36,4 @@ T3 企业探测、真实来源准入、真实岗位采集、Windows 计划任务
 
 ## Exact next task
 
-由用户打开 Django Mock 预览页完成 H2 Cycle 02 浏览器验收。若通过，再正式接受 G10 并停在 H3；若提出修改，创建 H2 Cycle 03。全程不自动访问任何企业网站，不启动 T3。
+与用户完成 H3 决策：确认企业名单、允许访问的范围和 T3 最低成功线。在 H3 获得明确授权前，不访问任何企业网站，不启动 T3。

@@ -1,6 +1,6 @@
 # Phase 02 产品需求：前端优先的校招岗位工作台
 
-状态：H1 passed / H2 pending
+状态：H1 passed / H2 passed
 
 日期：2026-08-26
 
