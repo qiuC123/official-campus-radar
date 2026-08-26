@@ -108,6 +108,10 @@ class TargetSpec:
     wait_seconds: float = 8.0
     scroll: bool = False
     click_selector: str | None = None
+    target_id: str | None = None
+    company: str | None = None
+    company_type: str | None = None
+    official_evidence_url: str | None = None
 
 
 class DiscoveryError(RuntimeError):
@@ -918,6 +922,10 @@ def parse_targets_document(
         raise ValueError("targets JSON must be a non-empty list or an object with targets")
     targets: list[TargetSpec] = []
     for index, item in enumerate(raw_targets, start=1):
+        target_id = None
+        company = None
+        company_type = None
+        official_evidence_url = None
         if isinstance(item, str):
             url = _validated_url(item)
             wait_seconds = default_wait
@@ -928,6 +936,21 @@ def parse_targets_document(
             wait_seconds = item.get("wait", default_wait)
             scroll = item.get("scroll", default_scroll)
             click_selector = item.get("click", default_click)
+            metadata = {
+                "target_id": item.get("id"),
+                "company": item.get("company"),
+                "company_type": item.get("company_type"),
+            }
+            for field_name, value in metadata.items():
+                if value is not None and not isinstance(value, str):
+                    raise ValueError(f"target {index} {field_name} must be a string")
+            target_id = str(metadata["target_id"] or "").strip() or None
+            company = str(metadata["company"] or "").strip() or None
+            company_type = str(metadata["company_type"] or "").strip() or None
+            if item.get("official_evidence_url") is not None:
+                official_evidence_url = _validated_url(
+                    item.get("official_evidence_url")
+                )
         else:
             raise ValueError(f"target {index} must be a URL string or object")
         if (
@@ -949,6 +972,10 @@ def parse_targets_document(
                 wait_seconds=float(wait_seconds),
                 scroll=scroll,
                 click_selector=click_selector,
+                target_id=target_id,
+                company=company,
+                company_type=company_type,
+                official_evidence_url=official_evidence_url,
             )
         )
     return targets
@@ -1022,11 +1049,18 @@ def render_markdown_report(
         ),
     ]
     for target_index, target in enumerate(target_results, start=1):
+        target_heading = target.get("target_id") or target_index
         lines.extend(
             [
                 "",
-                f"## Target {target_index}",
+                f"## Target {target_heading}",
                 "",
+                f"- Company: `{target.get('company') or '—'}`",
+                f"- Company type: `{target.get('company_type') or '—'}`",
+                (
+                    "- Official-source evidence: `"
+                    f"{target.get('official_evidence_url') or '—'}`"
+                ),
                 f"- Entry page: `{target.get('entry_url', '')}`",
                 f"- Final page: `{target.get('final_url', '') or '—'}`",
                 f"- Page status: `{target.get('page_status', '—')}`",
@@ -1427,7 +1461,7 @@ def run_target_sequence(
     requester: Callable[..., dict[str, object]],
     sleep_fn: Callable[[float], object] = time.sleep,
 ) -> list[dict[str, object]]:
-    """Process targets serially, opening each once and spacing targets by three seconds."""
+    """Process target entries serially, opening each once with a three-second gap."""
 
     results: list[dict[str, object]] = []
     endpoint_replay_usage: dict[tuple[str, str], int] = {}
@@ -1436,6 +1470,15 @@ def run_target_sequence(
             sleep_fn(3.0)
         capture = capture_func(target)
         target_result = _sanitized_capture_result(capture)
+        target_result.setdefault("target_id", target.target_id)
+        target_result.setdefault("company", target.company)
+        target_result.setdefault("company_type", target.company_type)
+        target_result.setdefault(
+            "official_evidence_url",
+            redact_request_url(target.official_evidence_url)
+            if target.official_evidence_url
+            else None,
+        )
         candidates: list[dict[str, object]] = []
         if not capture.get("block_reason") and not capture.get("error"):
             grouped: dict[tuple[str, str], list[dict[str, object]]] = {}
@@ -1542,6 +1585,24 @@ def _single_line(error: BaseException) -> str:
     return " ".join(str(error).split())[:500]
 
 
+def safe_request_post_data(request: object) -> tuple[str | None, str]:
+    """Read textual request data without letting binary bodies break capture."""
+
+    try:
+        return request.post_data, ""
+    except Exception:
+        # Playwright raises its own Error type here, but importing it at module
+        # load time would make the offline tool helpers require Playwright.
+        return None, "Request body omitted: unavailable as UTF-8 text"
+
+
+def _append_capture_note(exchange: dict[str, object], note: str) -> None:
+    if not note:
+        return
+    previous = str(exchange.get("capture_note") or "")
+    exchange["capture_note"] = f"{previous}; {note}" if previous else note
+
+
 def capture_target(target: TargetSpec) -> dict[str, object]:
     """Open exactly one headless Chromium page and capture bounded JSON responses."""
 
@@ -1572,7 +1633,7 @@ def capture_target(target: TargetSpec) -> dict[str, object]:
             request_headers = request.all_headers()
         except PlaywrightError:
             request_headers = dict(request.headers)
-        request_body = request.post_data
+        request_body, request_capture_note = safe_request_post_data(request)
         request_json = None
         if request_body:
             try:
@@ -1590,7 +1651,7 @@ def capture_target(target: TargetSpec) -> dict[str, object]:
             "response_status": response.status,
             "content_type": content_type,
             "response_json": None,
-            "capture_note": "",
+            "capture_note": request_capture_note,
         }
         if "json" in content_type.casefold():
             content_length = response_headers.get("content-length")
@@ -1599,24 +1660,24 @@ def capture_target(target: TargetSpec) -> dict[str, object]:
             except ValueError:
                 declared_size = None
             if declared_size is not None and declared_size > MAX_JSON_BODY_BYTES:
-                exchange["capture_note"] = (
+                _append_capture_note(exchange, (
                     f"JSON body omitted: declared size {declared_size} exceeds "
                     f"{MAX_JSON_BODY_BYTES} bytes"
-                )
+                ))
             else:
                 try:
                     body = response.body()
                     if len(body) > MAX_JSON_BODY_BYTES:
-                        exchange["capture_note"] = (
+                        _append_capture_note(exchange, (
                             f"JSON body omitted: actual size {len(body)} exceeds "
                             f"{MAX_JSON_BODY_BYTES} bytes"
-                        )
+                        ))
                     else:
                         exchange["response_json"] = json.loads(body)
                 except (PlaywrightError, UnicodeDecodeError, json.JSONDecodeError) as error:
-                    exchange["capture_note"] = (
+                    _append_capture_note(exchange, (
                         "JSON body could not be retained: " + _single_line(error)
-                    )
+                    ))
         exchanges.append(exchange)
 
     try:

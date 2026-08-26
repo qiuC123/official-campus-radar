@@ -680,6 +680,10 @@ class PureConfigurationAndReportingTests(unittest.TestCase):
                         "wait": 12,
                         "scroll": True,
                         "click": ".next",
+                        "id": "P01-01",
+                        "company": "示例科技",
+                        "company_type": "民企",
+                        "official_evidence_url": "https://www.example.com/careers",
                     },
                 ]
             },
@@ -693,6 +697,13 @@ class PureConfigurationAndReportingTests(unittest.TestCase):
         self.assertEqual(targets[1].wait_seconds, 12)
         self.assertTrue(targets[1].scroll)
         self.assertEqual(targets[1].click_selector, ".next")
+        self.assertEqual(targets[1].target_id, "P01-01")
+        self.assertEqual(targets[1].company, "示例科技")
+        self.assertEqual(targets[1].company_type, "民企")
+        self.assertEqual(
+            targets[1].official_evidence_url,
+            "https://www.example.com/careers",
+        )
         with self.assertRaisesRegex(ValueError, "finite"):
             parse_targets_document(
                 [{"url": "https://careers.example/c", "wait": float("nan")}],
@@ -749,6 +760,10 @@ class PureConfigurationAndReportingTests(unittest.TestCase):
         render_markdown_report = self.require_function("render_markdown_report")
         target_results = [
             {
+                "target_id": "P01-01",
+                "company": "携程集团",
+                "company_type": "民企",
+                "official_evidence_url": "https://group.trip.com/careers",
                 "entry_url": "https://careers.ctrip.com/",
                 "final_url": "https://careers.ctrip.com/#/campus",
                 "page_status": 200,
@@ -795,6 +810,10 @@ class PureConfigurationAndReportingTests(unittest.TestCase):
         )
 
         self.assertIn("https://careers.ctrip.com/", report)
+        self.assertIn("P01-01", report)
+        self.assertIn("携程集团", report)
+        self.assertIn("民企", report)
+        self.assertIn("https://group.trip.com/careers", report)
         self.assertIn("retValue.recruitJobAdList", report)
         self.assertIn('"kindName": "校园招聘"', report)
         self.assertIn("最简合规头", report)
@@ -852,6 +871,20 @@ class PureConfigurationAndReportingTests(unittest.TestCase):
 
 
 class OfflineBoundaryTests(unittest.TestCase):
+    def test_binary_request_body_is_omitted_instead_of_breaking_capture(self):
+        safe_request_post_data = self.require_function("safe_request_post_data")
+
+        class BinaryRequest:
+            @property
+            def post_data(self):
+                raise UnicodeDecodeError("utf-8", b"\x8b", 0, 1, "invalid")
+
+        body, note = safe_request_post_data(BinaryRequest())
+
+        self.assertIsNone(body)
+        self.assertIn("Request body omitted", note)
+        self.assertIn("utf-8", note.casefold())
+
     def require_function(self, name):
         function = load_function(name)
         self.assertTrue(callable(function), f"{name} must be implemented")
@@ -1229,6 +1262,41 @@ class OfflineBoundaryTests(unittest.TestCase):
         ]
 
         self.assertEqual(confidences, sorted(confidences, reverse=True))
+
+    def test_target_sequence_adds_company_metadata_to_capture_result(self):
+        run_target_sequence = self.require_function("run_target_sequence")
+        TargetSpec = load_function("TargetSpec")
+        self.assertIsNotNone(TargetSpec)
+        target = TargetSpec(
+            "https://careers.example/jobs",
+            target_id="P01-01",
+            company="示例科技",
+            company_type="民企",
+            official_evidence_url=(
+                "https://www.example.com/careers?token=must-not-leak"
+            ),
+        )
+        capture = {
+            "entry_url": target.url,
+            "final_url": target.url,
+            "page_status": 200,
+            "block_reason": None,
+            "error": None,
+            "exchanges": [],
+        }
+
+        results = run_target_sequence(
+            [target],
+            capture_func=lambda ignored: capture,
+            requester=lambda **kwargs: {},
+            sleep_fn=lambda seconds: None,
+        )
+
+        self.assertEqual(results[0]["target_id"], "P01-01")
+        self.assertEqual(results[0]["company"], "示例科技")
+        self.assertEqual(results[0]["company_type"], "民企")
+        self.assertIn("%5BREDACTED%5D", results[0]["official_evidence_url"])
+        self.assertNotIn("must-not-leak", results[0]["official_evidence_url"])
 
     def test_capture_analysis_preserves_every_qualifying_array_for_variant(self):
         analyze_captured_target = self.require_function("analyze_captured_target")

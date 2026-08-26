@@ -47,7 +47,9 @@ py -3.13 tools/discover_api.py --targets tools/targets.json --out work/api-disco
 
 The targets file can be a JSON list, or an object containing a `targets` list.
 Each item is either a URL string or an object whose `wait`, `scroll`, and
-`click` values override the command-line defaults:
+`click` values override the command-line defaults. T3 target files may also
+carry `id`, `company`, `company_type`, and `official_evidence_url` so every
+visit remains attributable to the frozen company pool:
 
 ```json
 {
@@ -57,7 +59,11 @@ Each item is either a URL string or an object whose `wait`, `scroll`, and
       "url": "https://careers.example/campus",
       "wait": 10,
       "scroll": true,
-      "click": ".next-page"
+      "click": ".next-page",
+      "id": "P01-01",
+      "company": "Example Company",
+      "company_type": "Private",
+      "official_evidence_url": "https://www.example.com/careers"
     }
   ]
 }
@@ -147,6 +153,16 @@ Discovery is deliberately low-frequency and non-evasive:
   use stealth or proxies, scan paths, brute-force parameters, or reproduce
   frontend signatures. A login wall, CAPTCHA, abnormal status, or empty blocked
   page is reported and skipped.
+
+### T3 prospective-cycle interpretation
+
+The historical T2 Cycle 01/02 rule and evidence remain unchanged. Starting
+with T3 Cycle 01, the phrase "one visit per target" is a per-target safety
+boundary, not a permanent one-page limit for a company. A frozen company may
+have more than one target entry only when a distinct official entry page is
+needed and the additional visit is recorded with its own target ID and reason.
+Targets remain serialized and low-frequency. Re-running a failed target merely
+to improve its result is prohibited; a new attempt belongs to a later cycle.
 
 Run the offline tests without installing or launching a browser:
 

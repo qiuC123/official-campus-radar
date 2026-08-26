@@ -2,7 +2,7 @@
 
 Last verified: 2026-08-26 Asia/Shanghai
 
-Phase and status: Phase 02 / H1、H2、G10、H3 已通过。具体 50 家企业名单已冻结，T3 已获 H3 范围内授权但尚未实际启动。
+Phase and status: Phase 02 / H1、H2、G10、H3 已通过。T3 Cycle 01 已完成 50/50 家探测，但仅 2/50 家达到“可稳定接入”，未达到 25/50 最低线；T4 禁止启动，等待用户决定下一 Cycle。
 
 ## Current result
 
@@ -13,12 +13,14 @@ Phase and status: Phase 02 / H1、H2、G10、H3 已通过。具体 50 家企业�
 - 迁移 `0010`～`0012` 已依次应用。0012 前业务表仍为 0 行，SQLite 已备份到 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-0012-20260826-152726.sqlite3`；空库已实测 0012 反向回 0011、再正向应用 0012。
 - 地点不再限北上广深；未知地点保留原文，全国/远程参与任一具体城市筛选。
 - Django Mock 预览页使用 12 列横向表格；公司类型、招聘类型和投递进度支持多选，省份最多同时选择 5 个；每批次显示最多 5 个代表岗位并可展开全部。
+- T3 Cycle 01 已覆盖冻结名单 50/50 家：19 家观察到候选、22 家无候选、9 家被跳过或访问失败。人工按 H3 五项标准复核后，仅拼多多、理想汽车 2 家可稳定接入；工具“可接入”误报不得计入。
+- T3 运行暴露二进制请求正文 UTF-8 解码缺陷；Cycle 01 原报告保留，工具已改为省略非文本正文并记录说明，离线测试 52/52 通过。
 
 ## Candidate validation evidence
 
 - `py -3.13 manage.py makemigrations --check --dry-run`：No changes detected。
 - `py -3.13 manage.py check`：0 个问题。
-- `py -3.13 manage.py test -v 1`：254/254 通过。
+- `py -3.13 manage.py test -v 1`：256/256 通过。
 - Cycle 03 独立只读评审：技术 blocker 为 0，G10 技术候选通过；冻结提交为 `303baba`。
 - 临时测试数据库完整应用 0001～0012 后销毁；0012 迁移守卫覆盖单一映射、多进度冲突和不可安全反向三类场景。
 - 1280×720 浏览器检查：预览 Mock 标识、12 列横向表格、5 省上限、代表岗位、展开 7 个全部岗位、批次进度模拟保存、URL 筛选和外站拦截均正常；正式首页只显示真实 ORM 空状态。
@@ -32,8 +34,8 @@ Phase and status: Phase 02 / H1、H2、G10、H3 已通过。具体 50 家企业�
 
 ## Explicitly not started
 
-T3 企业探测、真实来源准入、真实岗位采集、Windows 计划任务、微信模块和云部署均未开始。
+T4 真实来源准入、真实岗位采集、Windows 计划任务、微信模块和云部署均未开始。T3 下一 Cycle 也尚未获用户确认。
 
 ## Exact next task
 
-建立 T3 Cycle 01 执行记录，核对发现工具和 50 家冻结名单的输入格式，然后按 H3 访问边界启动探测。不得提前进入 T4，不得把端点发现写成接入成功。
+由用户决定是否启动 T3 下一 Cycle。若继续，只处理有新官方入口或可离线修复误报规则的企业，并保持旧 Cycle、访问失败和重放预算记录；不得提前进入 T4。
