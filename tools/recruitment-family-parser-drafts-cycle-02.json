@@ -1,0 +1,119 @@
+{
+  "cycle": "phase-02-t3-cycle-02-family-parser-drafts",
+  "production_browser_authorized": false,
+  "source_admission_claimed": false,
+  "drafts": {
+    "beisen_zhiye": {
+      "sample_id": "J03-FAMILY",
+      "transport": "direct_html",
+      "base_url": "https://gac-toyota.zhiye.com/campus/",
+      "source_date_role": "published_on",
+      "position_selector": "table.jobsTable tr:not(.title)",
+      "fields": {
+        "position_key": {
+          "selector": "td:nth-child(1) a[href]",
+          "attribute": "href",
+          "regex": "/zpdetail/(\\d+)"
+        },
+        "title": {"selector": "td:nth-child(1) a[href]"},
+        "location": {"selector": "td:nth-child(3)"},
+        "source_date": {"selector": "td:nth-child(4)"},
+        "application_url": {
+          "selector": "td:nth-child(1) a[href]",
+          "attribute": "href"
+        }
+      },
+      "pagination": {
+        "status": "not_required_on_current_one-row_sample",
+        "production_supported": false,
+        "reason": "当前样板只有一条岗位，尚未证明多页规则。"
+      }
+    },
+    "wintalent_classic": {
+      "sample_id": "I01-FAMILY",
+      "transport": "direct_html",
+      "base_url": "https://www.hotjob.cn/wt/caict/web/index/webPosition210!getPostListByConditionShowPic",
+      "source_date_role": "published_on",
+      "position_selector": "table.search_result tr:has(a[href*='getOnePosition'])",
+      "fields": {
+        "position_key": {
+          "selector": "td:nth-child(1) a[href*='postIdEnc=']",
+          "attribute": "href",
+          "regex": "[?&]postIdEnc=([^&]+)"
+        },
+        "title": {"selector": "td:nth-child(1) a[href]"},
+        "location": {"selector": "td:nth-child(4)"},
+        "source_date": {"selector": "td:nth-child(5)"},
+        "application_url": {
+          "selector": "td:nth-child(1) a[href]",
+          "attribute": "href"
+        }
+      },
+      "pagination": {
+        "status": "observed_not_implemented",
+        "kind": "javascript_changePage",
+        "observed_total_pages": 29,
+        "observed_total_records": 286,
+        "production_supported": false,
+        "reason": "页码链接调用 changePage(path, page, page_size)，仍需证明对应只读请求格式。"
+      }
+    },
+    "wintalent_modern": {
+      "sample_id": "S08-FAMILY",
+      "transport": "json_api_candidate",
+      "source_date_role": "published_on",
+      "endpoint": "https://wecruit.hotjob.cn/wecruit/positionInfo/listPosition/SU64d480906202cc36e27a5fd8",
+      "method": "POST",
+      "list_path": "data.pageForm.pageData",
+      "total_path": "data.pageForm.totalPage",
+      "field_map": {
+        "position_key": "postId",
+        "title": "postName",
+        "location": "workPlaceStr",
+        "source_date": "publishDate"
+      },
+      "campus_evidence": {
+        "page_path": "/mc/position/campus",
+        "raw_field": "recruitType",
+        "observed_value": 1,
+        "mapping_status": "sample_confirmed_family_mapping_pending"
+      },
+      "pagination": {
+        "status": "unknown",
+        "production_supported": false,
+        "reason": "已观察 totalPage，但捕获请求没有可执行页码参数。"
+      },
+      "minimal_headers_replay": "passed"
+    },
+    "zhaopin_custom_campus": {
+      "sample_id": "S04-FAMILY",
+      "transport": "rendered_dom_dev_only",
+      "base_url": "https://zglt.zhaopin.com/scjobs/index.html",
+      "position_selector": ".grace-web-job-list-card",
+      "fields": {
+        "position_key": {
+          "selector": ".grace-web-job-list-card-lists a[href*='/job/']",
+          "attribute": "href",
+          "regex": "/job/([^?]+)"
+        },
+        "title": {
+          "selector": ".grace-web-job-list-card-lists > p:nth-of-type(1)"
+        },
+        "location": {
+          "selector": ".grace-web-job-list-card-lists > p:nth-of-type(2)"
+        },
+        "application_url": {
+          "selector": ".grace-web-job-list-card-lists a[href*='/job/']",
+          "attribute": "href"
+        }
+      },
+      "pagination": {
+        "status": "rendered_dom_observed",
+        "selector": ".grace-dsc-web-job-list-base__page .el-pager",
+        "observed_total_records": 2699,
+        "production_supported": false
+      },
+      "production_blocker": "岗位卡片依赖 JavaScript 渲染，尚未发现可用于 requests 的公开数据接口。"
+    }
+  }
+}

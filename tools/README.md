@@ -171,6 +171,23 @@ that an adapter strategy may be reusable; tenant configuration, campus scope,
 job fields, location fields and pagination still require per-company evidence.
 The file does not authorize production browser collection or T4 admission.
 
+The second Cycle 02 stage records offline-only parser drafts in
+`tools/recruitment-family-parser-drafts-cycle-02.json`. Validate a saved fixture
+without opening a browser or making a request:
+
+```powershell
+py -3.13 tools/family_parser_drafts.py `
+  --config tools/recruitment-family-parser-drafts-cycle-02.json `
+  --family beisen_zhiye `
+  --fixture tools/tests/fixtures/family_beisen.html
+```
+
+`direct_html` means the observed page can be parsed as returned HTML.
+`json_api_candidate` still requires pagination and campus-scope acceptance.
+`rendered_dom_dev_only` is evidence from a development browser and is
+explicitly blocked from production while runtime browser collection remains
+unauthorized.
+
 Run the offline tests without installing or launching a browser:
 
 ```powershell

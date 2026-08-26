@@ -1,0 +1,45 @@
+{
+  "cycle": "phase-02-t3-cycle-02-family-samples",
+  "targets": [
+    {
+      "id": "J03-FAMILY",
+      "company": "广汽丰田汽车有限公司",
+      "company_type": "中外合资",
+      "url": "https://gac-toyota.zhiye.com/campus/",
+      "official_evidence_url": "https://www.gac-toyota.com.cn/",
+      "wait": 8,
+      "scroll": true,
+      "reason": "北森 zhiye.com 家族样板；验证岗位列表、地点、更新时间和分页结构。"
+    },
+    {
+      "id": "I01-FAMILY",
+      "company": "中国信息通信研究院",
+      "company_type": "事业单位",
+      "url": "https://www.hotjob.cn/wt/caict/web/index/webPosition210!getPostListByConditionShowPic",
+      "official_evidence_url": "https://www.caict.ac.cn/zpxx/",
+      "wait": 8,
+      "scroll": true,
+      "reason": "大易经典 /wt/ 家族样板；验证服务端 HTML 岗位表格和页码分页。"
+    },
+    {
+      "id": "S08-FAMILY",
+      "company": "中国中车集团有限公司",
+      "company_type": "央国企",
+      "url": "https://wecruit.hotjob.cn/SU64d480906202cc36e27a5fd8/mc/position/campus",
+      "official_evidence_url": "https://www.crrcgc.cc/",
+      "wait": 8,
+      "scroll": true,
+      "reason": "大易新版 wecruit 家族的公开校招岗位页；与 Cycle 01 的宣传入口不同。"
+    },
+    {
+      "id": "S04-FAMILY",
+      "company": "中国联合网络通信集团有限公司",
+      "company_type": "央国企",
+      "url": "https://zglt.zhaopin.com/scjobs/index.html",
+      "official_evidence_url": "https://www.chinaunicom.com.cn/46/menu01/528/column06",
+      "wait": 8,
+      "scroll": true,
+      "reason": "智联企业定制站当前 2027 校招岗位页；与 Cycle 01 的宣传首页不同。"
+    }
+  ]
+}

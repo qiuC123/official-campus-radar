@@ -2,7 +2,7 @@
 
 日期：2026-08-26
 
-状态：进行中；平台指纹基线和样板页只读验证已完成，家族适配验证尚未完成
+状态：进行中；平台指纹基线、四个样板页只读验证和离线解析草案已完成，分页与招聘范围阻断项尚未解决
 
 ## 本 Cycle 的决定
 
@@ -69,6 +69,42 @@
 - 这些结果只是家族级候选，不计入新的“可稳定接入”数量。只有完成校招范围、岗位字段、地点、分页和稳定读取验证后才能重新计数。
 - 下一步是为北森、大易经典版、大易新版、智联定制站分别形成只读解析草案；拼多多和理想继续作为 JSON/API 成功对照。
 
+## 第二阶段：四类解析草案
+
+样板目标：`tools/targets-phase-02-t3-cycle-02-samples.json`
+
+一次性接口发现原始报告：`work/phase-02-t3-discovery-cycle-02-family-samples.md`
+
+机器可读解析草案：`tools/recruitment-family-parser-drafts-cycle-02.json`
+
+离线解析工具：`tools/family_parser_drafts.py`
+
+| 样板 | 本轮结果 | 已验证字段 | 当前阻断项 | 新增稳定接入 |
+| --- | --- | --- | --- | ---: |
+| J03 广汽丰田 / 北森 | 无岗位 JSON；服务端 HTML 表格可读 | 详情 ID、标题、地点、发布时间、详情链接 | 当前只有 1 条岗位，尚未证明多页规则，也未进入来源准入 | 0 |
+| I01 中国信通院 / 大易经典版 | 无岗位 JSON；服务端 HTML 表格可读 | `postIdEnc`、标题、地点、发布时间、详情链接；页面显示 286 条/29 页 | 岗位页混合多类招聘；`changePage` 对应请求格式尚未证明 | 0 |
+| S08 中国中车 / 大易新版 | 发现公开岗位 JSON | `postId`、`postName`、`workPlaceStr`、`publishDate`、`recruitType=1` | 观察到 `totalPage`，但请求中未捕获可执行页码参数 | 0 |
+| S04 中国联通 / 智联定制站 | 工具未发现候选 JSON；浏览器渲染后显示 2699 个岗位 | 详情 ID、标题、地点、详情链接、页码控件 | 普通 HTTP 不会得到渲染后岗位卡片；生产浏览器未授权 | 0 |
+
+### S08 大易新版候选端点
+
+- `POST https://wecruit.hotjob.cn/wecruit/positionInfo/listPosition/SU64d480906202cc36e27a5fd8`
+- 列表路径：`data.pageForm.pageData`
+- 总页数字段：`data.pageForm.totalPage`
+- 最简合规头重放：通过；Cookie 和签名头非必需。
+- 原始校招判别证据：公开入口路径为 `/mc/position/campus`，样本 `recruitType` 原值均为 `1`。
+- 仍不能写成可稳定接入：H3 要求分页规则明确，而本次捕获请求正文为空，没有得到页码参数。
+
+### 离线草案的边界
+
+- 草案只读取保存的最小 HTML/JSON fixture，不进行任何网络访问。
+- 北森和大易经典版的 transport 为 `direct_html`。
+- 大易新版为 `json_api_candidate`，不是已准入 JSON 来源。
+- 智联为 `rendered_dom_dev_only`；配置顶层明确写有 `production_browser_authorized: false`。
+- 任一行缺稳定岗位 ID、岗位标题或地点时解析器 fail-closed，不输出猜测岗位。
+- 页面“发布时间”和 JSON `publishDate` 只保存为 `source_date` / `published_on` 草案证据，不映射为官网更新时间 `source_updated_on`。
+- 草案通过不等于企业通过 T3，也不等于 T4 来源准入。
+
 ## 当前停止线
 
 Cycle 02 尚未结束，T3 仍未达到 H3 的 `25 / 50` 最低成功线。不得启动 T4、真实采集、定时任务或生产浏览器采集。
@@ -82,3 +118,11 @@ Cycle 02 尚未结束，T3 仍未达到 H3 的 `25 / 50` 最低成功线。不�
 - `py -3.13 manage.py test -v 1`：共 256 项，255 项通过，1 项旧测试失败。
 
 失败项为 `test_partial_failure_displays_source_degradation_summary`。本机在 23:37 运行测试，而系统从 22:00 起若没有当天计划任务记录，会优先显示“计划更新可能漏跑”；旧测试没有固定当前时间，却始终断言“来源健康降级”。相关测试和生产模板均未被 Cycle 02 修改，本 Cycle 不混入无关修复，也不把完整测试套写成通过。
+
+第二阶段新增验证：
+
+- `py -3.13 -m unittest tools.tests.test_family_parser_drafts -v`：7/7 通过。
+- 四类草案均由最小 fixture 离线验证；没有真实网络请求。
+- S08 接口发现只执行一次，完整 5 级重放总计 `5 / 6`，没有额外调用岗位端点。
+- 新增草案没有修改生产适配器注册表，也没有引入生产浏览器依赖。
+- `py -3.13 manage.py test -v 1`：新增 7 项被完整套发现，共 263/263 通过。凌晨复跑通过也进一步证明上一阶段的单项失败来自旧测试的 22:00 时间依赖，而非 Cycle 02 改动。

@@ -1,0 +1,23 @@
+{
+  "data": {
+    "pageForm": {
+      "totalPage": 4,
+      "pageData": [
+        {
+          "postId": "6a8c015b1ad6db7cf834c7e7",
+          "postName": "市场投标报价岗",
+          "workPlaceStr": "无锡市",
+          "publishDate": "2026-08-24 16:31:16",
+          "recruitType": 1
+        },
+        {
+          "postId": "6a8bf9d14315481304cda9b9",
+          "postName": "数字化工程师",
+          "workPlaceStr": "成都市",
+          "publishDate": "2026-08-24 15:59:08",
+          "recruitType": 1
+        }
+      ]
+    }
+  }
+}
