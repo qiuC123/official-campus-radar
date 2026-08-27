@@ -4,6 +4,7 @@
 
 ```powershell
 py -3.13 -m pip install -r requirements.txt
+py -3.13 -m playwright install chromium
 py -3.13 manage.py migrate
 py -3.13 manage.py makemigrations --check --dry-run
 py -3.13 manage.py check
@@ -12,6 +13,8 @@ py -3.13 -m unittest tools.tests.test_discover_api
 ```
 
 测试会阻断未 mock 的 `requests` 外网调用。T1/T2 兼容测试只读保存的 fixture，不代表任何真实企业来源已经准入。
+
+Chromium 仅供 ADR 0004 批准的中国联通隔离采集器使用。它不会读取本机 Chrome/Edge 的用户目录；不要给配置增加 Cookie、`storage_state`、代理或个人资料路径。
 
 ## 页面走查
 

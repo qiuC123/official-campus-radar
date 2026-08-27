@@ -1,0 +1,63 @@
+{
+  "cycle": "Phase 02 / T6 Cycle 05",
+  "scope": "China Unicom only",
+  "authorization": {
+    "owner_confirmed": true,
+    "confirmed_on": "2026-08-27",
+    "decision": "docs/adr/0004-isolated-production-browser-for-unicom.md",
+    "scheduled_task_authorized": false
+  },
+  "isolation": {
+    "ephemeral_context": true,
+    "headless": true,
+    "environment_proxy_enabled": false,
+    "imported_user_profile": false,
+    "imported_storage_state": false,
+    "configured_cookies": false,
+    "request_headers_or_tokens_persisted": false,
+    "allowed_entry_url": "https://zglt.zhaopin.com/scjobs/index.html",
+    "allowed_endpoint": "https://fe.zhaopin.com/grace/api/dsc/search-job-list"
+  },
+  "pagination": {
+    "frontend_page_size": 11,
+    "collected_page_size": 100,
+    "total_positions": 2704,
+    "expected_page_requests": 28,
+    "request_delay_seconds": 1,
+    "max_pages": 40
+  },
+  "database_backup": {
+    "path": "C:\\Users\\Mayn\\AppData\\Local\\Temp\\official-campus-radar-before-t6-cycle05-20260827-184535.sqlite3",
+    "bytes": 10100736,
+    "sha256": "D133AD9769CC981B4C2D89151DC2CF1CF4C6A5C8422F474EA167067CF0DF7BD4"
+  },
+  "update_run": {
+    "id": 11,
+    "status": "success",
+    "error_message": "",
+    "fetch_run_id": 43,
+    "fetch_status": "success",
+    "http_status": 200,
+    "source_version_id": 39,
+    "source_version_applied": true,
+    "publication_event_count": 1
+  },
+  "source_state": {
+    "source_id": 15,
+    "adapter_name": "isolated_browser_json",
+    "admission_state": "enabled",
+    "is_active": true,
+    "admitted": true,
+    "admission_event_count": 18,
+    "batch_count": 1,
+    "position_count": 2704,
+    "current_position_count": 2704
+  },
+  "database_totals": {
+    "batch_count": 25,
+    "current_position_count": 7398
+  },
+  "raw_response_body_persisted": false,
+  "outcome": "published_all_25_sources",
+  "completed": true
+}

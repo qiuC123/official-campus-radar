@@ -114,6 +114,68 @@ class JsonApiSourceAdapter:
     timeout_seconds = 15
     user_agent = "OfficialCampusRadar/0.1 (local low-frequency collector)"
 
+    def _finalize_fetched_page(
+        self,
+        *,
+        config: dict,
+        endpoint: str,
+        aggregate_document: dict,
+        positions: list[object],
+        positions_complete: bool,
+        http_status: int,
+    ) -> FetchedPage:
+        """Build the canonical page shared by HTTP and browser JSON transports."""
+
+        list_path = str(config["list_path"]).strip()
+        pagination = config["pagination"]
+        total_kind = str(pagination.get("total_kind", "items")).strip().lower()
+        pagination_mode = str(pagination["mode"]).strip().lower()
+        duplicate_rows_removed = 0
+        position_key_path = str(config["field_map"]["position_key"]).strip()
+        unique_positions: list[object] = []
+        rows_by_key: dict[str, str] = {}
+        for row in positions:
+            if not isinstance(row, dict):
+                unique_positions.append(row)
+                continue
+            raw_key = _field_value(row, position_key_path, "")
+            position_key = self._raw_text(raw_key).strip()
+            if not position_key:
+                unique_positions.append(row)
+                continue
+            canonical_row = _canonical_json(row)
+            previous_row = rows_by_key.get(position_key)
+            if previous_row is None:
+                rows_by_key[position_key] = canonical_row
+                unique_positions.append(row)
+            elif previous_row == canonical_row:
+                duplicate_rows_removed += 1
+            else:
+                raise ValueError(
+                    f"JSON API returned conflicting rows for position key {position_key!r}"
+                )
+        _set_path(aggregate_document, list_path, unique_positions)
+        aggregate_document["_radar"] = {
+            "positions_complete": positions_complete,
+            "list_path": list_path,
+            "batch": copy.deepcopy(config["batch"]),
+            "field_map": copy.deepcopy(config["field_map"]),
+            "valid_values": copy.deepcopy(config.get("valid_values", {})),
+            "row_filters": copy.deepcopy(config.get("row_filters", [])),
+            "html_fields": copy.deepcopy(config.get("html_fields", [])),
+            "pagination_total_kind": total_kind,
+            "pagination_mode": pagination_mode,
+            "duplicate_rows_removed": duplicate_rows_removed,
+        }
+        body = _canonical_json(aggregate_document)
+        return FetchedPage(
+            canonical_url=canonicalize_url(endpoint),
+            body=body,
+            content_hash=hashlib.sha256(body.encode("utf-8")).hexdigest(),
+            http_status=http_status,
+            etag=None,
+        )
+
     @staticmethod
     def validate_source_config(source: OfficialSource) -> None:
         config = source.parser_config
@@ -543,51 +605,13 @@ class JsonApiSourceAdapter:
 
         if aggregate_document is None or last_response is None:
             raise ValueError("JSON API pagination returned no response")
-        duplicate_rows_removed = 0
-        position_key_path = str(config["field_map"]["position_key"]).strip()
-        unique_positions: list[object] = []
-        rows_by_key: dict[str, str] = {}
-        for row in positions:
-            if not isinstance(row, dict):
-                unique_positions.append(row)
-                continue
-            raw_key = _field_value(row, position_key_path, "")
-            position_key = self._raw_text(raw_key).strip()
-            if not position_key:
-                unique_positions.append(row)
-                continue
-            canonical_row = _canonical_json(row)
-            previous_row = rows_by_key.get(position_key)
-            if previous_row is None:
-                rows_by_key[position_key] = canonical_row
-                unique_positions.append(row)
-            elif previous_row == canonical_row:
-                duplicate_rows_removed += 1
-            else:
-                raise ValueError(
-                    f"JSON API returned conflicting rows for position key {position_key!r}"
-                )
-        positions = unique_positions
-        _set_path(aggregate_document, list_path, positions)
-        aggregate_document["_radar"] = {
-            "positions_complete": positions_complete,
-            "list_path": list_path,
-            "batch": copy.deepcopy(config["batch"]),
-            "field_map": copy.deepcopy(config["field_map"]),
-            "valid_values": copy.deepcopy(config.get("valid_values", {})),
-            "row_filters": copy.deepcopy(config.get("row_filters", [])),
-            "html_fields": copy.deepcopy(config.get("html_fields", [])),
-            "pagination_total_kind": total_kind,
-            "pagination_mode": pagination_mode,
-            "duplicate_rows_removed": duplicate_rows_removed,
-        }
-        body = _canonical_json(aggregate_document)
-        return FetchedPage(
-            canonical_url=canonicalize_url(endpoint),
-            body=body,
-            content_hash=hashlib.sha256(body.encode("utf-8")).hexdigest(),
+        return self._finalize_fetched_page(
+            config=config,
+            endpoint=endpoint,
+            aggregate_document=aggregate_document,
+            positions=positions,
+            positions_complete=positions_complete,
             http_status=last_response.status_code,
-            etag=None,
         )
 
     @staticmethod

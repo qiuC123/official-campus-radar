@@ -2,6 +2,7 @@ from radar.collectors.base import FetchedPage
 from radar.collectors.ats_json_api import AtsJsonApiSourceAdapter
 from radar.collectors.embedded_jobs import EmbeddedJobsAdapter
 from radar.collectors.html import HtmlSourceAdapter
+from radar.collectors.isolated_browser_json import IsolatedBrowserJsonSourceAdapter
 from radar.collectors.json_api import JsonApiSourceAdapter
 from radar.collectors.moka_api import MokaPublicApiAdapter
 from radar.models import OfficialSource
@@ -31,6 +32,7 @@ class AdapterRegistry:
         "ats_json_api": AtsJsonApiSourceAdapter,
         "embedded_jobs": EmbeddedJobsAdapter,
         "moka_public_api": MokaPublicApiAdapter,
+        "isolated_browser_json": IsolatedBrowserJsonSourceAdapter,
         "local_demo_disabled": DisabledLocalDemoAdapter,
     }
 

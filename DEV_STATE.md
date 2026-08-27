@@ -2,11 +2,11 @@
 
 Last verified: 2026-08-27 Asia/Shanghai
 
-Phase and status: Phase 02 / H1、H2、G10、H3 已通过，T3 和 T4 已完成。T6 Cycle 04 已完成中国联通真实翻页复验：累计 24 家写入 4694 个岗位；联通官网浏览器翻页正常，但匿名 API 第二页仍返回业务错误，尚未发布；T6 尚未整体通过。
+Phase and status: Phase 02 / H1、H2、G10、H3 已通过，T3、T4 和 T6 已完成。T6 Cycle 05 通过 ADR 0004 的中国联通单来源隔离浏览器发布 2704 个岗位；当前累计 25 个批次、7398 个当前岗位，25/25 来源通过。
 
 ## Current result
 
-- 架构仍为 Django 5.2 + SQLite 服务端页面，没有引入 React/Vue 或生产浏览器依赖。
+- 架构仍为 Django 5.2 + SQLite 服务端页面，没有引入 React/Vue。ADR 0004 已批准中国联通唯一的生产隔离浏览器例外；它不复用个人浏览器资料，也不扩展到其他来源。
 - T1 JSON 适配器、T2 接口发现工具的 `batch` / `official_page_url` 兼容候选已实现；旧 JSON 配置和证据字段由 0011 可逆迁移。兼容 Cycle 01/02 失败记录保留，Cycle 03 技术候选通过。
 - 正式首页 `/` 使用 ORM ViewModel；`/history/` 显示截止/撤回批次；开发模式下 `/preview/phase-02/` 使用独立 Mock ViewModel，并始终标注模拟数据。
 - 领域模型使用 `RecruitmentBatch` / `RecruitmentPosition`；根据 ADR 0003，投递进度现在归招聘批次所有并由用户手动维护，不从岗位自动计算。
@@ -55,6 +55,9 @@ Phase and status: Phase 02 / H1、H2、G10、H3 已通过，T3 和 T4 已完成�
 - T6 Cycle 03 回归：开发工具测试 140/140（另 62 个子测试）、Django 完整测试 386/386 通过；系统检查、迁移检查、机器报告重建和 `git diff --check` 通过。
 - T6 Cycle 04 在用户确认的官网页面上核实 2704 个岗位、每页 11 条、共 246 页；用户 Edge 实际点击第 2 页后页码和岗位列表均正常变化。公开前端代码确认分页就是 `pageIndex`，没有隐藏游标。
 - 同 Cycle 的无 Cookie、无签名、当前 Origin/Referer 匿名第 2 页请求仍返回 HTTP 200、业务 `code=500`。公开请求模块可能在已有浏览器会话中增加 `at`/`rt`，但本项目未读取或保留任何会话值，也未把浏览器引入生产采集。机器记录为 `work/phase-02-t6-cycle-04.json`。
+- T6 Cycle 05 在用户明确确认后新增 ADR 0004 和中国联通专用 `isolated_browser_json`。适配器每次使用全新无头 Chromium context，不导入用户资料、Cookie、`storage_state`、账号或代理；只把已核验公开请求的 `pageSize` 从 11 改为 100，并按官方下一页控件低频翻页。
+- Cycle 05 写入前备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-t6-cycle05-20260827-184535.sqlite3`，SHA-256 为 `D133AD9769CC981B4C2D89151DC2CF1CF4C6A5C8422F474EA167067CF0DF7BD4`。UpdateRun 11 和 FetchRun 43 均成功，发布中国联通 1 个批次、2704 个当前岗位；全库达到 25 个批次、7398 个当前岗位。
+- T6 Cycle 05 回归：开发工具测试 140/140、Django 完整测试 394/394 通过；机器报告 `work/phase-02-t6-cycle-05.json` 可从数据库和备份确定性重建。T6 25/25 来源全部通过，但 T7 仍未授权。
 
 ## Candidate validation evidence
 
@@ -84,8 +87,8 @@ Phase and status: Phase 02 / H1、H2、G10、H3 已通过，T3 和 T4 已完成�
 
 ## Explicitly not started
 
-生产浏览器采集、Windows 计划任务、微信模块和云部署均未开始。T6 已累计发布 24/25 家，但尚未整体通过。
+除 ADR 0004 的中国联通单来源隔离浏览器外，不做其他生产浏览器采集。Windows 计划任务、微信模块和云部署均未开始。T6 已累计发布 25/25 家并通过。
 
 ## Exact next task
 
-等待中国联通匿名分页恢复；如果要改用浏览器采集，必须由用户重新批准明确的安全边界并创建独立 Cycle，不能复用用户浏览器凭据。T6 完全通过前不启动 T7。
+等待用户单独决定是否启动 T7 Windows 定时任务。未经明确授权，不运行 `scripts/install_daily_task.ps1 -Apply`。

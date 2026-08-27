@@ -33,4 +33,6 @@ py -3.13 manage.py transition_source_admission --source-id 1 --to-state verified
 
 本项目不保存 Cookie、账号或验证码处理信息，也不会绕过访问限制。
 
+生产采集默认只使用普通 HTTP。中国联通是 ADR 0004 明确批准的唯一隔离浏览器例外：每次创建新的无头 Chromium context，不导入用户数据目录、Cookie、`storage_state`、账号、代理或扩展，只允许访问已核验页面和端点。新增任何浏览器来源都必须重新取证、单独批准并新增 ADR，不能把中国联通的决定当作通用白名单。
+
 JSON 配置只允许明确的低风险请求头：`Accept`、`Accept-Language`、`Origin`、`Referer` 和已核验的 `cr-service`。`Cookie`、`Authorization`、签名头、令牌或其他秘密不得进入目录。

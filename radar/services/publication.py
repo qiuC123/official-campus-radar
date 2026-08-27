@@ -243,7 +243,10 @@ def _publish_candidate(
             ["incomplete_position_coverage"],
             batch=existing_batch,
         )
-    if source.adapter_name == "json_api" and not candidate.positions_complete:
+    if source.adapter_name in {
+        "json_api",
+        "isolated_browser_json",
+    } and not candidate.positions_complete:
         return _reject(
             source,
             candidate,
@@ -263,6 +266,7 @@ def _publish_candidate(
     declared_type_is_authoritative = source.adapter_name in {
         "json_api",
         "ats_json_api",
+        "isolated_browser_json",
         "moka_public_api",
     }
     if declared_type_is_authoritative and declared_recruitment_type in {

@@ -39,7 +39,7 @@ Links: `docs/superpowers/specs/2026-08-17-official-campus-recruitment-radar-desi
 
 - Module ownership and dependency direction: 页面与目录查询调用应用服务；应用服务调用领域数据与来源适配器；适配器不直接决定前台展示。
 - Data classification, contracts, and compatibility policy: 招聘批次、岗位与官方链接为公开招聘信息；岗位级个人进度为本地私有数据；页面通过 ViewModel 与企业 JSON 隔离。
-- External-service, security, and approval boundaries: 仅低频读取公开来源；任何登录、绕过限制、云部署或外部写入必须另获用户批准。
+- External-service, security, and approval boundaries: 仅低频读取公开来源；任何登录、绕过限制、云部署或外部写入必须另获用户批准。中国联通按 ADR 0004 使用不含个人资料的临时隔离浏览器；该单来源例外不得推广。
 - Observability and failure-handling expectations: 每个来源和每次更新均有结果记录；失败不会删除历史数据。
 
 ## Lifecycle and authority
