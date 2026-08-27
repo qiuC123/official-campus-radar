@@ -289,3 +289,31 @@ Run the offline tests without installing or launching a browser:
 ```powershell
 py -3.13 -m unittest tools.tests.test_discover_api
 ```
+
+### T3 Cycle 07 completeness and next-group evidence
+
+Cycle 07 first sends one empty-body request to the already observed China
+Telecom endpoint. The result is 10 rows against `data.rowCount = 2935`, so it
+proves the response is incomplete but does not guess an unobserved page field.
+The next-group discovery then opens OPPO, Meituan, Amazon China and ICBC once.
+
+Meituan's discovery report records page 1 and spends five of six endpoint
+requests on the fixed replay ladder. Its separate validator is allowed only
+the sixth request, with the observed nested `page.pageNo = 2` shape. Both live
+commands are one-shot evidence and must not be rerun:
+
+```powershell
+py -3.13 -m unittest tools.tests.test_validate_telecom_cycle07 -v
+py -3.13 tools/validate_telecom_cycle07.py
+py -3.13 -m unittest tools.tests.test_cycle07_next_group_targets tools.tests.test_discover_api -v
+py -3.13 tools/discover_api.py `
+  --targets tools/targets-phase-02-t3-cycle-07-next-group.json `
+  --out work/phase-02-t3-discovery-cycle-07-next-group.md
+py -3.13 -m unittest tools.tests.test_validate_meituan_cycle07 -v
+py -3.13 tools/validate_meituan_cycle07.py
+```
+
+The OPPO candidate is not replayed because the captured request contains an
+authorization header. Amazon's inferred facet count is not a valid job total,
+and ICBC announcement rows are not position rows. These remain recorded
+failures rather than integration claims.

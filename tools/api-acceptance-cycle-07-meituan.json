@@ -1,0 +1,58 @@
+{
+  "cycle": "Phase 02 / T3 Cycle 07",
+  "source_admission_claimed": false,
+  "target": {
+    "key": "P08-C07",
+    "company": "美团",
+    "company_type": "民企",
+    "official_page_url": "https://zhaopin.meituan.com/",
+    "entry_page_url": "https://job.meituan.com/web/campus",
+    "endpoint": "https://job.meituan.com/api/official/job/getJobList",
+    "method": "POST",
+    "list_path": "data.list",
+    "total_path": "data.page.totalPage",
+    "total_kind": "pages",
+    "id_field": "jobUnionId",
+    "required_fields": ["jobUnionId", "name", "cityList", "jobType"],
+    "sample_fields": ["jobUnionId", "name", "jobType", "jobStatus", "cityList", "firstPostTime"],
+    "campus_field": "jobType",
+    "campus_expected": "2",
+    "observed_page_one_ids": [
+      "3763421415",
+      "4669976027",
+      "4555593816",
+      "4306214875",
+      "4709354699"
+    ],
+    "body": {
+      "page": {
+        "pageNo": 2,
+        "pageSize": 10
+      },
+      "jobShareType": "1",
+      "keywords": "",
+      "cityList": [],
+      "department": [],
+      "jfJgList": [],
+      "jobType": [
+        {
+          "code": "1",
+          "subCode": []
+        },
+        {
+          "code": "2",
+          "subCode": []
+        }
+      ],
+      "typeCode": [],
+      "specialCode": [],
+      "u_query_id": "6dd23e48564efdb3aeabc32093fac65c",
+      "r_query_id": "178780459568670203468"
+    },
+    "request_budget": {
+      "maximum": 6,
+      "already_spent": 5,
+      "planned": 1
+    }
+  }
+}

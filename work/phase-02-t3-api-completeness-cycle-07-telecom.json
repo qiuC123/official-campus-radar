@@ -1,0 +1,77 @@
+{
+  "cycle": "phase-02-t3-cycle-07-telecom-completeness",
+  "scope": "one-request list completeness check; not source admission",
+  "source_admission_claimed": false,
+  "database_writes": false,
+  "raw_response_persisted": false,
+  "result": {
+    "key": "china_telecom_beijing_campus",
+    "company": "中国电信集团有限公司",
+    "endpoint": "https://job.chinatelecom.com.cn/wt/TELE/web/mode400/position/list",
+    "official_page_url": "https://job.chinatelecom.com.cn/wt/TELE/web/index?brandCode=1#/postinquiry",
+    "minimal_request": true,
+    "cookies_sent": false,
+    "requests_made": 1,
+    "request_budget_after_run": 1,
+    "status": 200,
+    "content_type": "application/json",
+    "row_count": 10,
+    "reported_total": 2935,
+    "list_is_complete": false,
+    "ids_are_unique": true,
+    "campus_raw_values": [
+      "校园招聘"
+    ],
+    "missing_required_fields": [],
+    "samples": [
+      {
+        "PostId": 137902,
+        "PostName": "区域解决方案经理（市区）",
+        "WorkPlace": "北京市",
+        "PostType": "解决方案经理",
+        "ReleaseTime": "2026-08-23",
+        "RecruitType": 1,
+        "RecruitTypeName": "校园招聘"
+      },
+      {
+        "PostId": 137903,
+        "PostName": "区域客户经理（市区）",
+        "WorkPlace": "北京市",
+        "PostType": "",
+        "ReleaseTime": "2026-08-23",
+        "RecruitType": 1,
+        "RecruitTypeName": "校园招聘"
+      },
+      {
+        "PostId": 137905,
+        "PostName": "区域客户经理（近郊区）",
+        "WorkPlace": "北京市",
+        "PostType": "",
+        "ReleaseTime": "2026-08-23",
+        "RecruitType": 1,
+        "RecruitTypeName": "校园招聘"
+      },
+      {
+        "PostId": 137908,
+        "PostName": "行业解决方案经理",
+        "WorkPlace": "北京市",
+        "PostType": "解决方案经理",
+        "ReleaseTime": "2026-08-23",
+        "RecruitType": 1,
+        "RecruitTypeName": "校园招聘"
+      },
+      {
+        "PostId": 137909,
+        "PostName": "行业客户经理",
+        "WorkPlace": "北京市",
+        "PostType": "",
+        "ReleaseTime": "2026-08-23",
+        "RecruitType": 1,
+        "RecruitTypeName": "校园招聘"
+      }
+    ],
+    "errors": [],
+    "passed": false
+  },
+  "passed": false
+}

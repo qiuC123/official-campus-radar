@@ -1,0 +1,39 @@
+{
+  "cycle": "phase-02-t3-cycle-07-telecom-completeness",
+  "source_admission_claimed": false,
+  "database_writes": false,
+  "target": {
+    "key": "china_telecom_beijing_campus",
+    "company": "中国电信集团有限公司",
+    "company_type": "央国企",
+    "official_page_url": "https://job.chinatelecom.com.cn/wt/TELE/web/index?brandCode=1#/postinquiry",
+    "endpoint": "https://job.chinatelecom.com.cn/wt/TELE/web/mode400/position/list",
+    "method": "POST",
+    "body": {},
+    "list_path": "data.details",
+    "total_path": "data.rowCount",
+    "id_field": "PostId",
+    "required_fields": [
+      "PostId",
+      "PostName",
+      "WorkPlace",
+      "RecruitTypeName"
+    ],
+    "sample_fields": [
+      "PostId",
+      "PostName",
+      "WorkPlace",
+      "PostType",
+      "ReleaseTime",
+      "RecruitType",
+      "RecruitTypeName"
+    ],
+    "campus_field": "RecruitTypeName",
+    "campus_expected": "校园招聘",
+    "request_budget": {
+      "maximum": 1,
+      "already_spent": 0,
+      "planned": 1
+    }
+  }
+}

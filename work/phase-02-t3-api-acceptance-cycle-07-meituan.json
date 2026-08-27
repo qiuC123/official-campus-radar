@@ -1,0 +1,160 @@
+{
+  "cycle": "Phase 02 / T3 Cycle 07",
+  "scope": "one-request page-two acceptance; not source admission",
+  "source_admission_claimed": false,
+  "database_writes": false,
+  "raw_response_persisted": false,
+  "result": {
+    "key": "P08-C07",
+    "company": "美团",
+    "endpoint": "https://job.meituan.com/api/official/job/getJobList",
+    "official_page_url": "https://zhaopin.meituan.com/",
+    "minimal_request": true,
+    "cookies_sent": false,
+    "requests_made": 1,
+    "request_budget_after_run": 6,
+    "page": 2,
+    "status": 200,
+    "content_type": "application/json",
+    "row_count": 10,
+    "reported_total_pages": 57,
+    "ids": [
+      "4590205175",
+      "4365132604",
+      "4150674945",
+      "2927053230",
+      "4708149694",
+      "4686144199",
+      "4698722694",
+      "4724134707",
+      "4721378720",
+      "4061749831"
+    ],
+    "ids_are_unique": true,
+    "different_from_observed_page_one": true,
+    "campus_raw_values": [
+      "2"
+    ],
+    "missing_required_fields": [],
+    "samples": [
+      {
+        "jobUnionId": "4590205175",
+        "name": "商家端产品实习生",
+        "jobType": "2",
+        "jobStatus": "000",
+        "cityList": [
+          {
+            "code": null,
+            "name": "北京市",
+            "children": null,
+            "sort": null,
+            "subCode": null,
+            "mapping": null,
+            "outerCode": null,
+            "bgNode": false
+          }
+        ],
+        "firstPostTime": null
+      },
+      {
+        "jobUnionId": "4365132604",
+        "name": "无人车硬件-AI Agent实习生",
+        "jobType": "2",
+        "jobStatus": "000",
+        "cityList": [
+          {
+            "code": null,
+            "name": "上海市",
+            "children": null,
+            "sort": null,
+            "subCode": null,
+            "mapping": null,
+            "outerCode": null,
+            "bgNode": false
+          }
+        ],
+        "firstPostTime": null
+      },
+      {
+        "jobUnionId": "4150674945",
+        "name": "搜推导购产品实习生",
+        "jobType": "2",
+        "jobStatus": "000",
+        "cityList": [
+          {
+            "code": null,
+            "name": "北京市",
+            "children": null,
+            "sort": null,
+            "subCode": null,
+            "mapping": null,
+            "outerCode": null,
+            "bgNode": false
+          },
+          {
+            "code": null,
+            "name": "深圳市",
+            "children": null,
+            "sort": null,
+            "subCode": null,
+            "mapping": null,
+            "outerCode": null,
+            "bgNode": false
+          }
+        ],
+        "firstPostTime": null
+      },
+      {
+        "jobUnionId": "2927053230",
+        "name": "HR招聘实习生",
+        "jobType": "2",
+        "jobStatus": "000",
+        "cityList": [
+          {
+            "code": null,
+            "name": "北京市",
+            "children": null,
+            "sort": null,
+            "subCode": null,
+            "mapping": null,
+            "outerCode": null,
+            "bgNode": false
+          },
+          {
+            "code": null,
+            "name": "上海市",
+            "children": null,
+            "sort": null,
+            "subCode": null,
+            "mapping": null,
+            "outerCode": null,
+            "bgNode": false
+          }
+        ],
+        "firstPostTime": null
+      },
+      {
+        "jobUnionId": "4708149694",
+        "name": "HR Ops Support",
+        "jobType": "2",
+        "jobStatus": "000",
+        "cityList": [
+          {
+            "code": null,
+            "name": "北京市",
+            "children": null,
+            "sort": null,
+            "subCode": null,
+            "mapping": null,
+            "outerCode": null,
+            "bgNode": false
+          }
+        ],
+        "firstPostTime": null
+      }
+    ],
+    "errors": [],
+    "passed": true
+  },
+  "passed": true
+}
