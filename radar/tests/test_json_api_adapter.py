@@ -1083,6 +1083,27 @@ class JsonApiExtractionTests(SimpleTestCase):
             "2026-12-31",
         )
 
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_extract_joins_array_locations_without_losing_raw_evidence(
+        self, request: Mock
+    ) -> None:
+        payload = load_json_fixture("json_api_page.json")
+        payload["Data"]["Posts"][0]["LocationName"] = [
+            "广东省·东莞市",
+            "浙江省·杭州市",
+        ]
+        request.return_value = json_response(payload)
+        source = make_source(copy.deepcopy(BASE_CONFIG))
+        adapter = JsonApiSourceAdapter()
+
+        position = adapter.extract(source, adapter.fetch(source))[0].positions[0]
+
+        self.assertEqual(position.location_text, "广东省·东莞市、浙江省·杭州市")
+        self.assertEqual(
+            position.field_evidence["location"].raw_value,
+            '["广东省·东莞市","浙江省·杭州市"]',
+        )
+
     def test_published_on_can_come_from_a_mapped_chinese_date(self) -> None:
         config = copy.deepcopy(BASE_CONFIG)
         config["batch"].pop("published_on")

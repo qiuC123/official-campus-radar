@@ -1,0 +1,245 @@
+{
+  "cycle": "phase-02-t3-cycle-06-beisen",
+  "scope": "read-only two-page Beisen acceptance; not source admission",
+  "source_admission_claimed": false,
+  "database_writes": false,
+  "raw_responses_persisted": false,
+  "skipped_targets": [
+    {
+      "key": "saic_volkswagen_campus",
+      "company": "上汽大众汽车有限公司",
+      "official_page_url": "https://csvw.zhiye.com/campus/jobs",
+      "reason": "Cycle 06 single-page browser observation showed 全部职位（共 0 个）; two-page requests would not provide non-empty campus evidence.",
+      "page_invocations": 1,
+      "safe_clicks": 1,
+      "api_requests_planned": 0
+    }
+  ],
+  "results": [
+    {
+      "key": "vivo_autumn_campus",
+      "company": "vivo",
+      "endpoint": "https://hr-campus.vivo.com/api/Jobad/GetJobAdPageList",
+      "official_page_url": "https://hr-campus.vivo.com/jobs?1=%5B%7B%22id%22%3A%222%22%2C%22label%22%3A%22%E7%A7%8B%E5%AD%A3%E6%A0%A1%E5%9B%AD%E6%8B%9B%E8%81%98%22%7D%5D",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "requests_made": 2,
+      "request_budget_after_run": 2,
+      "pages": [
+        {
+          "page_index": 0,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 20,
+          "ids": [
+            "561282866",
+            "561282792",
+            "561282623",
+            "561282620",
+            "561282516",
+            "561289269",
+            "561282934",
+            "561282956",
+            "561282955",
+            "561282951",
+            "561282950",
+            "561282949",
+            "561282948",
+            "561282947",
+            "561282946",
+            "561282945",
+            "561282944",
+            "561282943",
+            "561282941",
+            "561282939"
+          ],
+          "reported_total": 137,
+          "missing_required_fields": [],
+          "samples": [
+            {
+              "JobAdId": 561282866,
+              "JobAdName": "技术规划工程师（电声方向）-27届秋招",
+              "LocNames": [
+                "广东省·东莞市"
+              ],
+              "Category": "校园招聘",
+              "CategoryId": "2",
+              "Kind": null,
+              "ChangeDate": "2026-08-06T17:47:21",
+              "PostDate": "0001-01-01T00:00:00",
+              "Status": 1
+            },
+            {
+              "JobAdId": 561282792,
+              "JobAdName": "安全工程师-27届秋招",
+              "LocNames": [
+                "广东省·深圳市"
+              ],
+              "Category": "校园招聘",
+              "CategoryId": "2",
+              "Kind": null,
+              "ChangeDate": "2026-08-06T16:53:55",
+              "PostDate": "0001-01-01T00:00:00",
+              "Status": 1
+            },
+            {
+              "JobAdId": 561282623,
+              "JobAdName": "GPU系统工程师-27届秋招",
+              "LocNames": [
+                "上海市"
+              ],
+              "Category": "校园招聘",
+              "CategoryId": "2",
+              "Kind": null,
+              "ChangeDate": "2026-08-06T16:16:28",
+              "PostDate": "0001-01-01T00:00:00",
+              "Status": 1
+            },
+            {
+              "JobAdId": 561282620,
+              "JobAdName": "CMF设计师（IOT方向）-27届秋招",
+              "LocNames": [
+                "广东省·东莞市"
+              ],
+              "Category": "校园招聘",
+              "CategoryId": "2",
+              "Kind": null,
+              "ChangeDate": "2026-08-06T16:14:42",
+              "PostDate": "0001-01-01T00:00:00",
+              "Status": 1
+            },
+            {
+              "JobAdId": 561282516,
+              "JobAdName": "市场口碑工程师-27届秋招",
+              "LocNames": [
+                "广东省·东莞市"
+              ],
+              "Category": "校园招聘",
+              "CategoryId": "2",
+              "Kind": null,
+              "ChangeDate": "2026-08-06T15:25:23",
+              "PostDate": "0001-01-01T00:00:00",
+              "Status": 1
+            }
+          ]
+        },
+        {
+          "page_index": 1,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 20,
+          "ids": [
+            "561282937",
+            "561282935",
+            "561282932",
+            "561282928",
+            "561282923",
+            "561282921",
+            "561282920",
+            "561282917",
+            "561282916",
+            "561282913",
+            "561282911",
+            "561282910",
+            "561282906",
+            "561282903",
+            "561282901",
+            "561282898",
+            "561282897",
+            "561282896",
+            "561282876",
+            "561282874"
+          ],
+          "reported_total": 137,
+          "missing_required_fields": [],
+          "samples": [
+            {
+              "JobAdId": 561282937,
+              "JobAdName": "软件产品经理-27届秋招",
+              "LocNames": [
+                "广东省·东莞市"
+              ],
+              "Category": "校园招聘",
+              "CategoryId": "2",
+              "Kind": null,
+              "ChangeDate": "2026-08-06T19:28:15",
+              "PostDate": "0001-01-01T00:00:00",
+              "Status": 1
+            },
+            {
+              "JobAdId": 561282935,
+              "JobAdName": "软件工程师（Agent开发方向）-27届秋招",
+              "LocNames": [
+                "广东省·深圳市"
+              ],
+              "Category": "校园招聘",
+              "CategoryId": "2",
+              "Kind": null,
+              "ChangeDate": "2026-08-06T19:26:10",
+              "PostDate": "0001-01-01T00:00:00",
+              "Status": 1
+            },
+            {
+              "JobAdId": 561282932,
+              "JobAdName": "软件测试开发工程师（影像方向）-27届秋招",
+              "LocNames": [
+                "广东省·深圳市"
+              ],
+              "Category": "校园招聘",
+              "CategoryId": "2",
+              "Kind": null,
+              "ChangeDate": "2026-08-06T19:22:23",
+              "PostDate": "0001-01-01T00:00:00",
+              "Status": 1
+            },
+            {
+              "JobAdId": 561282928,
+              "JobAdName": "软件测试开发工程师-27届秋招",
+              "LocNames": [
+                "广东省·东莞市/深圳市",
+                "江苏省·南京市",
+                "浙江省·杭州市"
+              ],
+              "Category": "校园招聘",
+              "CategoryId": "2",
+              "Kind": null,
+              "ChangeDate": "2026-08-06T19:20:53",
+              "PostDate": "0001-01-01T00:00:00",
+              "Status": 1
+            },
+            {
+              "JobAdId": 561282923,
+              "JobAdName": "控制算法工程师-27届秋招",
+              "LocNames": [
+                "广东省·深圳市",
+                "浙江省·杭州市"
+              ],
+              "Category": "校园招聘",
+              "CategoryId": "2",
+              "Kind": null,
+              "ChangeDate": "2026-08-06T19:12:27",
+              "PostDate": "0001-01-01T00:00:00",
+              "Status": 1
+            }
+          ]
+        }
+      ],
+      "pagination": {
+        "page_ids_are_distinct": true,
+        "passed": true
+      },
+      "campus_evidence": {
+        "field": "ClassificationOne",
+        "raw_value": [
+          "2"
+        ],
+        "raw_label": "秋季校园招聘",
+        "passed": true
+      },
+      "required_fields_passed": true,
+      "errors": [],
+      "passed": true
+    }
+  ],
+  "passed": true
+}

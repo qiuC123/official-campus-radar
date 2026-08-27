@@ -1,0 +1,87 @@
+{
+  "cycle": "phase-02-t3-cycle-06-beisen",
+  "source_admission_claimed": false,
+  "database_writes": false,
+  "targets": [
+    {
+      "key": "vivo_autumn_campus",
+      "company": "vivo",
+      "company_type": "民企",
+      "official_page_url": "https://hr-campus.vivo.com/jobs?1=%5B%7B%22id%22%3A%222%22%2C%22label%22%3A%22%E7%A7%8B%E5%AD%A3%E6%A0%A1%E5%9B%AD%E6%8B%9B%E8%81%98%22%7D%5D",
+      "endpoint": "https://hr-campus.vivo.com/api/Jobad/GetJobAdPageList",
+      "method": "POST",
+      "body_encoding": "json",
+      "base_body": {
+        "PageIndex": 0,
+        "PageSize": 20,
+        "ClassificationOne": [
+          "2"
+        ],
+        "KeyWords": "",
+        "SpecialType": 0,
+        "PortalId": "",
+        "DisplayFields": [
+          "Category",
+          "LocId",
+          "HeadCount",
+          "WorkWeChatQrCode"
+        ]
+      },
+      "pagination": {
+        "page_param": "PageIndex",
+        "size_param": "PageSize",
+        "page_size": 20,
+        "pages": [
+          0,
+          1
+        ]
+      },
+      "list_path": "Data",
+      "total_path": "Count",
+      "success": {
+        "path": "Code",
+        "expect": 200
+      },
+      "id_field": "JobAdId",
+      "required_fields": [
+        "JobAdId",
+        "JobAdName",
+        "LocNames"
+      ],
+      "sample_fields": [
+        "JobAdId",
+        "JobAdName",
+        "LocNames",
+        "Category",
+        "CategoryId",
+        "Kind",
+        "ChangeDate",
+        "PostDate",
+        "Status"
+      ],
+      "campus_evidence": {
+        "request_field": "ClassificationOne",
+        "expected": [
+          "2"
+        ],
+        "raw_label": "秋季校园招聘"
+      },
+      "request_budget": {
+        "maximum": 2,
+        "already_spent": 0,
+        "planned": 2
+      }
+    }
+  ],
+  "skipped_targets": [
+    {
+      "key": "saic_volkswagen_campus",
+      "company": "上汽大众汽车有限公司",
+      "official_page_url": "https://csvw.zhiye.com/campus/jobs",
+      "reason": "Cycle 06 single-page browser observation showed 全部职位（共 0 个）; two-page requests would not provide non-empty campus evidence.",
+      "page_invocations": 1,
+      "safe_clicks": 1,
+      "api_requests_planned": 0
+    }
+  ]
+}

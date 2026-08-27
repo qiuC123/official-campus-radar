@@ -24,7 +24,10 @@ REPLAY_LADDER_REQUESTS = 5
 REDACTED_VALUE = "[REDACTED]"
 
 TITLE_KEY = re.compile(r"title|name|job|post|position", re.IGNORECASE)
-LOCATION_KEY = re.compile(r"city|location|area|place|region", re.IGNORECASE)
+LOCATION_KEY = re.compile(
+    r"city|location|(?:^|[._])locnames?$|area|place|region",
+    re.IGNORECASE,
+)
 TIME_KEY = re.compile(r"date|time|update|publish", re.IGNORECASE)
 TOTAL_KEY = re.compile(r"total|count", re.IGNORECASE)
 SUCCESS_KEY = re.compile(r"code|status|ret", re.IGNORECASE)
@@ -40,7 +43,7 @@ CREDENTIAL_HEADER_NAMES = frozenset(
     }
 )
 DISCRIMINATOR_KEY = re.compile(
-    r"kind|campus|graduate|school|workyears?|experience|intern|recruit|attr|type",
+    r"kind|category|campus|graduate|school|workyears?|experience|intern|recruit|attr|type",
     re.IGNORECASE,
 )
 CAMPUS_FILTER = re.compile(
@@ -157,7 +160,7 @@ def find_candidate_arrays(payload: object) -> list[CandidateArray]:
             return
         if value and all(isinstance(item, dict) for item in value):
             rows = tuple(value)
-            keys = {str(key) for row in rows for key in row}
+            keys = {path for row in rows for path in _iter_leaf_paths(row)}
             title_keys = {
                 key
                 for key in keys
@@ -282,20 +285,40 @@ def infer_pagination_parameters(
     return inferred
 
 
+def _iter_leaf_paths(value: object, path: str = ""):
+    if isinstance(value, dict):
+        for key, child in value.items():
+            child_path = _join_path(path, str(key))
+            if isinstance(child, dict):
+                yield from _iter_leaf_paths(child, child_path)
+            else:
+                yield child_path
+
+
 def _ordered_keys(rows: list[dict[str, object]] | tuple[dict[str, object], ...]):
     seen: set[str] = set()
     for row in rows:
-        for key in row:
-            text = str(key)
-            if text not in seen:
-                seen.add(text)
-                yield text
+        for path in _iter_leaf_paths(row):
+            if path not in seen:
+                seen.add(path)
+                yield path
+
+
+def _row_path_value(row: dict[str, object], path: str) -> object:
+    current: object = row
+    for part in path.split("."):
+        if not isinstance(current, dict) or part not in current:
+            return None
+        current = current[part]
+    return current
 
 
 def _field_score(key: str, role: str) -> int:
-    normalized = re.sub(r"[^a-z0-9]", "", key.lower())
+    leaf_key = key.rsplit(".", 1)[-1]
+    normalized = re.sub(r"[^a-z0-9]", "", leaf_key.lower())
     exact: dict[str, tuple[str, ...]] = {
         "title": (
+            "jobadname",
             "jobtitle",
             "recruitpostname",
             "positiontitle",
@@ -305,6 +328,7 @@ def _field_score(key: str, role: str) -> int:
             "jobname",
         ),
         "location": (
+            "locnames",
             "cityname",
             "locationname",
             "worklocation",
@@ -315,6 +339,8 @@ def _field_score(key: str, role: str) -> int:
             "region",
         ),
         "updated_at": (
+            "changedate",
+            "postdate",
             "publishdate",
             "lastupdatetime",
             "updatedat",
@@ -337,7 +363,7 @@ def _field_score(key: str, role: str) -> int:
         "application_url": re.compile(r"url|link", re.I),
         "is_valid": re.compile(r"valid|active|status", re.I),
     }
-    return 50 if patterns[role].search(key) else 0
+    return 50 if patterns[role].search(leaf_key) else 0
 
 
 def _identity_score(key: str, values: list[object]) -> int:
@@ -355,9 +381,10 @@ def _identity_score(key: str, values: list[object]) -> int:
         )
         for value in text_values
     )
-    normalized = re.sub(r"[^a-z0-9]", "", key.lower())
+    leaf_key = key.rsplit(".", 1)[-1]
+    normalized = re.sub(r"[^a-z0-9]", "", leaf_key.lower())
     key_score = 0
-    if normalized in {"jobid", "postid", "positionid"}:
+    if normalized in {"jobadid", "jobid", "postid", "positionid"}:
         key_score = 400
     elif normalized in {"id", "jobkey", "postkey"}:
         key_score = 100
@@ -393,7 +420,24 @@ def infer_field_map(
         "is_valid",
     ):
         ranked = sorted(
-            ((_field_score(key, role), key) for key in keys),
+            (
+                (
+                    _field_score(key, role)
+                    if role != "title"
+                    or any(
+                        isinstance(_row_path_value(row, key), str)
+                        and not re.fullmatch(
+                            r"\s*(?:\d+|[0-9a-f-]{32,})\s*",
+                            _row_path_value(row, key),
+                            re.I,
+                        )
+                        for row in rows
+                    )
+                    else 0,
+                    key,
+                )
+                for key in keys
+            ),
             key=lambda item: (-item[0], keys.index(item[1])),
         )
         if ranked and ranked[0][0] > 0:
@@ -470,15 +514,21 @@ def select_sample_fields(
         "application_url",
         "is_valid",
     }
-    mapped_keys = {
+    mapped_paths = {
         path
         for role, path in field_map.items()
-        if role in sample_roles and "." not in path
+        if role in sample_roles
     }
+    discriminator_paths = {
+        path
+        for path in _iter_leaf_paths(row)
+        if DISCRIMINATOR_KEY.search(path.rsplit(".", 1)[-1])
+    }
+    selected_paths = mapped_paths | discriminator_paths
     return {
-        str(key): value
-        for key, value in row.items()
-        if str(key) in mapped_keys or DISCRIMINATOR_KEY.search(str(key))
+        path: _row_path_value(row, path)
+        for path in _iter_leaf_paths(row)
+        if path in selected_paths
     }
 
 
@@ -1131,7 +1181,9 @@ def render_markdown_report(
                         f"`{candidate.get('content_type', '—')}`"
                     ),
                     f"- Candidate list path: `{candidate.get('list_path', '')}`",
+                    f"- Candidate row count: `{candidate.get('row_count', '—')}`",
                     f"- Total path: `{candidate.get('total_path') or 'not inferred'}`",
+                    f"- Reported total: `{candidate.get('reported_total', '—')}`",
                     f"- Confidence score: `{candidate.get('confidence', '—')}`",
                     (
                         "- Shared endpoint replay budget: `"
@@ -1234,6 +1286,12 @@ def analyze_captured_target(capture: dict[str, object]) -> list[dict[str, object
         if response_payload is None or not request_url:
             continue
         for candidate_array in find_candidate_arrays(response_payload):
+            total_path = infer_total_path(response_payload, candidate_array.path)
+            reported_total = (
+                _json_path_value(response_payload, total_path)
+                if total_path
+                else None
+            )
             request_headers = exchange.get("request_headers", {})
             if not isinstance(request_headers, dict):
                 request_headers = {}
@@ -1266,9 +1324,9 @@ def analyze_captured_target(capture: dict[str, object]) -> list[dict[str, object
                 "response_status": exchange.get("response_status"),
                 "content_type": exchange.get("content_type", ""),
                 "list_path": candidate_array.path,
-                "total_path": infer_total_path(
-                    response_payload, candidate_array.path
-                ),
+                "row_count": len(candidate_array.rows),
+                "total_path": total_path,
+                "reported_total": reported_total,
                 "confidence": candidate_array.score,
                 "campus_filter_score": _campus_filter_score(
                     request_url,

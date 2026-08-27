@@ -485,7 +485,14 @@ class JsonApiSourceAdapter:
         value: object,
         html_fields: set[str],
     ) -> str:
-        raw_value = cls._raw_text(value)
+        if field_name == "location" and isinstance(value, list):
+            raw_value = "、".join(
+                cls._raw_text(item).strip()
+                for item in value
+                if cls._raw_text(item).strip()
+            )
+        else:
+            raw_value = cls._raw_text(value)
         if field_name not in html_fields:
             return raw_value
         with warnings.catch_warnings():

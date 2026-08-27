@@ -3,7 +3,7 @@ from collections.abc import Iterable
 
 
 SPECIAL_LOCATIONS = {"全国", "远程"}
-SUFFIXES = ("特别行政区", "自治区", "自治州", "地区", "盟", "市")
+SUFFIXES = ("特别行政区", "自治区", "自治州", "地区", "省", "盟", "市")
 
 
 def _parts(value: str | Iterable[str] | None) -> list[str]:
@@ -12,7 +12,7 @@ def _parts(value: str | Iterable[str] | None) -> list[str]:
     for item in values:
         parts.extend(
             part.strip()
-            for part in re.split(r"[\s,，、/|;；]+", str(item or ""))
+            for part in re.split(r"[\s,，、/|;；·]+", str(item or ""))
             if part.strip()
         )
     return parts

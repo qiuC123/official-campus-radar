@@ -1,0 +1,23 @@
+{
+  "cycle": "phase-02-t3-cycle-06-telecom",
+  "scope": "single safe company selection to trigger the observed China Telecom campus position API",
+  "source_admission_claimed": false,
+  "production_browser_authorized": false,
+  "control_confirmation_page_views": 1,
+  "targets": [
+    {
+      "id": "S03-C06",
+      "company": "中国电信集团有限公司",
+      "company_type": "央国企",
+      "url": "https://job.chinatelecom.com.cn/wt/TELE/web/index?brandCode=1#/",
+      "official_evidence_url": "https://www.chinatelecom.com.cn/ct/zp/",
+      "wait": 8,
+      "scroll": false,
+      "click": "li:has-text(\"中国电信北京公司\")",
+      "reason": "The current campus page visibly lists 招聘单位(44); the unique 中国电信北京公司 list item is a non-form, same-page control expected to trigger the already observed /wt/TELE/web/mode400/position/list candidate.",
+      "cycle06_page_invocations": 1,
+      "cycle06_safe_clicks": 1,
+      "normalized_endpoint_replay_maximum": 6
+    }
+  ]
+}

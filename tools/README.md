@@ -249,6 +249,41 @@ by itself increase the H3 stable-source count. In particular, website menu
 arrays must not be accepted as job arrays even when their object keys happen to
 match generic discovery heuristics.
 
+### T3 Cycle 06 Beisen and China Telecom acceptance
+
+Cycle 06 first corrects field evidence: `JobAdId` is identity rather than a
+title, `JobAdName` is the title, `LocNames` is an array location, and
+`Category` is a recruitment discriminator. Nested object paths are supported.
+Discovery reports created after this correction also retain the observed list
+length and the actual inferred total value; older reports must not be treated
+as if they contained those values.
+
+The vivo acceptance configuration and validator are:
+
+```powershell
+py -3.13 -m unittest tools.tests.test_validate_live_beisen_cycle06 -v
+py -3.13 tools/validate_live_beisen_cycle06.py
+```
+
+They send exactly Beisen pages 0 and 1 with minimal JSON headers and no Cookie.
+The live command is one-shot Cycle 06 evidence and must not be rerun. SAIC
+Volkswagen is recorded as skipped because its visible official campus section
+currently contains zero positions.
+
+The China Telecom target uses one visible, non-form list-item click to trigger
+the previously identified position endpoint:
+
+```powershell
+py -3.13 -m unittest tools.tests.test_cycle06_telecom_target tools.tests.test_discover_api -v
+py -3.13 tools/discover_api.py `
+  --targets tools/targets-phase-02-t3-cycle-06-telecom.json `
+  --out work/phase-02-t3-discovery-cycle-06-telecom.md
+```
+
+This live command is also one-shot. Its historical report was generated before
+the row-count enhancement, so the presence of `data.rowCount` does not prove
+that the captured `data.details` array was complete.
+
 Run the offline tests without installing or launching a browser:
 
 ```powershell

@@ -191,6 +191,100 @@ class PureInferenceTests(unittest.TestCase):
 
         self.assertEqual(field_map["position_key"], "jobId")
 
+    def test_beisen_job_fields_are_inferred_without_treating_job_ad_id_as_title(self):
+        infer_field_map = self.require_function("infer_field_map")
+        rows = [
+            {
+                "Id": "73c608d4-e2d3-42b2-bf0a-5af3422d287e",
+                "JobAdId": 561282866,
+                "JobAdName": "影像算法工程师",
+                "LocNames": ["深圳", "东莞"],
+                "ChangeDate": "2026-08-20T09:30:00",
+            },
+            {
+                "Id": "97d2aef4-c7d8-4c24-99ec-21116a6fa17c",
+                "JobAdId": 561282792,
+                "JobAdName": "软件开发工程师",
+                "LocNames": ["深圳"],
+                "ChangeDate": "2026-08-19T10:00:00",
+            },
+        ]
+
+        field_map = infer_field_map(rows)
+
+        self.assertEqual(field_map["position_key"], "JobAdId")
+        self.assertEqual(field_map["title"], "JobAdName")
+        self.assertEqual(field_map["location"], "LocNames")
+        self.assertEqual(field_map["updated_at"], "ChangeDate")
+
+    def test_numeric_job_ad_id_alone_is_not_inferred_as_a_title(self):
+        infer_field_map = self.require_function("infer_field_map")
+        rows = [
+            {"JobAdId": 621082783, "PostDateInt": 1774255184000},
+            {"JobAdId": 621082769, "PostDateInt": 1774253905000},
+        ]
+
+        field_map = infer_field_map(rows)
+
+        self.assertEqual(field_map["position_key"], "JobAdId")
+        self.assertNotIn("title", field_map)
+
+    def test_nested_job_fields_use_dotted_paths_and_remain_in_samples(self):
+        infer_field_map = self.require_function("infer_field_map")
+        select_sample_fields = self.require_function("select_sample_fields")
+        rows = [
+            {
+                "JobAdId": 1,
+                "Job": {
+                    "JobAdName": "结构工程师",
+                    "LocNames": ["上海", "苏州"],
+                },
+                "Category": "秋季校园招聘",
+            },
+            {
+                "JobAdId": 2,
+                "Job": {
+                    "JobAdName": "测试工程师",
+                    "LocNames": ["杭州"],
+                },
+                "Category": "秋季校园招聘",
+            },
+        ]
+
+        field_map = infer_field_map(rows)
+        sample = select_sample_fields(rows[0], field_map)
+
+        self.assertEqual(field_map["title"], "Job.JobAdName")
+        self.assertEqual(field_map["location"], "Job.LocNames")
+        self.assertEqual(sample["Job.JobAdName"], "结构工程师")
+        self.assertEqual(sample["Job.LocNames"], ["上海", "苏州"])
+        self.assertEqual(sample["Category"], "秋季校园招聘")
+
+    def test_candidate_discovery_accepts_nested_title_and_location_signals(self):
+        find_candidate_arrays = self.require_function("find_candidate_arrays")
+        payload = {
+            "Data": [
+                {
+                    "JobAdId": 1,
+                    "Job": {
+                        "JobAdName": "嵌套岗位一",
+                        "LocNames": ["北京"],
+                    },
+                },
+                {
+                    "JobAdId": 2,
+                    "Job": {
+                        "JobAdName": "嵌套岗位二",
+                        "LocNames": ["上海"],
+                    },
+                },
+            ]
+        }
+
+        candidates = find_candidate_arrays(payload)
+
+        self.assertEqual([candidate.path for candidate in candidates], ["Data"])
+
     def test_replay_header_ladder_has_five_bounded_compliance_levels(self):
         build_replay_header_profiles = self.require_function(
             "build_replay_header_profiles"
@@ -1323,6 +1417,38 @@ class OfflineBoundaryTests(unittest.TestCase):
             {candidate["list_path"] for candidate in candidates},
             {"Data.Posts", "Data.AlternatePosts"},
         )
+
+    def test_capture_analysis_retains_observed_row_count_and_total_value(self):
+        analyze_captured_target = self.require_function("analyze_captured_target")
+        payload = {
+            "data": {
+                "details": [
+                    {"PostId": 1, "PostName": "校园岗位一", "WorkPlace": "北京市"},
+                    {"PostId": 2, "PostName": "校园岗位二", "WorkPlace": "上海市"},
+                ],
+                "rowCount": 44,
+            }
+        }
+        capture = {
+            "exchanges": [
+                {
+                    "request_url": "https://careers.example/position/list",
+                    "method": "POST",
+                    "request_headers": {},
+                    "request_body": "{}",
+                    "request_json": {},
+                    "response_status": 200,
+                    "content_type": "application/json",
+                    "response_json": payload,
+                }
+            ]
+        }
+
+        candidate = analyze_captured_target(capture)[0]
+
+        self.assertEqual(candidate["row_count"], 2)
+        self.assertEqual(candidate["total_path"], "data.rowCount")
+        self.assertEqual(candidate["reported_total"], 44)
 
     def test_same_variant_list_paths_reuse_five_replay_observations(self):
         run_target_sequence = self.require_function("run_target_sequence")

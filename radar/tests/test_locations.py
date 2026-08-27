@@ -17,6 +17,14 @@ class LocationPolicyTests(SimpleTestCase):
         self.assertEqual(normalized_target_locations("杭州市、火星基地"), ["杭州", "火星基地"])
         self.assertFalse(is_target_location(""))
 
+    def test_splits_beisen_province_city_locations_and_accepts_arrays(self) -> None:
+        self.assertEqual(
+            normalized_target_locations(
+                ["广东省·东莞市/深圳市", "浙江省·杭州市"]
+            ),
+            ["广东", "东莞", "深圳", "浙江", "杭州"],
+        )
+
     def test_special_location_filters_are_exact_unless_a_city_is_selected(self) -> None:
         self.assertTrue(matches_selected_cities(["远程"], ["远程"]))
         self.assertFalse(matches_selected_cities(["全国"], ["远程"]))
