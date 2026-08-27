@@ -1,0 +1,46 @@
+{
+  "cycle": "phase-02-t3-cycle-05",
+  "scope": "current architecture XHR discovery for China Telecom, SAIC Volkswagen, and vivo",
+  "source_admission_claimed": false,
+  "production_browser_authorized": false,
+  "target_page_invocations_planned": 3,
+  "targets": [
+    {
+      "id": "S03-C05",
+      "company": "中国电信集团有限公司",
+      "company_type": "央国企",
+      "url": "https://job.chinatelecom.com.cn/wt/TELE/web/index?brandCode=1#/",
+      "official_evidence_url": "https://www.chinatelecom.com.cn/ct/zp/",
+      "wait": 10,
+      "scroll": true,
+      "reason": "Cycle 04 public bundle identified the current Vue campus route and POST /wt/TELE/web/mode400/position/list candidate; capture the live request body and response contract once.",
+      "cycle05_page_invocations": 1,
+      "normalized_endpoint_replay_maximum": 6
+    },
+    {
+      "id": "J01-C05",
+      "company": "上汽大众汽车有限公司",
+      "company_type": "中外合资",
+      "url": "https://csvw.zhiye.com/jobs",
+      "official_evidence_url": "https://www.csvw.com/",
+      "wait": 10,
+      "scroll": true,
+      "reason": "Cycle 04 embedded BSGlobal config declared /jobs as the current new-portal job list; capture its public data request once instead of applying the classic jobsTable selector.",
+      "cycle05_page_invocations": 1,
+      "normalized_endpoint_replay_maximum": 6
+    },
+    {
+      "id": "P13-C05",
+      "company": "vivo",
+      "company_type": "民企",
+      "url": "https://hr-campus.vivo.com/jobs?1=%5B%7B%22id%22%3A%222%22%2C%22label%22%3A%22%E7%A7%8B%E5%AD%A3%E6%A0%A1%E5%9B%AD%E6%8B%9B%E8%81%98%22%7D%5D",
+      "official_evidence_url": "https://hr.vivo.com/home",
+      "wait": 10,
+      "scroll": true,
+      "reason": "The current vivo official recruitment home links to hr-campus.vivo.com; the visible autumn-campus card links to this exact 137-position list URL.",
+      "cycle05_route_confirmation_page_views": 2,
+      "cycle05_page_invocations": 1,
+      "normalized_endpoint_replay_maximum": 6
+    }
+  ]
+}

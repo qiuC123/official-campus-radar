@@ -227,6 +227,28 @@ reports retain only hashes, small position samples, form field names and short
 candidate strings. A redirect, timeout, size-limit failure or missing position
 list remains a recorded failure instead of triggering a retry.
 
+### T3 Cycle 05 current-architecture XHR discovery
+
+Cycle 05 freezes exactly three current pages in
+`tools/targets-phase-02-t3-cycle-05.json`: China Telecom, SAIC Volkswagen and
+vivo. The vivo URL was selected from the visible autumn-campus link on its
+official recruitment site; no route guessing is allowed. Validate the frozen
+budget before the single live invocation:
+
+```powershell
+py -3.13 -m unittest tools.tests.test_cycle05_targets tools.tests.test_discover_api -v
+py -3.13 tools/discover_api.py `
+  --targets tools/targets-phase-02-t3-cycle-05.json `
+  --out work/phase-02-t3-discovery-cycle-05.md
+```
+
+The live command is one-shot evidence and must not be rerun in Cycle 05. A
+minimal-header replay verdict only proves anonymous JSON access. It does not
+prove campus scope, title/location fields or pagination, and therefore does not
+by itself increase the H3 stable-source count. In particular, website menu
+arrays must not be accepted as job arrays even when their object keys happen to
+match generic discovery heuristics.
+
 Run the offline tests without installing or launching a browser:
 
 ```powershell
