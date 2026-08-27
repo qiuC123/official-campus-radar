@@ -157,11 +157,6 @@ function filterBatches() {
     if (selectedFilters.recruitmentType.length && !selectedFilters.recruitmentType.includes(batch.recruitmentType)) return false;
     if (form.audience.value && batch.audience !== form.audience.value) return false;
     if (selectedFilters.progress.length && !selectedFilters.progress.includes(batchProgress(batch))) return false;
-    if (form.deadlineWindow.value === "unknown" && batch.deadline) return false;
-    if (/^\d+$/.test(form.deadlineWindow.value)) {
-      const remainingDays = daysUntil(batch.deadline);
-      if (remainingDays === null || remainingDays < 0 || remainingDays > Number(form.deadlineWindow.value)) return false;
-    }
     return effectivePositions(batch, form).length > 0;
   }).sort((a, b) => b.updated.localeCompare(a.updated));
   render();
@@ -193,10 +188,9 @@ function rowMarkup(batch) {
     <td><button type="button" class="positions-summary" aria-expanded="false" title="点击查看全部岗位">${positionText}</button></td>
     <td><select class="batch-progress" aria-label="${batch.company}投递进度">${options}</select></td>
     <td class="date-cell">${batch.updated}</td>
-    <td class="deadline-cell">${batch.deadline || "未说明"}</td>
     <td><a class="action-link apply" href="${batch.official}" onclick="return false">投递</a></td>
     <td><a class="action-link notice" href="${batch.official}" onclick="return false">官方页</a></td>
-  </tr><tr class="positions-detail-row" data-detail-for="${batch.id}" hidden><td colspan="12"><div class="positions-detail"><strong>全部岗位</strong><ul>${positionDetails}</ul></div></td></tr>`;
+  </tr><tr class="positions-detail-row" data-detail-for="${batch.id}" hidden><td colspan="11"><div class="positions-detail"><strong>全部岗位</strong><ul>${positionDetails}</ul></div></td></tr>`;
 }
 
 function tableMarkup() {
@@ -204,7 +198,7 @@ function tableMarkup() {
   return `<table class="recruitment-table">
     <thead><tr>
       <th>公司名称</th><th>公司类型</th><th>所属行业</th><th>招聘类型</th><th>招聘对象</th><th>工作地点</th>
-      <th>岗位 <small>（点击查看全部）</small></th><th>投递进度</th><th>更新时间</th><th>投递截止</th><th>相关链接</th><th>批次官网</th>
+      <th>岗位 <small>（点击查看全部）</small></th><th>投递进度</th><th>更新时间</th><th>相关链接</th><th>批次官网</th>
     </tr></thead>
     <tbody>${filteredBatches.map(rowMarkup).join("")}</tbody>
   </table>`;

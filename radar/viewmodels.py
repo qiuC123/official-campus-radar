@@ -29,13 +29,6 @@ AUDIENCE_CHOICES = tuple((value, value) for value in (
 
 PROVINCE_CHOICES = PROVINCE_NAMES
 
-DEADLINE_WINDOW_CHOICES = (
-    ("1", "1 天内截止"),
-    ("3", "3 天内截止"),
-    ("7", "7 天内截止"),
-    ("unknown", "未说明"),
-)
-
 
 @dataclass(frozen=True)
 class RecruitmentPositionVM:

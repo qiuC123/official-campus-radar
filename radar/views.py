@@ -18,7 +18,6 @@ from radar.services.update_runner import run_update
 from radar.services.update_status import latest_source_failures, latest_successful_update, scheduled_run_is_missing
 from radar.viewmodels import (
     AUDIENCE_CHOICES,
-    DEADLINE_WINDOW_CHOICES,
     PREVIEW_COMPANY_TYPE_CHOICES,
     PREVIEW_RECRUITMENT_TYPE_CHOICES,
     PROVINCE_CHOICES,
@@ -36,13 +35,11 @@ def _filter_context(request: HttpRequest, *, preview: bool) -> dict:
             PREVIEW_RECRUITMENT_TYPE_CHOICES if preview else RecruitmentBatch.RecruitmentType.choices
         ),
         "audience_choices": AUDIENCE_CHOICES,
-        "deadline_window_choices": DEADLINE_WINDOW_CHOICES,
         "selected_company_types": request.GET.getlist("company_type"),
         "selected_recruitment_types": request.GET.getlist("recruitment_type"),
         "selected_cities": request.GET.getlist("city"),
         "selected_progress": request.GET.getlist("progress"),
         "selected_audience": request.GET.get("audience", request.GET.get("target_audience", "")),
-        "selected_deadline_window": request.GET.get("deadline_window", ""),
     }
 
 def _render_dashboard(request: HttpRequest, *, history: bool = False) -> HttpResponse:

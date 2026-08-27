@@ -250,7 +250,8 @@ class Phase02FrontendFirstTests(TestCase):
         result = publish_candidates(self.source, [candidate], self.version())[0]
         self.assertEqual(result.action, "created")
         response = self.client.get("/")
-        self.assertContains(response, '<td class="deadline-cell">未说明</td>', html=True)
+        self.assertNotContains(response, "投递截止")
+        self.assertNotContains(response, 'class="deadline-cell"')
         self.assertEqual(response.context["summary"].deadline_in_7_days, 0)
 
     def test_tampered_details_fail_closed_and_derived_locations_ignore_cache(self):

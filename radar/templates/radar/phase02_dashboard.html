@@ -86,7 +86,6 @@
         </div><div class="multi-message"></div><footer><button type="button" class="multi-cancel">取消</button><button type="button" class="multi-confirm">确定</button></footer></div>
       </div>
 
-      <select name="deadline_window" aria-label="截止时间"><option value="">截止时间</option>{% for value,label in deadline_window_choices %}<option value="{{ value }}" {% if selected_deadline_window == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
       {% if is_preview %}<input type="hidden" name="view" value="{% if history %}history{% else %}active{% endif %}"><input type="hidden" name="health" value="{{ preview_health }}">{% endif %}
       <div class="form-actions wide">
         <button class="primary-button" type="submit">查询</button>
@@ -106,7 +105,7 @@
     <table class="recruitment-table">
       <thead><tr>
         <th>公司名称</th><th>公司类型</th><th>所属行业</th><th>招聘类型</th><th>招聘对象</th><th>工作地点</th>
-        <th>岗位 <small>（点击查看全部）</small></th><th>投递进度</th><th>更新时间</th><th>投递截止</th><th>相关链接</th><th>批次官网</th>
+        <th>岗位 <small>（点击查看全部）</small></th><th>投递进度</th><th>更新时间</th><th>相关链接</th><th>批次官网</th>
       </tr></thead>
       <tbody>
       {% for batch in batches %}
@@ -120,11 +119,10 @@
           <td><button type="button" class="positions-summary" aria-expanded="false" data-expand-url="{% if not is_preview %}{% url 'batch_positions' batch.id %}{% if current_query %}?{{ current_query }}{% endif %}{% endif %}" title="点击查看全部岗位">{{ batch.position_summary }}</button></td>
           <td><select class="batch-progress" aria-label="{{ batch.title }}投递进度" data-current-value="{{ batch.progress_value }}" data-save-url="{% if not is_preview %}{% url 'update_progress' batch.id %}{% endif %}">{% for value,label in progress_choices %}<option value="{{ value }}" {% if value == batch.progress_value %}selected{% endif %}>{% if label == '已挂' %}未通过{% else %}{{ label }}{% endif %}</option>{% endfor %}</select></td>
           <td class="date-cell">{{ batch.effective_updated_on|date:'Y-m-d' }}</td>
-          <td class="deadline-cell">{% if batch.deadline %}{{ batch.deadline|date:'Y-m-d' }}{% else %}未说明{% endif %}</td>
           <td><a class="action-link apply{% if is_preview %} preview-external{% endif %}" href="{% if is_preview %}#{% else %}{{ batch.primary_application_url }}{% endif %}" {% if not is_preview %}target="_blank" rel="noopener"{% endif %}{% if batch.primary_application_uses_batch_page %} title="官网没有岗位直投链接，已回退到批次官网"{% endif %}>投递</a></td>
           <td><a class="action-link notice{% if is_preview %} preview-external{% endif %}" href="{% if is_preview %}#{% else %}{{ batch.official_page_url }}{% endif %}" {% if not is_preview %}target="_blank" rel="noopener"{% endif %}>官方页</a></td>
         </tr>
-        <tr class="positions-detail-row" data-detail-for="{{ batch.id }}" hidden><td colspan="12"><div class="positions-detail"><strong>全部岗位</strong><ul {% if not is_preview %}data-loaded="false"{% endif %}>{% if is_preview %}{% include 'radar/position_rows.html' with positions=batch.positions %}{% endif %}</ul></div></td></tr>
+        <tr class="positions-detail-row" data-detail-for="{{ batch.id }}" hidden><td colspan="11"><div class="positions-detail"><strong>全部岗位</strong><ul {% if not is_preview %}data-loaded="false"{% endif %}>{% if is_preview %}{% include 'radar/position_rows.html' with positions=batch.positions %}{% endif %}</ul></div></td></tr>
       {% endfor %}
       </tbody>
     </table>

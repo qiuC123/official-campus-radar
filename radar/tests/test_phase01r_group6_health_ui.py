@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 
 from radar.models import FetchRun, RecruitmentPosition, OfficialSource, Organization, UpdateRun
 from radar.services.admission import transition_source
@@ -76,6 +77,11 @@ class CurrentPositionAndHealthViewTests(TestCase):
         )
 
     def test_partial_failure_displays_source_degradation_summary(self) -> None:
+        UpdateRun.objects.create(
+            trigger="scheduled",
+            scheduled_for_date=timezone.localdate(),
+            status="success",
+        )
         update = UpdateRun.objects.create(trigger="manual", status="partial_failure")
         FetchRun.objects.create(
             update_run=update,
