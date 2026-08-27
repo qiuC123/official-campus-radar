@@ -31,12 +31,49 @@ SUPPORTED_HTML_FIELDS = {
 
 
 def _path_value(payload: object, path: str, default: object = None) -> object:
-    current = payload
-    for part in path.split("."):
-        if not part or not isinstance(current, dict) or part not in current:
+    """Resolve dotted object paths and flatten explicit ``[]`` list segments."""
+    parts = path.split(".") if path else []
+
+    def resolve(current: object, remaining: list[str]) -> object:
+        if not remaining:
+            return current
+        part = remaining[0]
+        if not part:
             return default
-        current = current[part]
-    return current
+        is_array = part.endswith("[]")
+        key = part[:-2] if is_array else part
+        if not isinstance(current, dict) or key not in current:
+            return default
+        child = current[key]
+        if not is_array:
+            return resolve(child, remaining[1:])
+        if not isinstance(child, list):
+            return default
+        values: list[object] = []
+        for item in child:
+            value = resolve(item, remaining[1:])
+            if value is default:
+                continue
+            if isinstance(value, list):
+                values.extend(value)
+            else:
+                values.append(value)
+        return values
+
+    return resolve(payload, parts)
+
+
+def _field_value(payload: object, path_expression: str, default: object = None) -> object:
+    """Return the first populated value from ``path||fallback`` expressions."""
+    for path in path_expression.split("||"):
+        path = path.strip()
+        if not path:
+            continue
+        value = _path_value(payload, path, default)
+        if value is default or value is None or value == "" or value == []:
+            continue
+        return value
+    return default
 
 
 def _set_path(payload: dict, path: str, value: object) -> None:
@@ -140,6 +177,24 @@ class JsonApiSourceAdapter:
         if "body" in config and not isinstance(body, dict):
             raise ValueError("JSON API body must be an object")
 
+        headers = config.get("headers", {})
+        if not isinstance(headers, dict):
+            raise ValueError("JSON API headers must be an object")
+        allowed_headers = {
+            "accept",
+            "accept-language",
+            "origin",
+            "referer",
+            "cr-service",
+        }
+        for raw_name, raw_value in headers.items():
+            name = str(raw_name).strip()
+            value = str(raw_value).strip()
+            if name.lower() not in allowed_headers:
+                raise ValueError(f"JSON API header {name!r} is not allowed")
+            if not value or "\r" in value or "\n" in value:
+                raise ValueError(f"JSON API header {name!r} has an invalid value")
+
         field_map = config.get("field_map")
         if not isinstance(field_map, dict):
             raise ValueError("JSON API field_map must be an object")
@@ -177,6 +232,27 @@ class JsonApiSourceAdapter:
                 raise ValueError(
                     f"JSON API valid_values.{name} must be a non-empty list"
                 )
+
+        row_filters = config.get("row_filters", [])
+        if not isinstance(row_filters, list):
+            raise ValueError("JSON API row_filters must be a list")
+        for row_filter in row_filters:
+            if not isinstance(row_filter, dict):
+                raise ValueError("JSON API row_filters entries must be objects")
+            if not str(row_filter.get("path", "")).strip():
+                raise ValueError("JSON API row filter path is required")
+            operators = [
+                name
+                for name in ("equals_any", "contains_any")
+                if name in row_filter
+            ]
+            if len(operators) != 1:
+                raise ValueError(
+                    "JSON API row filter requires exactly one supported operator"
+                )
+            values = row_filter[operators[0]]
+            if not isinstance(values, list) or not values:
+                raise ValueError("JSON API row filter values must be a non-empty list")
 
         batch = config.get("batch")
         if not isinstance(batch, dict):
@@ -225,9 +301,9 @@ class JsonApiSourceAdapter:
         if not isinstance(pagination, dict):
             raise ValueError("JSON API pagination must be an object")
         pagination_mode = str(pagination.get("mode", "")).strip().lower()
-        if pagination_mode not in {"page_index", "offset"}:
+        if pagination_mode not in {"page_index", "offset", "single"}:
             raise ValueError(
-                "JSON API pagination.mode must be page_index or offset"
+                "JSON API pagination.mode must be page_index, offset, or single"
             )
         total_kind = str(pagination.get("total_kind", "items")).strip().lower()
         if total_kind not in {"items", "pages"}:
@@ -256,6 +332,11 @@ class JsonApiSourceAdapter:
         page_size = pagination.get("page_size")
         if not isinstance(page_size, int) or isinstance(page_size, bool) or page_size <= 0:
             raise ValueError("JSON API pagination.page_size must be a positive integer")
+        if pagination_mode == "single":
+            if max_pages != 1:
+                raise ValueError("JSON API single pagination requires max_pages=1")
+            return
+
         request_template = (
             params if method == "GET" else body if body is not None else params
         )
@@ -325,8 +406,8 @@ class JsonApiSourceAdapter:
         method = str(config.get("method", "GET")).upper()
         pagination = config["pagination"]
         pagination_mode = str(pagination["mode"]).strip().lower()
-        page_param = str(pagination["page_param"]).strip()
-        size_param = str(pagination["size_param"]).strip()
+        page_param = str(pagination.get("page_param", "")).strip()
+        size_param = str(pagination.get("size_param", "")).strip()
         page_size = pagination["page_size"]
         start_page = pagination.get("start_page", 1)
         start_offset = pagination.get("start_offset", 0)
@@ -350,6 +431,12 @@ class JsonApiSourceAdapter:
         session = requests.Session()
         session.trust_env = False
         headers = {"User-Agent": self.user_agent}
+        headers.update(
+            {
+                str(name).strip(): str(value).strip()
+                for name, value in config.get("headers", {}).items()
+            }
+        )
         positions: list[object] = []
         aggregate_document: dict | None = None
         positions_complete = False
@@ -358,13 +445,14 @@ class JsonApiSourceAdapter:
 
         for page_number in range(max_pages):
             request_values = copy.deepcopy(base_request_values)
-            request_cursor = (
-                start_page + page_number
-                if pagination_mode == "page_index"
-                else start_offset + page_number * page_size
-            )
-            _set_path(request_values, page_param, request_cursor)
-            _set_path(request_values, size_param, page_size)
+            if pagination_mode != "single":
+                request_cursor = (
+                    start_page + page_number
+                    if pagination_mode == "page_index"
+                    else start_offset + page_number * page_size
+                )
+                _set_path(request_values, page_param, request_cursor)
+                _set_path(request_values, size_param, page_size)
             request_kwargs = {
                 "allow_redirects": False,
                 "headers": headers,
@@ -406,6 +494,10 @@ class JsonApiSourceAdapter:
                 aggregate_document = copy.deepcopy(payload)
             positions.extend(copy.deepcopy(page_positions))
 
+            if pagination_mode == "single":
+                positions_complete = True
+                break
+
             if not page_positions:
                 positions_complete = True
                 break
@@ -441,6 +533,10 @@ class JsonApiSourceAdapter:
                     positions_complete = True
                     break
 
+            if config.get("stop_on_short_page", False) and len(page_positions) < page_size:
+                positions_complete = True
+                break
+
             if page_number + 1 < max_pages:
                 time.sleep(delay)
 
@@ -453,6 +549,7 @@ class JsonApiSourceAdapter:
             "batch": copy.deepcopy(config["batch"]),
             "field_map": copy.deepcopy(config["field_map"]),
             "valid_values": copy.deepcopy(config.get("valid_values", {})),
+            "row_filters": copy.deepcopy(config.get("row_filters", [])),
             "html_fields": copy.deepcopy(config.get("html_fields", [])),
             "pagination_total_kind": total_kind,
             "pagination_mode": pagination_mode,
@@ -538,6 +635,7 @@ class JsonApiSourceAdapter:
         batch_config = metadata.get("batch")
         field_map = metadata.get("field_map")
         valid_values = metadata.get("valid_values", {})
+        row_filters = metadata.get("row_filters", [])
         raw_html_fields = metadata.get("html_fields", [])
         if not list_path or not isinstance(batch_config, dict):
             raise ValueError("JSON API canonical document has invalid batch metadata")
@@ -545,6 +643,7 @@ class JsonApiSourceAdapter:
             not isinstance(field_map, dict)
             or not isinstance(valid_values, dict)
             or not isinstance(raw_html_fields, list)
+            or not isinstance(row_filters, list)
         ):
             raise ValueError("JSON API canonical document has invalid field metadata")
         html_fields = {
@@ -569,15 +668,36 @@ class JsonApiSourceAdapter:
                 if not field_path or not isinstance(allowed_values, list):
                     valid = False
                     break
-                if _path_value(row, field_path) not in allowed_values:
+                if _field_value(row, field_path) not in allowed_values:
                     valid = False
+                    break
+            for row_filter in row_filters:
+                if not valid or not isinstance(row_filter, dict):
+                    valid = False
+                    break
+                raw_value = _field_value(
+                    row,
+                    str(row_filter.get("path", "")).strip(),
+                    "",
+                )
+                if "equals_any" in row_filter:
+                    valid = raw_value in row_filter["equals_any"]
+                elif "contains_any" in row_filter:
+                    text_value = self._raw_text(raw_value)
+                    valid = any(
+                        str(fragment) in text_value
+                        for fragment in row_filter["contains_any"]
+                    )
+                else:
+                    valid = False
+                if not valid:
                     break
             if not valid:
                 filtered_invalid += 1
                 continue
 
             position_key_path = str(field_map["position_key"]).strip()
-            raw_position_key = _path_value(row, position_key_path, "")
+            raw_position_key = _field_value(row, position_key_path, "")
             position_key = self._raw_text(raw_position_key).strip()
             if not position_key:
                 skipped_missing_identity += 1
@@ -591,19 +711,19 @@ class JsonApiSourceAdapter:
                 field_map.get("application_url", "")
             ).strip()
             updated_path = str(field_map.get("updated_at", "")).strip()
-            raw_title = _path_value(row, title_path, "")
+            raw_title = _field_value(row, title_path, "")
             raw_location = (
-                _path_value(row, location_path, "") if location_path else ""
+                _field_value(row, location_path, "") if location_path else ""
             )
             raw_description = (
-                _path_value(row, raw_text_path, "") if raw_text_path else ""
+                _field_value(row, raw_text_path, "") if raw_text_path else ""
             )
             raw_application_url = (
-                _path_value(row, application_path, "")
+                _field_value(row, application_path, "")
                 if application_path
                 else ""
             )
-            raw_updated = _path_value(row, updated_path, "") if updated_path else ""
+            raw_updated = _field_value(row, updated_path, "") if updated_path else ""
             source_updated_on = self._parse_date(raw_updated)
             title = self._field_text("title", raw_title, html_fields).strip()
             location = self._field_text(

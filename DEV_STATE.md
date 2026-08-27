@@ -2,7 +2,7 @@
 
 Last verified: 2026-08-27 Asia/Shanghai
 
-Phase and status: Phase 02 / H1、H2、G10、H3 已通过。T3 Cycle 18 已收口，机器台账确认稳定来源为 25/50，达到 H3 最低成功线。T3 已停止；T4 尚未启动。
+Phase and status: Phase 02 / H1、H2、G10、H3 已通过。T3 Cycle 18 已收口并达到 25/50。用户确认 25 家全部进入 T4；T4 Cycle 01 已把 25 家写为候选来源，尚未核验或启用。
 
 ## Current result
 
@@ -27,6 +27,10 @@ Phase and status: Phase 02 / H1、H2、G10、H3 已通过。T3 Cycle 18 已收�
 - T3 Cycle 16 单项通过比亚迪 340/340、中国电信 8/8、中国联通 2699/2699、亚马逊全球 intern 194/194（其中中国 6 条）和苹果中国实习 17/17；一汽-大众、美的因服务端强制每页 10 条而在该 Cycle 保持失败。
 - T3 Cycle 17 按服务端真实分页上限复验，一汽-大众 19/19、美的 149/149 通过。Cycle 18 补齐携程 53/53、大疆 139/139、吉利 6/6、东风日产实习 4/4、博世 54/54（其中明确 27 届校招 18 条）、广汽丰田 1/1 的统一证据。
 - 最终稳定来源机器台账为 `tools/stable-sources-phase-02-t3.json`，共 25 家：民企 16、央国企 3、外资 3、中外合资 3。字节跳动匿名 POST 当前复测为 405，因此不计入；使用可重复的携程证据替代。
+- T4 Cycle 01 根据用户“都进入”的确认生成 `data/source_catalog.csv` 25 行并完成候选落库。数据库现有 25 个 Organization、25 个 OfficialSource、25 个初始 SourceAdmissionEvent；全部为 `candidate`，哈希链 25/25 有效，`verified=0`、`enabled=0`，不会进入正式查询或真实采集。
+- 正式公司类型已与领域词汇统一为民企、央国企、外资、中外合资、银行、事业单位、社会机构；迁移 0013 已应用。导入器新增 `official_entrypoint_url`，支持官网直链 ATS 的证据边界。
+- T4 目录生成器会从冻结稳定台账和各 Cycle 配置生成 25 行，避免手工复制；适配器新增外部 ATS JSON 和 Apple/广汽丰田服务端内嵌岗位格式，并补充安全请求头、数组路径、字段回退、行过滤、单页和短页结束能力。本 Cycle 仍未执行任何企业网络请求。
+- T4 Cycle 01 回归：目录检查 25/25、开发工具测试 137/137、Django 完整测试 362/362 均通过；`manage.py check`、迁移检查和 `git diff --check` 通过。
 
 ## Candidate validation evidence
 
@@ -56,8 +60,8 @@ Phase and status: Phase 02 / H1、H2、G10、H3 已通过。T3 Cycle 18 已收�
 
 ## Explicitly not started
 
-T4 真实来源准入、真实岗位采集、生产浏览器采集、Windows 计划任务、微信模块和云部署均未开始。
+T4 的 `verified` / `enabled` 两段迁移、T6 真实岗位采集、生产浏览器采集、Windows 计划任务、微信模块和云部署均未开始。
 
 ## Exact next task
 
-T3 已完成并达到 25/50。下一步由用户从稳定台账中确认一小批来源进入 T4 正式准入和首次真实采集；未确认前不自动写入正式来源配置。
+执行 T4 Cycle 02：使用保存的脱敏样本逐来源验证提取结果和招聘范围；通过者依次写入 `verified`，外部 ATS 再记录 host 批准。`enabled` 仍需在离线验收结果明确后执行，且不自动进入 T6。

@@ -10,7 +10,19 @@ from django.test import TestCase
 from radar.models import OfficialSource, Organization
 
 
-HEADER = ["organization_name", "company_type", "industry", "official_domain", "source_type", "source_url", "admission_evidence", "adapter_name", "parser_config", "is_active"]
+HEADER = [
+    "organization_name",
+    "company_type",
+    "industry",
+    "official_domain",
+    "source_type",
+    "source_url",
+    "official_entrypoint_url",
+    "admission_evidence",
+    "adapter_name",
+    "parser_config",
+    "is_active",
+]
 
 
 class SourceCatalogCommandTests(TestCase):
@@ -19,7 +31,7 @@ class SourceCatalogCommandTests(TestCase):
         with file:
             writer = csv.DictWriter(file, fieldnames=HEADER)
             writer.writeheader()
-            writer.writerow({"organization_name": "Example Corp", "company_type": "internet", "industry": "tech", "official_domain": "example.test", "source_type": "website", "source_url": "https://careers.example.test", "admission_evidence": evidence, "adapter_name": "html_selector", "parser_config": json.dumps({"notice_selector": "article", "title_selector": "h2"}), "is_active": "true"})
+            writer.writerow({"organization_name": "Example Corp", "company_type": "private", "industry": "tech", "official_domain": "example.test", "source_type": "website", "source_url": "https://careers.example.test", "official_entrypoint_url": "", "admission_evidence": evidence, "adapter_name": "html_selector", "parser_config": json.dumps({"notice_selector": "article", "title_selector": "h2"}), "is_active": "true"})
         return file.name
 
     def test_dry_run_validates_without_writing(self) -> None:

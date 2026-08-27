@@ -15,8 +15,19 @@ from radar.models import (
 from radar.services.normalization import normalize_identity_text
 
 
-REQUIRED_HEADER = ["organization_name", "company_type", "industry", "official_domain", "source_type", "source_url", "admission_evidence", "adapter_name", "parser_config", "is_active"]
-ALLOWED_ADAPTERS = {"html_selector"}
+REQUIRED_HEADER = [
+    "organization_name",
+    "company_type",
+    "industry",
+    "official_domain",
+    "source_type",
+    "source_url",
+    "official_entrypoint_url",
+    "admission_evidence",
+    "adapter_name",
+    "parser_config",
+    "is_active",
+]
 
 
 class Command(BaseCommand):
@@ -42,6 +53,7 @@ class Command(BaseCommand):
                     source_url=row["source_url"],
                     defaults={
                         "source_type": row["source_type"], "admission_evidence": row["admission_evidence"],
+                        "official_entrypoint_url": row["official_entrypoint_url"],
                         "adapter_name": row["adapter_name"], "parser_config": row["parser_config"],
                         "is_active": False, "is_verified": False,
                         "admission_state": OfficialSource.AdmissionState.CANDIDATE,
@@ -81,10 +93,17 @@ class Command(BaseCommand):
                     raise CommandError(f"line {line_number}: unknown company_type")
                 if row["source_type"] not in OfficialSource.SourceType.values:
                     raise CommandError(f"line {line_number}: unknown source_type")
-                if row["adapter_name"] not in ALLOWED_ADAPTERS:
+                from radar.collectors.registry import AdapterRegistry
+
+                if row["adapter_name"] not in AdapterRegistry.adapters:
                     raise CommandError(f"line {line_number}: unknown adapter_name")
                 if urlparse(row["source_url"]).scheme != "https":
                     raise CommandError(f"line {line_number}: source_url must use HTTPS")
+                entrypoint = row["official_entrypoint_url"].strip()
+                if entrypoint and urlparse(entrypoint).scheme != "https":
+                    raise CommandError(
+                        f"line {line_number}: official_entrypoint_url must use HTTPS"
+                    )
                 active = row["is_active"].strip().lower()
                 if active not in {"true", "false"}:
                     raise CommandError(f"line {line_number}: is_active must be true or false")

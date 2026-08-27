@@ -8,9 +8,13 @@ from django.utils import timezone
 
 class Organization(models.Model):
     class CompanyType(models.TextChoices):
-        INTERNET = "internet", "互联网/科技"
-        STATE_OWNED = "state_owned", "央企/国企"
-        OTHER = "other", "其他"
+        PRIVATE = "private", "民企"
+        STATE_OWNED = "state_owned", "央国企"
+        FOREIGN = "foreign", "外资"
+        JOINT_VENTURE = "joint_venture", "中外合资"
+        BANK = "bank", "银行"
+        PUBLIC_INSTITUTION = "public_institution", "事业单位"
+        SOCIAL_ORGANIZATION = "social_organization", "社会机构"
 
     name = models.CharField(max_length=200, unique=True)
     aliases = models.JSONField(default=list, blank=True)

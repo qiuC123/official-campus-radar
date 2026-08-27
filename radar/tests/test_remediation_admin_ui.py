@@ -16,10 +16,10 @@ class OrganizationNormalizationTests(TestCase):
         actual = Organization.objects.create(name="Actual Recruiter", aliases=["Recruiter Alias"], company_type="internet", industry="tech", official_domain="official.test", parent=parent)
         file = tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", newline="", suffix=".csv", delete=False)
         with file:
-            fields = ["organization_name", "company_type", "industry", "official_domain", "source_type", "source_url", "admission_evidence", "adapter_name", "parser_config", "is_active"]
+            fields = ["organization_name", "company_type", "industry", "official_domain", "source_type", "source_url", "official_entrypoint_url", "admission_evidence", "adapter_name", "parser_config", "is_active"]
             writer = csv.DictWriter(file, fieldnames=fields)
             writer.writeheader()
-            writer.writerow({"organization_name": "Recruiter Alias", "company_type": "internet", "industry": "tech", "official_domain": "official.test", "source_type": "website", "source_url": "https://official.test/jobs", "admission_evidence": "candidate", "adapter_name": "html_selector", "parser_config": json.dumps({"notice_selector": "article", "title_selector": "h2"}), "is_active": "false"})
+            writer.writerow({"organization_name": "Recruiter Alias", "company_type": "private", "industry": "tech", "official_domain": "official.test", "source_type": "website", "source_url": "https://official.test/jobs", "official_entrypoint_url": "", "admission_evidence": "candidate", "adapter_name": "html_selector", "parser_config": json.dumps({"notice_selector": "article", "title_selector": "h2"}), "is_active": "false"})
         call_command("import_source_catalog", "--path", file.name)
         self.assertEqual(Organization.objects.count(), 2)
         self.assertEqual(OfficialSource.objects.get().organization_id, actual.pk)

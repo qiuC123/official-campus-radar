@@ -1,4 +1,6 @@
 from radar.collectors.base import FetchedPage
+from radar.collectors.ats_json_api import AtsJsonApiSourceAdapter
+from radar.collectors.embedded_jobs import EmbeddedJobsAdapter
 from radar.collectors.html import HtmlSourceAdapter
 from radar.collectors.json_api import JsonApiSourceAdapter
 from radar.collectors.moka_api import MokaPublicApiAdapter
@@ -26,6 +28,8 @@ class AdapterRegistry:
     adapters = {
         "html_selector": HtmlSourceAdapter,
         "json_api": JsonApiSourceAdapter,
+        "ats_json_api": AtsJsonApiSourceAdapter,
+        "embedded_jobs": EmbeddedJobsAdapter,
         "moka_public_api": MokaPublicApiAdapter,
         "local_demo_disabled": DisabledLocalDemoAdapter,
     }

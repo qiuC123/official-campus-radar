@@ -19,10 +19,10 @@ class SourceIdentityRemediationTests(TestCase):
     def write_catalog(self) -> str:
         file = tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", newline="", suffix=".csv", delete=False)
         with file:
-            fields = ["organization_name", "company_type", "industry", "official_domain", "source_type", "source_url", "admission_evidence", "adapter_name", "parser_config", "is_active"]
+            fields = ["organization_name", "company_type", "industry", "official_domain", "source_type", "source_url", "official_entrypoint_url", "admission_evidence", "adapter_name", "parser_config", "is_active"]
             writer = csv.DictWriter(file, fieldnames=fields)
             writer.writeheader()
-            writer.writerow({"organization_name": "Candidate", "company_type": "internet", "industry": "tech", "official_domain": "official.test", "source_type": "website", "source_url": "https://unrelated.test/jobs", "admission_evidence": "unreviewed text", "adapter_name": "html_selector", "parser_config": json.dumps({"notice_selector": "article", "title_selector": "h2"}), "is_active": "true"})
+            writer.writerow({"organization_name": "Candidate", "company_type": "private", "industry": "tech", "official_domain": "official.test", "source_type": "website", "source_url": "https://unrelated.test/jobs", "official_entrypoint_url": "", "admission_evidence": "unreviewed text", "adapter_name": "html_selector", "parser_config": json.dumps({"notice_selector": "article", "title_selector": "h2"}), "is_active": "true"})
         return file.name
 
     def test_catalog_row_is_always_unverified_and_inactive_candidate(self) -> None:
