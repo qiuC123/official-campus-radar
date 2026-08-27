@@ -1,6 +1,7 @@
 import hashlib
 import re
 import unicodedata
+from collections import defaultdict
 from dataclasses import dataclass
 
 from radar.services.normalization import canonicalize_url
@@ -119,14 +120,16 @@ def batch_projection_has_valid_evidence_for_event(
             source_version=version,
         ).select_related("position", "application_link")
     )
+    evidence_by_field = defaultdict(list)
+    for item in evidence:
+        evidence_by_field[
+            (item.field_name, item.position_id, item.application_link_id)
+        ].append(item)
 
     def matching(field_name: str, actual_value, *, position_id=None, link_id=None):
         return any(
-            item.field_name == field_name
-            and item.position_id == position_id
-            and item.application_link_id == link_id
-            and field_evidence_matches(field_name, item, actual_value)
-            for item in evidence
+            field_evidence_matches(field_name, item, actual_value)
+            for item in evidence_by_field[(field_name, position_id, link_id)]
         )
 
     batch_values = {
