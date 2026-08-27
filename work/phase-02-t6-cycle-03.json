@@ -1,0 +1,56 @@
+{
+  "cycle": "Phase 02 / T6 Cycle 03",
+  "scope": "China Unicom only",
+  "development_discovery_report": "work/phase-02-t6-cycle-03-unicom-discovery.md",
+  "discovery": {
+    "page_contexts": 1,
+    "page_openings": 1,
+    "endpoint": "https://fe.zhaopin.com/grace/api/dsc/search-job-list",
+    "list_path": "data.jobList",
+    "observed_page_size": 11,
+    "observed_total": 2704,
+    "minimal_replay_initially_passed": true,
+    "credentials_or_signatures_required": false
+  },
+  "production_config": {
+    "headers": {
+      "Accept": "application/json, text/plain, */*",
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "success": {
+      "path": "code",
+      "expect": 200
+    },
+    "page_size": 100,
+    "max_pages": 40,
+    "environment_proxy_enabled": false
+  },
+  "update_runs": [
+    {
+      "id": 9,
+      "status": "failed",
+      "error_message": "all checked sources failed",
+      "fetch_status": "failed",
+      "fetch_error": "ValueError: JSON API success check failed"
+    },
+    {
+      "id": 10,
+      "status": "failed",
+      "error_message": "all checked sources failed",
+      "fetch_status": "failed",
+      "fetch_error": "ValueError: JSON API success check failed"
+    }
+  ],
+  "source_state": {
+    "source_id": 15,
+    "admission_state": "enabled",
+    "is_active": true,
+    "admission_event_count": 15,
+    "batch_count": 0,
+    "position_count": 0
+  },
+  "outcome": "not_published_upstream_business_error",
+  "daily_browser_collection_used": false,
+  "raw_responses_persisted": false,
+  "completed": true
+}

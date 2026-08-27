@@ -2,7 +2,7 @@
 
 Last verified: 2026-08-27 Asia/Shanghai
 
-Phase and status: Phase 02 / H1、H2、G10、H3 已通过，T3 和 T4 已完成。T6 Cycle 02 已完成定向修复重试：累计 24 家写入 4694 个岗位，中国联通 1 家因上游业务错误未发布；T6 尚未整体通过。
+Phase and status: Phase 02 / H1、H2、G10、H3 已通过，T3 和 T4 已完成。T6 Cycle 03 已完成中国联通独立复验：累计 24 家写入 4694 个岗位，中国联通因上游业务错误与不稳定分页仍未发布；T6 尚未整体通过。
 
 ## Current result
 
@@ -50,6 +50,9 @@ Phase and status: Phase 02 / H1、H2、G10、H3 已通过，T3 和 T4 已完成�
 - 中国联通当前公开页面可显示 2704 个岗位，但已保存配置和三个最小诊断请求均返回 HTTP 200、业务 `code=500`、`message=服务器出错`，没有 `data.jobList`。因此恢复 `success: code=200` 安全闸，不采用生产浏览器或第三方渲染结果绕过准入。
 - Cycle 02 前备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-t6-cycle02-20260827-163122.sqlite3`；机器证据为 `work/phase-02-t6-cycle-02.json`。
 - T6 Cycle 02 回归：开发工具测试 140/140、Django 完整测试 381/381 通过；目录、离线报告、两轮 T6 机器报告、系统检查、迁移检查和 `git diff --check` 均通过。正式首页浏览器验收为第一页 20 个批次、第二页 4 个批次，拼多多 13 个岗位可正常展开，无 Mock 数据；地点摘要最多展示 6 个，完整地点仍用于筛选。
+- T6 Cycle 03 对中国联通只打开一次开发期页面并重新发现原端点；最初 5 级重放和单页最小请求短暂成功，但两个正式单源 UpdateRun 以及后续第 2 页/第 1 页判别均返回 HTTP 200、业务 `code=500`。因此未采用浏览器、代理或 246 页高频抓取，联通仍为 0 批次、0 岗位。
+- Cycle 03 将 T2 可接入候选的公开最简 `Accept`/`Content-Type` 写入配置草案，避免以后再次丢失关键媒体类型；凭据头和环境代理安全限制不变。Cycle 03 机器证据为 `work/phase-02-t6-cycle-03.json`。
+- T6 Cycle 03 回归：开发工具测试 140/140（另 62 个子测试）、Django 完整测试 386/386 通过；系统检查、迁移检查、机器报告重建和 `git diff --check` 通过。
 
 ## Candidate validation evidence
 
@@ -83,4 +86,4 @@ Phase and status: Phase 02 / H1、H2、G10、H3 已通过，T3 和 T4 已完成�
 
 ## Exact next task
 
-启动 T6 Cycle 03，仅处理中国联通：先复测一次最小公开 JSON 请求；若仍返回业务错误，则重新走 T2/T3 发现、离线证据和审计配置变更。T6 完全通过前不启动 T7。
+等待中国联通上游恢复或出现新的公开分页契约，再创建独立 Cycle 04；现阶段不要重复探测、不要启用生产浏览器采集。T6 完全通过前不启动 T7。

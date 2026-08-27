@@ -504,6 +504,25 @@ def build_replay_header_profiles(
     ]
 
 
+def retain_admissible_minimal_headers(candidate: dict[str, object]) -> None:
+    """Copy public minimal replay headers into a connectable config draft."""
+
+    verdict = candidate.get("verdict", {})
+    if not isinstance(verdict, dict) or verdict.get("status") != "可接入":
+        return
+    captured_headers = candidate.get("request_headers", {})
+    if not isinstance(captured_headers, dict):
+        captured_headers = {}
+    minimal = build_replay_header_profiles(captured_headers)[-1].headers
+    config = candidate.get("config")
+    if not isinstance(config, dict):
+        return
+    config["headers"] = {
+        "Accept": minimal["accept"],
+        "Content-Type": minimal["content-type"],
+    }
+
+
 def select_sample_fields(
     row: dict[str, object],
     field_map: dict[str, str],
@@ -1614,6 +1633,7 @@ def run_target_sequence(
                             candidate["verdict"] = classify_replay_results(
                                 replays
                             )
+                            retain_admissible_minimal_headers(candidate)
                     else:
                         for candidate in variant_candidates:
                             candidate["replays"] = []

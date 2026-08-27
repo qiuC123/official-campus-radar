@@ -183,6 +183,7 @@ class JsonApiSourceAdapter:
         allowed_headers = {
             "accept",
             "accept-language",
+            "content-type",
             "origin",
             "referer",
             "cr-service",

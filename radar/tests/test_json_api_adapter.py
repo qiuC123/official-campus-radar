@@ -167,6 +167,21 @@ class JsonApiConfigurationTests(SimpleTestCase):
         self.assertIsNotNone(adapter, "JsonApiSourceAdapter must exist")
         self.assertIsNone(adapter.validate_source_config(make_source(BASE_CONFIG)))
 
+    def test_public_json_content_type_header_is_allowed(self) -> None:
+        config = merge_config(
+            {"headers": {"Content-Type": "application/json;charset=UTF-8"}}
+        )
+
+        self.assertIsNone(
+            JsonApiSourceAdapter.validate_source_config(make_source(config))
+        )
+
+    def test_credential_header_is_still_rejected(self) -> None:
+        config = merge_config({"headers": {"Cookie": "session=secret"}})
+
+        with self.assertRaisesRegex(ValueError, "not allowed"):
+            JsonApiSourceAdapter.validate_source_config(make_source(config))
+
     def test_endpoint_rejects_userinfo(self) -> None:
         endpoints = [
             "https://user@careers.example.test/api/jobs",

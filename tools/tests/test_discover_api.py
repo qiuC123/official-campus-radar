@@ -1540,6 +1540,17 @@ class OfflineBoundaryTests(unittest.TestCase):
         self.assertEqual(set(by_path), {"Data.Posts", "Data.AlternatePosts"})
         self.assertEqual(by_path["Data.Posts"]["verdict"]["status"], "可接入")
         self.assertEqual(
+            by_path["Data.Posts"]["config"]["headers"],
+            {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+            },
+        )
+        self.assertNotIn(
+            "headers",
+            by_path["Data.AlternatePosts"]["config"],
+        )
+        self.assertEqual(
             by_path["Data.AlternatePosts"]["verdict"]["status"],
             "不可接入",
         )
