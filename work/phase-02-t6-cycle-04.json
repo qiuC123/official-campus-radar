@@ -1,0 +1,56 @@
+{
+  "cycle": "Phase 02 / T6 Cycle 04",
+  "target": "中国联合网络通信集团有限公司",
+  "official_page_url": "https://zglt.zhaopin.com/scjobs/index.html",
+  "browser_observation": {
+    "title": "中国联合网络通信有限公司2027校园招聘",
+    "reported_total": 2704,
+    "page_size": 11,
+    "reported_page_count": 246,
+    "page_2_control_count": 1,
+    "page_2_became_active": true,
+    "job_list_changed": true
+  },
+  "development_discovery": {
+    "report": "work/phase-02-t6-cycle-04-unicom-pagination-discovery.md",
+    "page_contexts": 1,
+    "page_openings": 1,
+    "safe_clicks": 1,
+    "endpoint": "https://fe.zhaopin.com/grace/api/dsc/search-job-list",
+    "list_path": "data.jobList",
+    "observed_page_index": 1,
+    "observed_page_size": 11,
+    "initial_page_minimal_replay_passed": true,
+    "second_successful_candidate_retained": false
+  },
+  "public_frontend_contract": {
+    "page_change_assignment": "pageIndex = selected page",
+    "hidden_cursor_observed": false,
+    "base_content_type": "application/json",
+    "optional_session_headers_exist_in_public_code": true,
+    "session_header_values_inspected_or_retained": false
+  },
+  "anonymous_page_2_probe": {
+    "requests": 1,
+    "page_index": 2,
+    "page_size": 11,
+    "http_status": 200,
+    "business_code": 500,
+    "message": "服务器出错",
+    "cookies_sent": false,
+    "signature_headers_sent": false,
+    "environment_proxy_enabled": false,
+    "redirects_followed": false
+  },
+  "database_writes": false,
+  "raw_responses_persisted": false,
+  "production_browser_collection_used": false,
+  "database_state": {
+    "active_batch_count": 24,
+    "current_position_count": 4694,
+    "unicom_batch_count": 0,
+    "unicom_position_count": 0
+  },
+  "outcome": "browser_pagination_works_but_anonymous_api_pagination_is_not_reproducible",
+  "completed": true
+}

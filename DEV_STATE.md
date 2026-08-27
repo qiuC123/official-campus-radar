@@ -2,7 +2,7 @@
 
 Last verified: 2026-08-27 Asia/Shanghai
 
-Phase and status: Phase 02 / H1、H2、G10、H3 已通过，T3 和 T4 已完成。T6 Cycle 03 已完成中国联通独立复验：累计 24 家写入 4694 个岗位，中国联通因上游业务错误与不稳定分页仍未发布；T6 尚未整体通过。
+Phase and status: Phase 02 / H1、H2、G10、H3 已通过，T3 和 T4 已完成。T6 Cycle 04 已完成中国联通真实翻页复验：累计 24 家写入 4694 个岗位；联通官网浏览器翻页正常，但匿名 API 第二页仍返回业务错误，尚未发布；T6 尚未整体通过。
 
 ## Current result
 
@@ -53,6 +53,8 @@ Phase and status: Phase 02 / H1、H2、G10、H3 已通过，T3 和 T4 已完成�
 - T6 Cycle 03 对中国联通只打开一次开发期页面并重新发现原端点；最初 5 级重放和单页最小请求短暂成功，但两个正式单源 UpdateRun 以及后续第 2 页/第 1 页判别均返回 HTTP 200、业务 `code=500`。因此未采用浏览器、代理或 246 页高频抓取，联通仍为 0 批次、0 岗位。
 - Cycle 03 将 T2 可接入候选的公开最简 `Accept`/`Content-Type` 写入配置草案，避免以后再次丢失关键媒体类型；凭据头和环境代理安全限制不变。Cycle 03 机器证据为 `work/phase-02-t6-cycle-03.json`。
 - T6 Cycle 03 回归：开发工具测试 140/140（另 62 个子测试）、Django 完整测试 386/386 通过；系统检查、迁移检查、机器报告重建和 `git diff --check` 通过。
+- T6 Cycle 04 在用户确认的官网页面上核实 2704 个岗位、每页 11 条、共 246 页；用户 Edge 实际点击第 2 页后页码和岗位列表均正常变化。公开前端代码确认分页就是 `pageIndex`，没有隐藏游标。
+- 同 Cycle 的无 Cookie、无签名、当前 Origin/Referer 匿名第 2 页请求仍返回 HTTP 200、业务 `code=500`。公开请求模块可能在已有浏览器会话中增加 `at`/`rt`，但本项目未读取或保留任何会话值，也未把浏览器引入生产采集。机器记录为 `work/phase-02-t6-cycle-04.json`。
 
 ## Candidate validation evidence
 
@@ -86,4 +88,4 @@ Phase and status: Phase 02 / H1、H2、G10、H3 已通过，T3 和 T4 已完成�
 
 ## Exact next task
 
-等待中国联通上游恢复或出现新的公开分页契约，再创建独立 Cycle 04；现阶段不要重复探测、不要启用生产浏览器采集。T6 完全通过前不启动 T7。
+等待中国联通匿名分页恢复；如果要改用浏览器采集，必须由用户重新批准明确的安全边界并创建独立 Cycle，不能复用用户浏览器凭据。T6 完全通过前不启动 T7。
