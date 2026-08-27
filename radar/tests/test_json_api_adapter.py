@@ -208,6 +208,60 @@ class JsonApiConfigurationTests(SimpleTestCase):
         with self.assertRaisesRegex(ValueError, "body"):
             JsonApiSourceAdapter.validate_source_config(make_source(config))
 
+    def test_body_encoding_must_match_http_method(self) -> None:
+        cases = [
+            ("GET", "form"),
+            ("GET", "json"),
+            ("POST", "query"),
+            ("POST", "xml"),
+        ]
+        for method, body_encoding in cases:
+            config = copy.deepcopy(BASE_CONFIG)
+            config.update({"method": method, "body_encoding": body_encoding})
+            with self.subTest(method=method, body_encoding=body_encoding):
+                with self.assertRaisesRegex(ValueError, "body_encoding"):
+                    JsonApiSourceAdapter.validate_source_config(
+                        make_source(config)
+                    )
+
+    def test_form_body_rejects_nested_values_and_pagination_paths(self) -> None:
+        nested_value = copy.deepcopy(BASE_CONFIG)
+        nested_value.update(
+            {
+                "method": "POST",
+                "body_encoding": "form",
+                "body": {"filter": {"recruitType": 1}},
+            }
+        )
+        with self.assertRaisesRegex(ValueError, "scalar"):
+            JsonApiSourceAdapter.validate_source_config(make_source(nested_value))
+
+        nested_path = copy.deepcopy(BASE_CONFIG)
+        nested_path.update(
+            {
+                "method": "POST",
+                "body_encoding": "form",
+                "body": {"recruitType": 1},
+            }
+        )
+        nested_path["pagination"].update(
+            {"page_param": "pager.index", "size_param": "pager.size"}
+        )
+        with self.assertRaisesRegex(ValueError, "top-level"):
+            JsonApiSourceAdapter.validate_source_config(make_source(nested_path))
+
+    def test_total_kind_requires_supported_value_and_total_path(self) -> None:
+        invalid = copy.deepcopy(BASE_CONFIG)
+        invalid["pagination"]["total_kind"] = "records"
+        with self.assertRaisesRegex(ValueError, "total_kind"):
+            JsonApiSourceAdapter.validate_source_config(make_source(invalid))
+
+        missing_path = copy.deepcopy(BASE_CONFIG)
+        missing_path.pop("total_path")
+        missing_path["pagination"]["total_kind"] = "pages"
+        with self.assertRaisesRegex(ValueError, "total_path"):
+            JsonApiSourceAdapter.validate_source_config(make_source(missing_path))
+
     def test_html_fields_config_must_be_a_list(self) -> None:
         config = merge_config({"html_fields": "raw_text"})
 
@@ -750,6 +804,92 @@ class JsonApiFetchTests(SimpleTestCase):
         self.assertEqual(call.kwargs["json"]["pageIndex"], 1)
         self.assertEqual(call.kwargs["json"]["pageSize"], 2)
         self.assertNotIn("params", call.kwargs)
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_post_form_places_flat_pagination_in_form_data(
+        self, request: Mock
+    ) -> None:
+        config = copy.deepcopy(BASE_CONFIG)
+        config.update(
+            {
+                "method": "POST",
+                "body_encoding": "form",
+                "body": {
+                    "recruitType": "1",
+                    "coordinateLat": "",
+                    "coordinateLng": "",
+                },
+            }
+        )
+        config["pagination"].update(
+            {"page_param": "currentPage", "size_param": "pageSize"}
+        )
+        request.return_value = json_response(
+            {"Data": {"Count": 0, "Posts": []}}
+        )
+
+        self.fetch(config)
+
+        call = request.call_args
+        self.assertEqual(call.args[:2], ("POST", BASE_CONFIG["endpoint"]))
+        self.assertEqual(
+            call.kwargs["data"],
+            {
+                "recruitType": "1",
+                "coordinateLat": "",
+                "coordinateLng": "",
+                "currentPage": 1,
+                "pageSize": 2,
+            },
+        )
+        self.assertNotIn("json", call.kwargs)
+        self.assertNotIn("params", call.kwargs)
+
+    @patch("radar.collectors.json_api.time.sleep")
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_total_pages_fetches_every_reported_page(
+        self, request: Mock, sleep: Mock
+    ) -> None:
+        config = copy.deepcopy(BASE_CONFIG)
+        config["pagination"]["total_kind"] = "pages"
+        request.side_effect = [
+            json_response(
+                {
+                    "Data": {
+                        "Count": 2,
+                        "Posts": [{"PostId": str(index)} for index in range(1, 11)],
+                    }
+                }
+            ),
+            json_response(
+                {
+                    "Data": {
+                        "Count": 2,
+                        "Posts": [{"PostId": str(index)} for index in range(11, 16)],
+                    }
+                }
+            ),
+        ]
+
+        page = self.fetch(config)
+
+        document = json.loads(page.body)
+        self.assertEqual(len(document["Data"]["Posts"]), 15)
+        self.assertTrue(document["_radar"]["positions_complete"])
+        self.assertEqual(document["_radar"]["pagination_total_kind"], "pages")
+        self.assertEqual(request.call_count, 2)
+        sleep.assert_called_once_with(0.25)
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_total_pages_rejects_zero_with_nonempty_rows(self, request: Mock) -> None:
+        config = copy.deepcopy(BASE_CONFIG)
+        config["pagination"]["total_kind"] = "pages"
+        request.return_value = json_response(
+            {"Data": {"Count": 0, "Posts": [{"PostId": "1"}]}}
+        )
+
+        with self.assertRaisesRegex(ValueError, "page count"):
+            self.fetch(config)
 
     @patch("radar.collectors.json_api.requests.Session.request")
     def test_post_merges_pagination_into_the_fixed_body_template(

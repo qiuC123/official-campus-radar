@@ -105,6 +105,16 @@ class JsonApiSourceAdapter:
         method = str(config.get("method", "GET")).upper()
         if method not in {"GET", "POST"}:
             raise ValueError("JSON API method must be GET or POST")
+        default_body_encoding = "query" if method == "GET" else "json"
+        body_encoding = str(
+            config.get("body_encoding", default_body_encoding)
+        ).strip().lower()
+        allowed_body_encodings = {"query"} if method == "GET" else {"json", "form"}
+        if body_encoding not in allowed_body_encodings:
+            raise ValueError(
+                f"JSON API body_encoding must be one of "
+                f"{sorted(allowed_body_encodings)} for {method}"
+            )
 
         if "success" in config:
             success = config["success"]
@@ -212,6 +222,16 @@ class JsonApiSourceAdapter:
             raise ValueError("JSON API pagination must be an object")
         if pagination.get("mode") != "page_index":
             raise ValueError("JSON API pagination.mode must be page_index")
+        total_kind = str(pagination.get("total_kind", "items")).strip().lower()
+        if total_kind not in {"items", "pages"}:
+            raise ValueError(
+                "JSON API pagination.total_kind must be items or pages"
+            )
+        total_path = str(config.get("total_path", "")).strip()
+        if total_kind == "pages" and not total_path:
+            raise ValueError(
+                "JSON API total_path is required when pagination.total_kind is pages"
+            )
         max_pages = pagination.get("max_pages")
         if (
             not isinstance(max_pages, int)
@@ -242,6 +262,10 @@ class JsonApiSourceAdapter:
                     f"JSON API pagination.{name} collides with the request template"
                 )
             pagination_paths[name] = path
+            if body_encoding == "form" and "." in path:
+                raise ValueError(
+                    "JSON API form pagination paths must be top-level fields"
+                )
         page_param = pagination_paths["page_param"]
         size_param = pagination_paths["size_param"]
         if (
@@ -262,6 +286,13 @@ class JsonApiSourceAdapter:
             raise ValueError(
                 "JSON API pagination.start_page must be a non-negative integer"
             )
+
+        if body_encoding == "form":
+            for key, value in request_template.items():
+                if isinstance(value, (dict, list, tuple, set)):
+                    raise ValueError(
+                        f"JSON API form body field {key!r} must be a scalar value"
+                    )
 
         delay = config.get("request_delay_seconds", 1)
         if (
@@ -288,6 +319,13 @@ class JsonApiSourceAdapter:
         delay = config.get("request_delay_seconds", 1)
         list_path = str(config["list_path"]).strip()
         total_path = str(config.get("total_path", "")).strip()
+        total_kind = str(pagination.get("total_kind", "items")).strip().lower()
+        body_encoding = str(
+            config.get(
+                "body_encoding",
+                "query" if method == "GET" else "json",
+            )
+        ).strip().lower()
         base_request_values = (
             config.get("params", {})
             if method == "GET"
@@ -314,6 +352,8 @@ class JsonApiSourceAdapter:
             }
             if method == "GET":
                 request_kwargs["params"] = request_values
+            elif body_encoding == "form":
+                request_kwargs["data"] = request_values
             else:
                 request_kwargs["json"] = request_values
             session.cookies.clear()
@@ -368,9 +408,18 @@ class JsonApiSourceAdapter:
                         )
                     if total < 0:
                         raise ValueError("JSON API total count cannot be negative")
-            if total is not None and len(positions) >= total:
-                positions_complete = True
-                break
+            if total is not None:
+                if total_kind == "pages":
+                    if total == 0:
+                        raise ValueError(
+                            "JSON API total page count cannot be zero for a non-empty page"
+                        )
+                    if offset + 1 >= total:
+                        positions_complete = True
+                        break
+                elif len(positions) >= total:
+                    positions_complete = True
+                    break
 
             if offset + 1 < max_pages:
                 time.sleep(delay)
@@ -385,6 +434,7 @@ class JsonApiSourceAdapter:
             "field_map": copy.deepcopy(config["field_map"]),
             "valid_values": copy.deepcopy(config.get("valid_values", {})),
             "html_fields": copy.deepcopy(config.get("html_fields", [])),
+            "pagination_total_kind": total_kind,
         }
         body = _canonical_json(aggregate_document)
         return FetchedPage(
