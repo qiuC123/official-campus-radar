@@ -2,7 +2,7 @@
 
 Last verified: 2026-08-27 Asia/Shanghai
 
-Phase and status: Phase 02 / H1、H2、G10、H3 已通过。T3 Cycle 18 已收口并达到 25/50。T4 Cycle 03 已完成：25 家全部为 `enabled` 且完整准入复核通过；未运行采集，真实岗位仍为 0。
+Phase and status: Phase 02 / H1、H2、G10、H3 已通过，T3 和 T4 已完成。T6 Cycle 01 首次真实采集已部分通过：10 家写入 257 个岗位，14 家安全拒绝，1 家解析失败；T6 尚未整体通过。
 
 ## Current result
 
@@ -38,6 +38,12 @@ Phase and status: Phase 02 / H1、H2、G10、H3 已通过。T3 Cycle 18 已收�
 - 当前数据库有 25 个 `enabled`，25/25 `is_active=true` 且 `source_is_admitted` 通过；准入事件 75、有效哈希链 25/25、ATS host 批准 8。`UpdateRun=0`、业务批次 0、岗位 0，Cycle 03 网络请求为 0。
 - Cycle 03 写入前备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-t4-cycle03-20260827-160114.sqlite3`。复审提出的核验命令输出硬编码数量已改为 `len(sources)`；已启用配置仍禁止被候选目录导入器覆盖。
 - T4 Cycle 03 回归：开发工具测试 140/140、Django 完整测试 370/370 均通过；目录和离线报告确定性检查、`manage.py check`、迁移检查和 `git diff --check` 通过。
+- T6 Cycle 01 在用户确认后将 25 家分成 5 个手动 UpdateRun 串行采集。24 家网络/解析完成，中国联通因 `JSON API success check failed` 失败；10 家通过发布证据校验，14 家被安全拒绝，没有失败结果覆盖业务数据。
+- 当前真实业务数据为 10 个 active 招聘批次、257 个 current 岗位。成功来源是拼多多、顺丰、OPPO、中国电信、亚马逊中国、苹果中国、携程、东风日产、博世中国、广汽丰田。
+- 拒绝原因计数为：`incomplete_field_evidence=13`、`not_eligible_recruitment_type=11`、`incomplete_position_coverage=1`、`conflicting_position_identity=1`。分类器会被单个含“招标”的岗位污染整个批次，是已确认实现问题。
+- 更新器当前会把发布拒绝对应的 SourceVersion 标为已应用；同一内容哈希的普通重试会变成 `unchanged`。Cycle 02 必须增加保留原拒绝事件的受控重处理机制，不能通过改写历史或盲目重复网络采集绕过。
+- 正式首页本地浏览器验收通过：10 个真实批次可见，无 Mock 标识，岗位展开正常。亚马逊地点仍显示部分国家/省份编码，需后续清洗。机器证据为 `work/phase-02-t6-cycle-01.json`。
+- T6 Cycle 01 前数据库备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-t6-cycle01-20260827-160732.sqlite3`。本 Cycle 不保存原始响应、不注册定时任务。
 
 ## Candidate validation evidence
 
@@ -67,8 +73,8 @@ Phase and status: Phase 02 / H1、H2、G10、H3 已通过。T3 Cycle 18 已收�
 
 ## Explicitly not started
 
-T6 真实岗位采集、生产浏览器采集、Windows 计划任务、微信模块和云部署均未开始。
+生产浏览器采集、Windows 计划任务、微信模块和云部署均未开始。T6 已开始但尚未整体通过。
 
 ## Exact next task
 
-等待用户决定是否启动 T6 Cycle 01：对 25 个已启用公开来源执行首次受控真实采集。该步骤会产生企业网络请求，并可能写入真实招聘批次和岗位；不自动注册定时任务。
+执行 T6 Cycle 02：先增加拒绝版本受控重处理，再修正批次分类优先级、缺失字段证据降级、理想汽车分页完整性、美团重复岗位键、中国联通成功条件和 UpdateRun 状态语义；然后仅处理未发布的 15 家，不重复访问已经成功的 10 家。

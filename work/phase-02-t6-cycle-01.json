@@ -1,0 +1,391 @@
+{
+  "cycle": "Phase 02 / T6 Cycle 01",
+  "mode": "first controlled live collection",
+  "update_run_ids": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "database_writes": true,
+  "raw_responses_persisted": false,
+  "source_attempt_count": 25,
+  "network_completed_source_count": 24,
+  "published_source_count": 10,
+  "rejected_source_count": 14,
+  "failed_source_count": 1,
+  "accepted_position_count": 257,
+  "rejection_reason_counts": {
+    "conflicting_position_identity": 1,
+    "incomplete_field_evidence": 13,
+    "incomplete_position_coverage": 1,
+    "not_eligible_recruitment_type": 11
+  },
+  "run_statuses": [
+    {
+      "update_run_id": 1,
+      "status": "success"
+    },
+    {
+      "update_run_id": 2,
+      "status": "success"
+    },
+    {
+      "update_run_id": 3,
+      "status": "partial_failure"
+    },
+    {
+      "update_run_id": 4,
+      "status": "success"
+    },
+    {
+      "update_run_id": 5,
+      "status": "success"
+    }
+  ],
+  "results": [
+    {
+      "source_id": 1,
+      "company": "拼多多",
+      "update_run_id": 1,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 13,
+      "outcome": "published"
+    },
+    {
+      "source_id": 2,
+      "company": "理想汽车",
+      "update_run_id": 1,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "rejected",
+      "reason_codes": [
+        "incomplete_position_coverage"
+      ],
+      "accepted_position_count": 0,
+      "outcome": "rejected"
+    },
+    {
+      "source_id": 3,
+      "company": "中国中车集团有限公司",
+      "update_run_id": 1,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "rejected",
+      "reason_codes": [
+        "not_eligible_recruitment_type",
+        "incomplete_field_evidence"
+      ],
+      "accepted_position_count": 0,
+      "outcome": "rejected"
+    },
+    {
+      "source_id": 4,
+      "company": "vivo",
+      "update_run_id": 1,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "rejected",
+      "reason_codes": [
+        "not_eligible_recruitment_type",
+        "incomplete_field_evidence"
+      ],
+      "accepted_position_count": 0,
+      "outcome": "rejected"
+    },
+    {
+      "source_id": 5,
+      "company": "美团",
+      "update_run_id": 1,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "rejected",
+      "reason_codes": [
+        "not_eligible_recruitment_type",
+        "conflicting_position_identity",
+        "incomplete_field_evidence"
+      ],
+      "accepted_position_count": 0,
+      "outcome": "rejected"
+    },
+    {
+      "source_id": 6,
+      "company": "百度",
+      "update_run_id": 2,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "rejected",
+      "reason_codes": [
+        "not_eligible_recruitment_type",
+        "incomplete_field_evidence"
+      ],
+      "accepted_position_count": 0,
+      "outcome": "rejected"
+    },
+    {
+      "source_id": 7,
+      "company": "京东",
+      "update_run_id": 2,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "rejected",
+      "reason_codes": [
+        "not_eligible_recruitment_type",
+        "incomplete_field_evidence"
+      ],
+      "accepted_position_count": 0,
+      "outcome": "rejected"
+    },
+    {
+      "source_id": 8,
+      "company": "网易",
+      "update_run_id": 2,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "rejected",
+      "reason_codes": [
+        "incomplete_field_evidence"
+      ],
+      "accepted_position_count": 0,
+      "outcome": "rejected"
+    },
+    {
+      "source_id": 9,
+      "company": "顺丰",
+      "update_run_id": 2,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 20,
+      "outcome": "published"
+    },
+    {
+      "source_id": 10,
+      "company": "OPPO",
+      "update_run_id": 2,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 117,
+      "outcome": "published"
+    },
+    {
+      "source_id": 11,
+      "company": "腾讯",
+      "update_run_id": 3,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "rejected",
+      "reason_codes": [
+        "not_eligible_recruitment_type",
+        "incomplete_field_evidence"
+      ],
+      "accepted_position_count": 0,
+      "outcome": "rejected"
+    },
+    {
+      "source_id": 12,
+      "company": "宁德时代",
+      "update_run_id": 3,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "rejected",
+      "reason_codes": [
+        "not_eligible_recruitment_type",
+        "incomplete_field_evidence"
+      ],
+      "accepted_position_count": 0,
+      "outcome": "rejected"
+    },
+    {
+      "source_id": 13,
+      "company": "比亚迪",
+      "update_run_id": 3,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "rejected",
+      "reason_codes": [
+        "not_eligible_recruitment_type",
+        "incomplete_field_evidence"
+      ],
+      "accepted_position_count": 0,
+      "outcome": "rejected"
+    },
+    {
+      "source_id": 14,
+      "company": "中国电信集团有限公司",
+      "update_run_id": 3,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 8,
+      "outcome": "published"
+    },
+    {
+      "source_id": 15,
+      "company": "中国联合网络通信集团有限公司",
+      "update_run_id": 3,
+      "fetch_status": "failed",
+      "http_status": null,
+      "error": "ValueError: JSON API success check failed",
+      "publication_event": "",
+      "reason_codes": [],
+      "accepted_position_count": 0,
+      "outcome": "failed"
+    },
+    {
+      "source_id": 16,
+      "company": "亚马逊中国",
+      "update_run_id": 4,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 6,
+      "outcome": "published"
+    },
+    {
+      "source_id": 17,
+      "company": "苹果中国",
+      "update_run_id": 4,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 17,
+      "outcome": "published"
+    },
+    {
+      "source_id": 18,
+      "company": "一汽-大众汽车有限公司",
+      "update_run_id": 4,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "rejected",
+      "reason_codes": [
+        "not_eligible_recruitment_type",
+        "incomplete_field_evidence"
+      ],
+      "accepted_position_count": 0,
+      "outcome": "rejected"
+    },
+    {
+      "source_id": 19,
+      "company": "美的集团",
+      "update_run_id": 4,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "rejected",
+      "reason_codes": [
+        "not_eligible_recruitment_type",
+        "incomplete_field_evidence"
+      ],
+      "accepted_position_count": 0,
+      "outcome": "rejected"
+    },
+    {
+      "source_id": 20,
+      "company": "携程集团",
+      "update_run_id": 4,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 53,
+      "outcome": "published"
+    },
+    {
+      "source_id": 21,
+      "company": "大疆创新",
+      "update_run_id": 5,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "rejected",
+      "reason_codes": [
+        "not_eligible_recruitment_type",
+        "incomplete_field_evidence"
+      ],
+      "accepted_position_count": 0,
+      "outcome": "rejected"
+    },
+    {
+      "source_id": 22,
+      "company": "吉利控股",
+      "update_run_id": 5,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "rejected",
+      "reason_codes": [
+        "incomplete_field_evidence"
+      ],
+      "accepted_position_count": 0,
+      "outcome": "rejected"
+    },
+    {
+      "source_id": 23,
+      "company": "东风日产乘用车公司",
+      "update_run_id": 5,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 4,
+      "outcome": "published"
+    },
+    {
+      "source_id": 24,
+      "company": "博世中国",
+      "update_run_id": 5,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 18,
+      "outcome": "published"
+    },
+    {
+      "source_id": 25,
+      "company": "广汽丰田汽车有限公司",
+      "update_run_id": 5,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 1,
+      "outcome": "published"
+    }
+  ],
+  "completed": true,
+  "outcome": "partial_acceptance"
+}
