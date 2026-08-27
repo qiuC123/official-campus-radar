@@ -1,12 +1,17 @@
 from datetime import date, timedelta
 
 from django.core.paginator import Paginator
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 
 from radar.models import ApplicationLink, ApplicationProgress, RecruitmentBatch
 from radar.services.evidence import trusted_historical_projection
-from radar.services.locations import matches_selected_cities, normalize_locations
+from radar.services.locations import (
+    matches_selected_cities,
+    normalize_locations,
+    province_locations,
+)
 from radar.viewmodels import (
     DashboardSummaryVM,
     PREVIEW_COMPANY_TYPE_CHOICES,
@@ -58,6 +63,18 @@ def _position_vm(
 def _position_keywords(params) -> tuple[str, ...]:
     value = params.get("position", "")
     return tuple(item.strip().casefold() for item in value.replace("，", ",").split(",") if item.strip())
+
+
+def canonical_audience(recruitment_type: str, target_audience: str) -> str:
+    """Present generic source wording using this phase's agreed audience labels."""
+
+    value = str(target_audience or "").strip()
+    if recruitment_type == RecruitmentBatch.RecruitmentType.INTERNSHIP:
+        return "实习生"
+    if recruitment_type == RecruitmentBatch.RecruitmentType.CAMPUS_RECRUITMENT:
+        if "应届" in value or value in {"校招", "校园招聘", ""}:
+            return "2027届"
+    return value or "未说明"
 
 
 def filter_position_vms(positions, params):
@@ -134,7 +151,24 @@ def build_orm_dashboard(params, *, history: bool = False):
         queryset = queryset.filter(organization__industry__icontains=params["industry"])
     audience = params.get("audience") or params.get("target_audience")
     if audience:
-        queryset = queryset.filter(target_audience__icontains=audience)
+        if audience == "2027届":
+            queryset = queryset.filter(
+                Q(target_audience__icontains="2027届")
+                | Q(
+                    recruitment_type=RecruitmentBatch.RecruitmentType.CAMPUS_RECRUITMENT,
+                    target_audience__icontains="应届",
+                )
+                | Q(
+                    recruitment_type=RecruitmentBatch.RecruitmentType.CAMPUS_RECRUITMENT,
+                    target_audience__in=("", "校招", "校园招聘"),
+                )
+            )
+        elif audience == "实习生":
+            queryset = queryset.filter(
+                recruitment_type=RecruitmentBatch.RecruitmentType.INTERNSHIP
+            )
+        else:
+            queryset = queryset.filter(target_audience__icontains=audience)
     if params.get("deadline_before"):
         deadline_before = parse_date(params["deadline_before"])
         if deadline_before:
@@ -179,7 +213,10 @@ def build_orm_dashboard(params, *, history: bool = False):
             industry=batch.organization.industry,
             title=batch.title,
             recruitment_type=batch.get_recruitment_type_display(),
-            target_audience=batch.target_audience or "未说明",
+            target_audience=canonical_audience(
+                batch.recruitment_type,
+                batch.target_audience,
+            ),
             deadline=batch.deadline,
             status=batch.get_status_display(),
             official_page_url=batch.official_page_url,
@@ -275,9 +312,13 @@ def mock_dashboard(params, *, history: bool = False):
 
 
 def available_city_choices(batches) -> tuple[str, ...]:
-    cities = {
+    locations = {
         city for batch in batches for position in batch.positions for city in position.locations
         if city and city != "地点未说明"
     }
-    ordered = sorted(cities - {"全国", "远程"})
-    return tuple(ordered + [item for item in ("全国", "远程") if item in cities or not cities])
+    provinces = set(province_locations(locations))
+    ordered = sorted(provinces - {"全国", "远程", "海外"})
+    return tuple(
+        ordered
+        + [item for item in ("全国", "远程", "海外") if item in provinces]
+    )

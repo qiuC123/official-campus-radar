@@ -7,6 +7,7 @@ Phase and status: Phase 02 / H1、H2、G10、H3 已通过，T3、T4 和 T6 已�
 ## Current result
 
 - 架构仍为 Django 5.2 + SQLite 服务端页面，没有引入 React/Vue。ADR 0004 已批准中国联通唯一的生产隔离浏览器例外；它不复用个人浏览器资料，也不扩展到其他来源。
+- 正式页面数据归一化 Cycle 01 已完成：公司类型显示中文；本期泛称“应届毕业生”的校招在页面归入“2027届”；地点摘要和 `city` 筛选改为省级口径，具体岗位仍保留来源城市。原始数据库证据没有被改写。
 - T1 JSON 适配器、T2 接口发现工具的 `batch` / `official_page_url` 兼容候选已实现；旧 JSON 配置和证据字段由 0011 可逆迁移。兼容 Cycle 01/02 失败记录保留，Cycle 03 技术候选通过。
 - 正式首页 `/` 使用 ORM ViewModel；`/history/` 显示截止/撤回批次；开发模式下 `/preview/phase-02/` 使用独立 Mock ViewModel，并始终标注模拟数据。
 - 领域模型使用 `RecruitmentBatch` / `RecruitmentPosition`；根据 ADR 0003，投递进度现在归招聘批次所有并由用户手动维护，不从岗位自动计算。

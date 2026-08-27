@@ -4,6 +4,7 @@ from radar.services.locations import (
     is_target_location,
     matches_selected_cities,
     normalized_target_locations,
+    province_locations,
 )
 
 
@@ -31,3 +32,20 @@ class LocationPolicyTests(SimpleTestCase):
         self.assertFalse(matches_selected_cities(["远程"], ["全国"]))
         self.assertTrue(matches_selected_cities(["远程"], ["北京"]))
         self.assertTrue(matches_selected_cities(["全国"], ["北京"]))
+
+    def test_city_locations_collapse_to_provinces_for_display_and_filtering(self) -> None:
+        self.assertEqual(
+            province_locations(
+                ["深圳", "广东省-东莞市", "杭州", "Wuxi", "Jiangsu", "31"]
+            ),
+            ("广东", "浙江", "江苏"),
+        )
+        self.assertTrue(matches_selected_cities(["深圳", "东莞"], ["广东"]))
+        self.assertFalse(matches_selected_cities(["深圳", "东莞"], ["浙江"]))
+
+    def test_unknown_or_foreign_locations_degrade_honestly(self) -> None:
+        self.assertEqual(province_locations(["火星基地"]), ("火星基地",))
+        self.assertEqual(
+            province_locations(["Singapore", "London", "Palo Alto"]),
+            ("海外",),
+        )

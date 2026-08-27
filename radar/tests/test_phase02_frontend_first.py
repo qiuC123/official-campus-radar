@@ -89,6 +89,46 @@ class Phase02FrontendFirstTests(TestCase):
             "地点1、地点2、地点3、地点4、地点5、地点6，另有 2 个地点",
         )
 
+    def test_real_dashboard_uses_chinese_company_type_and_current_graduate_year(self):
+        self.source.organization.company_type = Organization.CompanyType.PRIVATE
+        self.source.organization.save(update_fields=["company_type"])
+        candidate = complete_candidate(self.source, identity_key="generic-audience")
+        candidate = replace(
+            candidate,
+            target_audience="应届毕业生",
+            field_evidence={
+                **candidate.field_evidence,
+                "target_audience": field_evidence(
+                    "应届毕业生", "#generic-audience .audience"
+                ),
+            },
+        )
+        publish_candidates(self.source, [candidate], self.version())
+
+        response = self.client.get("/?audience=2027届")
+
+        self.assertContains(response, self.source.organization.name)
+        self.assertContains(response, "民企")
+        self.assertContains(response, "2027届")
+        self.assertNotContains(response, ">private<")
+
+    def test_province_filter_matches_cities_and_summary_uses_provinces(self):
+        candidate = complete_candidate(
+            self.source,
+            identity_key="province-filter",
+            location="深圳市、杭州市",
+        )
+        publish_candidates(self.source, [candidate], self.version())
+
+        guangdong = self.client.get("/?city=广东")
+        zhejiang = self.client.get("/?city=浙江")
+        beijing = self.client.get("/?city=北京")
+
+        self.assertContains(guangdong, self.source.organization.name)
+        self.assertContains(guangdong, "广东、浙江")
+        self.assertContains(zhejiang, self.source.organization.name)
+        self.assertNotContains(beijing, self.source.organization.name)
+
     @override_settings(DEBUG=True)
     def test_preview_is_clearly_mocked_and_does_not_write_business_tables(self):
         response = self.client.get("/preview/phase-02/")

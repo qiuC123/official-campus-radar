@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from datetime import date
 
+from radar.services.locations import PROVINCE_NAMES, SPECIAL_LOCATIONS, province_locations
+
 
 PREVIEW_COMPANY_TYPE_CHOICES = (
     ("state_owned", "央国企"),
@@ -25,13 +27,7 @@ AUDIENCE_CHOICES = tuple((value, value) for value in (
     "2024届", "2025届", "2026届", "2027届", "2028届", "实习生",
 ))
 
-PROVINCE_CHOICES = (
-    "北京", "天津", "河北", "山西", "内蒙古", "辽宁", "吉林", "黑龙江",
-    "上海", "江苏", "浙江", "安徽", "福建", "江西", "山东", "河南",
-    "湖北", "湖南", "广东", "广西", "海南", "重庆", "四川", "贵州",
-    "云南", "西藏", "陕西", "甘肃", "青海", "宁夏", "新疆", "香港",
-    "澳门", "台湾",
-)
+PROVINCE_CHOICES = PROVINCE_NAMES
 
 DEADLINE_WINDOW_CHOICES = (
     ("1", "1 天内截止"),
@@ -90,12 +86,15 @@ class RecruitmentBatchVM:
 
     @property
     def location_summary(self) -> str:
-        locations = tuple(dict.fromkeys(
+        raw_locations = tuple(dict.fromkeys(
             location for position in self.positions for location in position.locations
         ))
+        locations = province_locations(raw_locations)
         preview = "、".join(locations[:6])
         if len(locations) > 6:
-            preview += f"，另有 {len(locations) - 6} 个地点"
+            recognized = set(PROVINCE_NAMES) | SPECIAL_LOCATIONS | {"海外"}
+            unit = "个省级地区" if set(locations) <= recognized else "个地点"
+            preview += f"，另有 {len(locations) - 6} {unit}"
         return preview
 
     @property
