@@ -1,0 +1,69 @@
+{
+  "cycle": "phase-02-t3-cycle-08-private-group",
+  "scope": "one-shot current public campus-page discovery for five frozen private companies",
+  "source_admission_claimed": false,
+  "production_browser_authorized": false,
+  "target_page_invocations_planned": 5,
+  "targets": [
+    {
+      "id": "P03-C08",
+      "company": "华为",
+      "company_type": "民企",
+      "url": "https://career.huawei.com/cn/campus-recruitment",
+      "official_evidence_url": "https://career.huawei.com/cn/campus-recruitment",
+      "wait": 10,
+      "scroll": false,
+      "reason": "The current official page explicitly exposes 2027 graduate and internship recruitment; inspect only its initial public XHR traffic.",
+      "cycle08_page_invocations": 1,
+      "normalized_endpoint_replay_maximum": 6
+    },
+    {
+      "id": "P06-C08",
+      "company": "百度",
+      "company_type": "民企",
+      "url": "https://talent.baidu.com/jobs",
+      "official_evidence_url": "https://talent.baidu.com/external/baidu/campus.html",
+      "wait": 10,
+      "scroll": false,
+      "reason": "The current official campus page directs candidates to the official jobs route; inspect only its initial public XHR traffic.",
+      "cycle08_page_invocations": 1,
+      "normalized_endpoint_replay_maximum": 6
+    },
+    {
+      "id": "P09-C08",
+      "company": "小米",
+      "company_type": "民企",
+      "url": "https://campus.hr.xiaomi.com/",
+      "official_evidence_url": "https://campus.hr.xiaomi.com/",
+      "wait": 10,
+      "scroll": false,
+      "reason": "The official current page identifies Xiaomi 2027 global campus recruitment; inspect only its initial public XHR traffic.",
+      "cycle08_page_invocations": 1,
+      "normalized_endpoint_replay_maximum": 6
+    },
+    {
+      "id": "P10-C08",
+      "company": "网易",
+      "company_type": "民企",
+      "url": "https://campus.163.com/",
+      "official_evidence_url": "https://campus.163.com/",
+      "wait": 10,
+      "scroll": false,
+      "reason": "The official current campus home lists graduate and internship programmes; inspect only its initial public XHR traffic.",
+      "cycle08_page_invocations": 1,
+      "normalized_endpoint_replay_maximum": 6
+    },
+    {
+      "id": "P14-C08",
+      "company": "大疆创新",
+      "company_type": "民企",
+      "url": "https://careers.dji.com/zh-CN/campus/hot-jobs",
+      "official_evidence_url": "https://careers.dji.com/zh-CN/campus",
+      "wait": 10,
+      "scroll": false,
+      "reason": "The official current campus page identifies 2027 graduate and year-round internship recruitment and links to hot jobs; inspect only initial public XHR traffic.",
+      "cycle08_page_invocations": 1,
+      "normalized_endpoint_replay_maximum": 6
+    }
+  ]
+}

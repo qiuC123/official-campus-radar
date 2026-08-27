@@ -1,0 +1,11 @@
+{
+  "cycle": "Phase 02 / T3 Cycle 14",
+  "mode": "offline_re_evaluation",
+  "source_report": "work/phase-02-t3-api-acceptance-cycle-13-tencent.json",
+  "source_config": "tools/api-acceptance-cycle-13-tencent.json",
+  "expected_company_key": "P01",
+  "expected_mapping_ids": [1, 14, 9],
+  "expected_mapping_names": ["2027校园招聘", "青云计划-应届生", "AI产品经理培训生"],
+  "allowed_observed_labels": ["AI产品经理培训生", "应届毕业生", "应届毕业生 青云计划"],
+  "expected_total": 437
+}

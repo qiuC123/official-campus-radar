@@ -1,0 +1,30 @@
+{
+  "cycle": "Phase 02 / T3 Cycle 13",
+  "source_admission_claimed": false,
+  "mapping_evidence": {
+    "endpoint": "https://join.qq.com/api/v1/position/getProjectMapping",
+    "campus_mapping_ids": [1, 14, 9],
+    "campus_mapping_names": ["2027校园招聘", "青云计划-应届生", "AI产品经理培训生"]
+  },
+  "targets": [
+    {
+      "key": "P01",
+      "company": "腾讯",
+      "official_page_url": "https://join.qq.com/post.html",
+      "endpoint": "https://join.qq.com/api/v1/position/searchPosition",
+      "method": "POST",
+      "body_encoding": "json",
+      "headers": {"Accept": "application/json", "Origin": "https://join.qq.com", "Referer": "https://join.qq.com/post.html"},
+      "request": {"projectIdList": [], "projectMappingIdList": [1, 14, 9], "keyword": "", "bgList": [], "workCountryType": 0, "workCityList": [], "recruitCityList": [], "positionFidList": [], "pageIndex": 1, "pageSize": 100},
+      "pagination": {"mode": "page_index", "page_param": "pageIndex", "size_param": "pageSize", "page_size": 100, "start": 1, "max_pages": 10},
+      "list_path": "data.positionList",
+      "total_path": "data.count",
+      "success": {"path": "status", "expect": 0},
+      "id_field": "postId",
+      "title_field": "positionTitle",
+      "location_paths": ["workCities"],
+      "scope": {"field": "recruitLabelName", "allowed": ["应届毕业生", "人才专项"]},
+      "sample_fields": ["postId", "positionTitle", "workCities", "projectId", "projectName", "recruitLabelName"]
+    }
+  ]
+}

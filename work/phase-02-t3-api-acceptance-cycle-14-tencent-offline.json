@@ -1,0 +1,29 @@
+{
+  "cycle": "Phase 02 / T3 Cycle 14",
+  "mode": "offline re-evaluation; no network request",
+  "source_cycle": "Phase 02 / T3 Cycle 13",
+  "source_cycle_failure_preserved": true,
+  "correction": "Cycle 13 used an incomplete recruitLabelName whitelist. The request itself was already constrained by the verified campus projectMappingIdList [1, 14, 9].",
+  "network_requests_made": 0,
+  "database_writes": false,
+  "checks": {
+    "company_key": true,
+    "minimal_request": true,
+    "no_cookies": true,
+    "complete": true,
+    "expected_total": true,
+    "required_fields": true,
+    "mapping_ids": true,
+    "mapping_names": true,
+    "observed_labels": true
+  },
+  "reported_total": 437,
+  "unique_ids": 437,
+  "observed_labels": [
+    "AI产品经理培训生",
+    "应届毕业生",
+    "应届毕业生 青云计划"
+  ],
+  "stable_count_added": 1,
+  "passed": true
+}

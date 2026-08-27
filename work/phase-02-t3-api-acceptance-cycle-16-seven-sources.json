@@ -1,0 +1,803 @@
+{
+  "cycle": "Phase 02 / T3 Cycle 16",
+  "scope": "read-only public source completeness acceptance; not source admission",
+  "source_admission_claimed": false,
+  "database_writes": false,
+  "raw_response_persisted": false,
+  "results": [
+    {
+      "key": "J02",
+      "company": "一汽-大众汽车有限公司",
+      "official_page_url": "https://faw-vw.hotjob.cn/",
+      "official_link_evidence": "一汽-大众招聘入口跳转到 faw-zhaopin.hotjob.cn 的公开校招页",
+      "endpoint": "https://faw-zhaopin.hotjob.cn/wecruit/positionInfo/listPosition/SU64bb3226bef57c7e364a7a2c?iSaJAx=isAjax&request_locale=zh_CN",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "requests_made": 1,
+      "reported_total": 19,
+      "unique_ids": 10,
+      "accepted_unique_ids": 10,
+      "complete": false,
+      "scope_evidence": "row fields",
+      "scope_checks": [
+        {
+          "path": "recruitType",
+          "raw_values": [
+            "1"
+          ],
+          "allowed": [
+            "1"
+          ],
+          "passed": true
+        },
+        {
+          "path": "projectName",
+          "raw_values": [
+            "2026校园招聘"
+          ],
+          "allowed": [
+            "2026校园招聘"
+          ],
+          "passed": true
+        }
+      ],
+      "scope_ok": true,
+      "missing_required_fields": [],
+      "pages": [
+        {
+          "cursor": 1,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 10,
+          "accepted_row_count": 10,
+          "new_unique_ids": 10
+        }
+      ],
+      "samples": [
+        {
+          "postId": "69f1c2b8e791100f0ae9a79d",
+          "postName": "【2026校园招聘】人力资源类-长春",
+          "workPlaceStr": "长春市",
+          "projectName": "2026校园招聘",
+          "publishDate": "2026-04-29 16:35:04",
+          "endDate": "2026-09-03 02:37:47"
+        },
+        {
+          "postId": "69dd937d4e30a370a4b0d884",
+          "postName": "【2026校园招聘】法律事务类-长春",
+          "workPlaceStr": "长春市",
+          "projectName": "2026校园招聘",
+          "publishDate": "2026-04-14 09:08:07",
+          "endDate": "2026-09-03 02:37:47"
+        },
+        {
+          "postId": "69c1e9ac10919a570b7c1c5a",
+          "postName": "【2026校园招聘】研发类-开发管理-长春",
+          "workPlaceStr": "长春市",
+          "projectName": "2026校园招聘",
+          "publishDate": "2026-03-24 09:32:28",
+          "endDate": "2027-03-24 23:59:59"
+        },
+        {
+          "postId": "6968803c91532c730e274a24",
+          "postName": "【2026校园招聘】物流管理类-长春",
+          "workPlaceStr": "长春市",
+          "projectName": "2026校园招聘",
+          "publishDate": "2026-01-29 11:20:28",
+          "endDate": "2027-01-29 23:59:59"
+        },
+        {
+          "postId": "691ab63be3842960d1988b60",
+          "postName": "【2026校园招聘】营销管理类-西安",
+          "workPlaceStr": "西安市",
+          "projectName": "2026校园招聘",
+          "publishDate": "2025-11-17 13:44:22",
+          "endDate": "2026-11-17 23:59:59"
+        }
+      ],
+      "passed": false
+    },
+    {
+      "key": "P17",
+      "company": "美的集团",
+      "official_page_url": "https://careers.midea.com/schoolOut/post?type=2",
+      "official_link_evidence": "美的官网人才招聘入口直达 careers.midea.com，projectRuleId 对应日常实习生招聘通道",
+      "endpoint": "https://careers.midea.com/backend/school/position/common/position/list",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "requests_made": 1,
+      "reported_total": 149,
+      "unique_ids": 20,
+      "accepted_unique_ids": 20,
+      "complete": false,
+      "scope_evidence": "日常实习生招聘通道（公开项目列表返回的项目名称）",
+      "scope_checks": [],
+      "scope_ok": true,
+      "missing_required_fields": [],
+      "pages": [
+        {
+          "cursor": 1,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 20,
+          "accepted_row_count": 20,
+          "new_unique_ids": 20
+        }
+      ],
+      "samples": [
+        {
+          "projectPositionId": "825585b38081487caa00ef46bd349c3c",
+          "projectPositionName": "AIGC算法工程师",
+          "workPlaceCode": "佛山市",
+          "recruitCategoryName": "信息技术类"
+        },
+        {
+          "projectPositionId": "63cfb437d70644608e68ff343aeb4537",
+          "projectPositionName": "AIGC算法工程师-算法工程",
+          "workPlaceCode": "佛山市",
+          "recruitCategoryName": "信息技术类"
+        },
+        {
+          "projectPositionId": "bb14e64c235e4a438b917ac03ff5900a",
+          "projectPositionName": "电子工艺",
+          "workPlaceCode": "佛山市",
+          "recruitCategoryName": "制造技术类"
+        },
+        {
+          "projectPositionId": "011f7576427d423da1b202cfe3f4028a",
+          "projectPositionName": "电商业务",
+          "workPlaceCode": "佛山市",
+          "recruitCategoryName": "国内营销类"
+        },
+        {
+          "projectPositionId": "8935905db3414d1c9b4958e3ad380bf9",
+          "projectPositionName": "制造工艺助理工程师",
+          "workPlaceCode": "武汉市",
+          "recruitCategoryName": "制造技术类"
+        }
+      ],
+      "passed": false
+    },
+    {
+      "key": "P19",
+      "company": "比亚迪",
+      "official_page_url": "https://job.byd.com/portal/mobile/school-home",
+      "official_link_evidence": "比亚迪官方招聘站公开的 2027 届应届生招聘通道",
+      "endpoint": "https://job.byd.com/portal/api/portal-api/schoolPortal/queryPositionList",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "requests_made": 4,
+      "reported_total": 340,
+      "unique_ids": 340,
+      "accepted_unique_ids": 340,
+      "complete": true,
+      "scope_evidence": "row fields",
+      "scope_checks": [
+        {
+          "path": "batch",
+          "raw_values": [
+            "2027"
+          ],
+          "allowed": [
+            "2027"
+          ],
+          "passed": true
+        },
+        {
+          "path": "campusNature",
+          "raw_values": [
+            "008501"
+          ],
+          "allowed": [
+            "008501"
+          ],
+          "passed": true
+        }
+      ],
+      "scope_ok": true,
+      "missing_required_fields": [],
+      "pages": [
+        {
+          "cursor": 1,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 2,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 3,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 4,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 40,
+          "accepted_row_count": 40,
+          "new_unique_ids": 40
+        }
+      ],
+      "samples": [
+        {
+          "id": "2089522703760392194",
+          "jobName": "高级NVH工程师",
+          "workPlace": "深圳市",
+          "batch": 2027,
+          "campusNature": "008501",
+          "updateTime": "2026-08-27"
+        },
+        {
+          "id": "2087839155114479617",
+          "jobName": "高级仿真工程师",
+          "workPlace": "上海市,深圳市",
+          "batch": 2027,
+          "campusNature": "008501",
+          "updateTime": "2026-08-27"
+        },
+        {
+          "id": "2089623328531697666",
+          "jobName": "安全工程师",
+          "workPlace": "广州市,惠州市,扬州市,汕头市,济南市,深圳市,绍兴市,芜湖市,西安市,郑州市",
+          "batch": 2027,
+          "campusNature": "008501",
+          "updateTime": "2026-08-27"
+        },
+        {
+          "id": "2088094527800741890",
+          "jobName": "成本会计",
+          "workPlace": "深圳市",
+          "batch": 2027,
+          "campusNature": "008501",
+          "updateTime": "2026-08-27"
+        },
+        {
+          "id": "2087818623199522818",
+          "jobName": "高级前瞻研究工程师",
+          "workPlace": "深圳市",
+          "batch": 2027,
+          "campusNature": "008501",
+          "updateTime": "2026-08-27"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "key": "S03",
+      "company": "中国电信集团有限公司",
+      "official_page_url": "https://job.chinatelecom.com.cn/wt/TELE/web/postinquiry",
+      "official_link_evidence": "中国电信官网招聘入口直达同域公开岗位查询页",
+      "endpoint": "https://job.chinatelecom.com.cn/wt/TELE/web/mode400/position/list",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "requests_made": 1,
+      "reported_total": 8,
+      "unique_ids": 8,
+      "accepted_unique_ids": 8,
+      "complete": true,
+      "scope_evidence": "row fields",
+      "scope_checks": [
+        {
+          "path": "RecruitTypeName",
+          "raw_values": [
+            "校园招聘"
+          ],
+          "allowed": [
+            "校园招聘"
+          ],
+          "passed": true
+        }
+      ],
+      "scope_ok": true,
+      "missing_required_fields": [],
+      "pages": [
+        {
+          "cursor": 1,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 8,
+          "accepted_row_count": 8,
+          "new_unique_ids": 8
+        }
+      ],
+      "samples": [
+        {
+          "PostId": 137902,
+          "PostName": "区域解决方案经理（市区）",
+          "WorkPlace": "北京市",
+          "RecruitTypeName": "校园招聘",
+          "ReleaseTime": "2026-08-23"
+        },
+        {
+          "PostId": 137903,
+          "PostName": "区域客户经理（市区）",
+          "WorkPlace": "北京市",
+          "RecruitTypeName": "校园招聘",
+          "ReleaseTime": "2026-08-23"
+        },
+        {
+          "PostId": 137905,
+          "PostName": "区域客户经理（近郊区）",
+          "WorkPlace": "北京市",
+          "RecruitTypeName": "校园招聘",
+          "ReleaseTime": "2026-08-23"
+        },
+        {
+          "PostId": 137908,
+          "PostName": "行业解决方案经理",
+          "WorkPlace": "北京市",
+          "RecruitTypeName": "校园招聘",
+          "ReleaseTime": "2026-08-23"
+        },
+        {
+          "PostId": 137909,
+          "PostName": "行业客户经理",
+          "WorkPlace": "北京市",
+          "RecruitTypeName": "校园招聘",
+          "ReleaseTime": "2026-08-23"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "key": "S04",
+      "company": "中国联合网络通信集团有限公司",
+      "official_page_url": "https://zglt.zhaopin.com/",
+      "official_link_evidence": "中国联通官方招聘入口跳转到智联招聘承载的 2027 校园招聘专题，companyOutId=105347",
+      "endpoint": "https://fe.zhaopin.com/grace/api/dsc/search-job-list",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "requests_made": 27,
+      "reported_total": 2699,
+      "unique_ids": 2699,
+      "accepted_unique_ids": 2699,
+      "complete": true,
+      "scope_evidence": "中国联通 2027 校园招聘专题页，公开岗位列表固定 companyOutId=105347",
+      "scope_checks": [],
+      "scope_ok": true,
+      "missing_required_fields": [],
+      "pages": [
+        {
+          "cursor": 1,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 2,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 3,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 4,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 5,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 6,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 7,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 8,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 9,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 10,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 11,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 12,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 13,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 14,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 15,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 16,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 17,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 18,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 19,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 20,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 21,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 22,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 23,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 24,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 25,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 26,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 27,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 99,
+          "accepted_row_count": 99,
+          "new_unique_ids": 99
+        }
+      ],
+      "samples": [
+        {
+          "job.id": 40890370705,
+          "job.title": "行业客户经理",
+          "job.cityName": "淮安",
+          "job.modifiedTime": 1787804383696,
+          "company.campusOrgName": "中国联通江苏省分公司"
+        },
+        {
+          "job.id": 40890245305,
+          "job.title": "产品经理",
+          "job.cityName": "北京",
+          "job.modifiedTime": 1787792769433,
+          "company.campusOrgName": "联通支付有限公司"
+        },
+        {
+          "job.id": 40891059705,
+          "job.title": "区分公司公众营销人才储备计划",
+          "job.cityName": "上海",
+          "job.modifiedTime": 1787798138438,
+          "company.campusOrgName": "中国联通上海市分公司"
+        },
+        {
+          "job.id": 40891050405,
+          "job.title": "网络维护支撑",
+          "job.cityName": "武汉",
+          "job.modifiedTime": 1787740622694,
+          "company.campusOrgName": "中国联通湖北省分公司"
+        },
+        {
+          "job.id": 40891050305,
+          "job.title": "项目经理",
+          "job.cityName": "武汉",
+          "job.modifiedTime": 1787740620711,
+          "company.campusOrgName": "中国联通湖北省分公司"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "key": "F02",
+      "company": "亚马逊中国",
+      "official_page_url": "https://www.amazon.jobs/en/search?base_query=intern",
+      "official_link_evidence": "Amazon.jobs 官方公开职位搜索；完整遍历 intern 结果后仅保留 country_code=CHN",
+      "endpoint": "https://www.amazon.jobs/en/search.json",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "requests_made": 2,
+      "reported_total": 194,
+      "unique_ids": 194,
+      "accepted_unique_ids": 6,
+      "complete": true,
+      "scope_evidence": "官方搜索词 intern；中国岗位由 country_code=CHN 精确筛选",
+      "scope_checks": [],
+      "scope_ok": true,
+      "missing_required_fields": [],
+      "pages": [
+        {
+          "cursor": 0,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 5,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 100,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 94,
+          "accepted_row_count": 1,
+          "new_unique_ids": 94
+        }
+      ],
+      "samples": [
+        {
+          "id": "b327f18c-bc43-48cb-a82c-75b6d054dec5",
+          "title": "Marketing Intern",
+          "location": "CN, 31, Shanghai",
+          "country_code": "CHN",
+          "posted_date": "August 18, 2026",
+          "job_path": "/en/jobs/10504831/marketing-intern"
+        },
+        {
+          "id": "b2dd103a-ed9d-47c7-b8e9-b41c4d105832",
+          "title": "Tax intern, Indirect tax compliance",
+          "location": "CN, 13, Beijing",
+          "country_code": "CHN",
+          "posted_date": "August 19, 2026",
+          "job_path": "/en/jobs/10506844/tax-intern-indirect-tax-compliance"
+        },
+        {
+          "id": "dd66fb60-4793-4f06-911b-5be1c97a6692",
+          "title": "Sales Operation Intern, SalesOps Team",
+          "location": "CN, 44, Shenzhen",
+          "country_code": "CHN",
+          "posted_date": "August 27, 2026",
+          "job_path": "/en/jobs/10516357/sales-operation-intern-salesops-team"
+        },
+        {
+          "id": "b01e3e08-5bcc-49de-8af4-f30294cbcd56",
+          "title": "Tax intern, Indirect tax compliance",
+          "location": "CN, 13, Beijing",
+          "country_code": "CHN",
+          "posted_date": "August 19, 2026",
+          "job_path": "/en/jobs/10506461/tax-intern-indirect-tax-compliance"
+        },
+        {
+          "id": "a1c8663b-1f73-4cb1-a934-f743cc6095cd",
+          "title": "Business Analyst Intern, Global Selling Rest of Asia",
+          "location": "CN, 13, Beijing",
+          "country_code": "CHN",
+          "posted_date": "August  5, 2026",
+          "job_path": "/en/jobs/10492602/business-analyst-intern-global-selling-rest-of-asia"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "key": "F06",
+      "company": "苹果中国",
+      "official_page_url": "https://jobs.apple.com/en-us/search?location=china-CHNC&team=internships-STDNT-INTRN",
+      "official_link_evidence": "Apple Careers 官方筛选页同时限定 China 与 Students: Internships",
+      "endpoint": "https://jobs.apple.com/en-us/search?location=china-CHNC&team=internships-STDNT-INTRN",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "requests_made": 1,
+      "reported_total": 17,
+      "unique_ids": 17,
+      "accepted_unique_ids": 17,
+      "complete": true,
+      "scope_evidence": "URL 明确限定 China 与 Students: Internships，服务端 hydration 数据给出完整 totalRecords",
+      "scope_checks": [],
+      "scope_ok": true,
+      "missing_required_fields": [],
+      "pages": [
+        {
+          "cursor": 1,
+          "status": 200,
+          "content_type": "text/html",
+          "row_count": 17,
+          "accepted_row_count": 17,
+          "new_unique_ids": 17
+        }
+      ],
+      "samples": [
+        {
+          "id": "200676912-3715",
+          "postingTitle": "Software Engineering Intern – AI Tools for Hardware Engineering",
+          "locations[].name": "Shanghai",
+          "postingDate": "Aug 10, 2026",
+          "team": {
+            "teamName": "Students",
+            "teamID": "teamsAndSubTeams-STDNT",
+            "teamCode": "STDNT"
+          }
+        },
+        {
+          "id": "200676912-3435",
+          "postingTitle": "Software Engineering Intern – AI Tools for Hardware Engineering",
+          "locations[].name": "Shenzhen",
+          "postingDate": "Aug 10, 2026",
+          "team": {
+            "teamName": "Students",
+            "teamID": "teamsAndSubTeams-STDNT",
+            "teamCode": "STDNT"
+          }
+        },
+        {
+          "id": "200676914-3715",
+          "postingTitle": "Hardware System Integration Engineer Intern - AirPods",
+          "locations[].name": "Shanghai",
+          "postingDate": "Aug 10, 2026",
+          "team": {
+            "teamName": "Students",
+            "teamID": "teamsAndSubTeams-STDNT",
+            "teamCode": "STDNT"
+          }
+        },
+        {
+          "id": "200598147-3715",
+          "postingTitle": "Intern Opportunities at Apple (General) - October 2026 to September 2027",
+          "locations[].name": "Shanghai",
+          "postingDate": "Jul 21, 2026",
+          "team": {
+            "teamName": "Students",
+            "teamID": "teamsAndSubTeams-STDNT",
+            "teamCode": "STDNT"
+          }
+        },
+        {
+          "id": "200494610-3916",
+          "postingTitle": "System EE - EE/HW Intern (Suzhou)",
+          "locations[].name": "Suzhou",
+          "postingDate": "Jul 21, 2026",
+          "team": {
+            "teamName": "Students",
+            "teamID": "teamsAndSubTeams-STDNT",
+            "teamCode": "STDNT"
+          }
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "stable_count_added": 5,
+  "passed": false
+}

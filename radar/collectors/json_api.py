@@ -204,8 +204,12 @@ class JsonApiSourceAdapter:
             )
 
         for name in ("published_on", "deadline"):
+            has_fixed_provenance = name in batch
             fixed_value = str(batch.get(name, "")).strip()
-            if not (fixed_value or str(field_map.get(name, "")).strip()):
+            if not (
+                has_fixed_provenance
+                or str(field_map.get(name, "")).strip()
+            ):
                 raise ValueError(
                     f"JSON API {name} requires a fixed batch value or field path"
                 )
@@ -220,8 +224,11 @@ class JsonApiSourceAdapter:
         pagination = config.get("pagination")
         if not isinstance(pagination, dict):
             raise ValueError("JSON API pagination must be an object")
-        if pagination.get("mode") != "page_index":
-            raise ValueError("JSON API pagination.mode must be page_index")
+        pagination_mode = str(pagination.get("mode", "")).strip().lower()
+        if pagination_mode not in {"page_index", "offset"}:
+            raise ValueError(
+                "JSON API pagination.mode must be page_index or offset"
+            )
         total_kind = str(pagination.get("total_kind", "items")).strip().lower()
         if total_kind not in {"items", "pages"}:
             raise ValueError(
@@ -231,6 +238,10 @@ class JsonApiSourceAdapter:
         if total_kind == "pages" and not total_path:
             raise ValueError(
                 "JSON API total_path is required when pagination.total_kind is pages"
+            )
+        if pagination_mode == "offset" and total_kind != "items":
+            raise ValueError(
+                "JSON API offset pagination only supports item totals"
             )
         max_pages = pagination.get("max_pages")
         if (
@@ -277,14 +288,16 @@ class JsonApiSourceAdapter:
                 "JSON API pagination.page_param and pagination.size_param "
                 "must not overlap"
             )
-        start_page = pagination.get("start_page", 1)
+        start_name = "start_page" if pagination_mode == "page_index" else "start_offset"
+        start_default = 1 if pagination_mode == "page_index" else 0
+        start_value = pagination.get(start_name, start_default)
         if (
-            not isinstance(start_page, int)
-            or isinstance(start_page, bool)
-            or start_page < 0
+            not isinstance(start_value, int)
+            or isinstance(start_value, bool)
+            or start_value < 0
         ):
             raise ValueError(
-                "JSON API pagination.start_page must be a non-negative integer"
+                f"JSON API pagination.{start_name} must be a non-negative integer"
             )
 
         if body_encoding == "form":
@@ -311,10 +324,12 @@ class JsonApiSourceAdapter:
         endpoint = str(config["endpoint"]).strip()
         method = str(config.get("method", "GET")).upper()
         pagination = config["pagination"]
+        pagination_mode = str(pagination["mode"]).strip().lower()
         page_param = str(pagination["page_param"]).strip()
         size_param = str(pagination["size_param"]).strip()
         page_size = pagination["page_size"]
         start_page = pagination.get("start_page", 1)
+        start_offset = pagination.get("start_offset", 0)
         max_pages = pagination["max_pages"]
         delay = config.get("request_delay_seconds", 1)
         list_path = str(config["list_path"]).strip()
@@ -341,9 +356,14 @@ class JsonApiSourceAdapter:
         last_response = None
         missing = object()
 
-        for offset in range(max_pages):
+        for page_number in range(max_pages):
             request_values = copy.deepcopy(base_request_values)
-            _set_path(request_values, page_param, start_page + offset)
+            request_cursor = (
+                start_page + page_number
+                if pagination_mode == "page_index"
+                else start_offset + page_number * page_size
+            )
+            _set_path(request_values, page_param, request_cursor)
             _set_path(request_values, size_param, page_size)
             request_kwargs = {
                 "allow_redirects": False,
@@ -414,14 +434,14 @@ class JsonApiSourceAdapter:
                         raise ValueError(
                             "JSON API total page count cannot be zero for a non-empty page"
                         )
-                    if offset + 1 >= total:
+                    if page_number + 1 >= total:
                         positions_complete = True
                         break
                 elif len(positions) >= total:
                     positions_complete = True
                     break
 
-            if offset + 1 < max_pages:
+            if page_number + 1 < max_pages:
                 time.sleep(delay)
 
         if aggregate_document is None or last_response is None:
@@ -435,6 +455,7 @@ class JsonApiSourceAdapter:
             "valid_values": copy.deepcopy(config.get("valid_values", {})),
             "html_fields": copy.deepcopy(config.get("html_fields", [])),
             "pagination_total_kind": total_kind,
+            "pagination_mode": pagination_mode,
         }
         body = _canonical_json(aggregate_document)
         return FetchedPage(

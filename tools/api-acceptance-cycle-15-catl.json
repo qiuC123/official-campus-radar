@@ -1,0 +1,29 @@
+{
+  "cycle": "Phase 02 / T3 Cycle 15",
+  "source_admission_claimed": false,
+  "official_link_evidence": {
+    "entrypoint": "https://talent.catl.com/",
+    "label": "2027届全球校园招聘",
+    "linked_page": "https://app.mokahr.com/campus-recruitment/catlhr/148948#/"
+  },
+  "targets": [
+    {
+      "key": "P15",
+      "company": "宁德时代",
+      "official_page_url": "https://app.mokahr.com/campus-recruitment/catlhr/148948#/",
+      "endpoint": "https://api.mokahr.com/api-platform/v1/jobs/catlhr",
+      "method": "GET",
+      "body_encoding": "query",
+      "headers": {"Accept": "application/json"},
+      "request": {"mode": "campus", "siteId": 148948, "limit": 100, "offset": 0},
+      "pagination": {"mode": "offset", "page_param": "offset", "size_param": "limit", "page_size": 100, "start": 0, "max_pages": 10},
+      "list_path": "jobs",
+      "total_path": "total",
+      "id_field": "id",
+      "title_field": "title",
+      "location_paths": ["locations[].city", "locations[].province", "locations[].country"],
+      "scope": {"field": "status", "allowed": ["open"]},
+      "sample_fields": ["id", "title", "status", "locations", "updatedAt"]
+    }
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "cycle": "Phase 02 / T3 Cycle 13",
+  "scope": "read-only public API completeness acceptance; not source admission",
+  "source_admission_claimed": false,
+  "database_writes": false,
+  "raw_response_persisted": false,
+  "results": [
+    {
+      "key": "P01",
+      "company": "腾讯",
+      "official_page_url": "https://join.qq.com/post.html",
+      "endpoint": "https://join.qq.com/api/v1/position/searchPosition",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "requests_made": 5,
+      "reported_total": 437,
+      "unique_ids": 437,
+      "complete": true,
+      "scope_raw_values": [
+        "AI产品经理培训生",
+        "应届毕业生",
+        "应届毕业生 青云计划"
+      ],
+      "scope_ok": false,
+      "missing_required_fields": [],
+      "pages": [
+        {
+          "cursor": 1,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 2,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 3,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 4,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 5,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 37,
+          "new_unique_ids": 37
+        }
+      ],
+      "samples": [
+        {
+          "postId": "1282707398326592512",
+          "positionTitle": "AI全栈工程师",
+          "workCities": "深圳总部 北京 上海 广州 成都 杭州 ",
+          "projectId": 1,
+          "projectName": "应届毕业生",
+          "recruitLabelName": "应届毕业生"
+        },
+        {
+          "postId": "1282707395466077184",
+          "positionTitle": "Agent开发工程师",
+          "workCities": "深圳总部 北京 上海 广州 成都 ",
+          "projectId": 1,
+          "projectName": "应届毕业生",
+          "recruitLabelName": "应届毕业生"
+        },
+        {
+          "postId": "1282707395466077185",
+          "positionTitle": "AI应用工程师",
+          "workCities": "深圳总部 北京 上海 广州 成都 ",
+          "projectId": 1,
+          "projectName": "应届毕业生",
+          "recruitLabelName": "应届毕业生"
+        },
+        {
+          "postId": "1282707395466077186",
+          "positionTitle": "AI算法工程",
+          "workCities": "深圳总部 北京 上海 广州 ",
+          "projectId": 1,
+          "projectName": "应届毕业生",
+          "recruitLabelName": "应届毕业生"
+        },
+        {
+          "postId": "1283126460798018560",
+          "positionTitle": "技术研究-高性能计算方向",
+          "workCities": "深圳总部 北京 上海 广州 成都 合肥 ",
+          "projectId": 1,
+          "projectName": "应届毕业生",
+          "recruitLabelName": "应届毕业生"
+        }
+      ],
+      "passed": false
+    }
+  ],
+  "stable_count_added": 0,
+  "passed": false
+}

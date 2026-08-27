@@ -1,6 +1,7 @@
 from radar.collectors.base import FetchedPage
 from radar.collectors.html import HtmlSourceAdapter
 from radar.collectors.json_api import JsonApiSourceAdapter
+from radar.collectors.moka_api import MokaPublicApiAdapter
 from radar.models import OfficialSource
 
 
@@ -25,6 +26,7 @@ class AdapterRegistry:
     adapters = {
         "html_selector": HtmlSourceAdapter,
         "json_api": JsonApiSourceAdapter,
+        "moka_public_api": MokaPublicApiAdapter,
         "local_demo_disabled": DisabledLocalDemoAdapter,
     }
 

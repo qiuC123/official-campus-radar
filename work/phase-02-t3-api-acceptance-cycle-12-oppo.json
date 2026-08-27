@@ -1,0 +1,88 @@
+{
+  "cycle": "Phase 02 / T3 Cycle 12",
+  "scope": "read-only public API completeness acceptance; not source admission",
+  "source_admission_claimed": false,
+  "database_writes": false,
+  "raw_response_persisted": false,
+  "results": [
+    {
+      "key": "P12",
+      "company": "OPPO",
+      "official_page_url": "https://careers.oppo.com/",
+      "endpoint": "https://careers.oppo.com/openapi/position/pageNew",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "requests_made": 2,
+      "reported_total": 117,
+      "unique_ids": 117,
+      "complete": true,
+      "scope_raw_values": [
+        "Graduate"
+      ],
+      "scope_ok": true,
+      "missing_required_fields": [],
+      "pages": [
+        {
+          "cursor": 1,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 2,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 17,
+          "new_unique_ids": 17
+        }
+      ],
+      "samples": [
+        {
+          "idRecruitPosition": 1769,
+          "positionName": "电池算法工程师",
+          "workCityName": "东莞市",
+          "recruitmentType": "Graduate",
+          "recruitmentTypeName": "应届生",
+          "projectName": "2027届应届生校园招聘"
+        },
+        {
+          "idRecruitPosition": 1873,
+          "positionName": "人因工程师",
+          "workCityName": "东莞市",
+          "recruitmentType": "Graduate",
+          "recruitmentTypeName": "应届生",
+          "projectName": "2027届应届生校园招聘"
+        },
+        {
+          "idRecruitPosition": 1870,
+          "positionName": "新材料应用工程师",
+          "workCityName": "东莞市",
+          "recruitmentType": "Graduate",
+          "recruitmentTypeName": "应届生",
+          "projectName": "2027届应届生校园招聘"
+        },
+        {
+          "idRecruitPosition": 1828,
+          "positionName": "系统工程师",
+          "workCityName": "成都市,深圳市,武汉市,南京市",
+          "recruitmentType": "Graduate",
+          "recruitmentTypeName": "应届生",
+          "projectName": "2027届应届生校园招聘"
+        },
+        {
+          "idRecruitPosition": 1847,
+          "positionName": "应用工程师",
+          "workCityName": "成都市,深圳市",
+          "recruitmentType": "Graduate",
+          "recruitmentTypeName": "应届生",
+          "projectName": "2027届应届生校园招聘"
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "stable_count_added": 1,
+  "passed": true
+}

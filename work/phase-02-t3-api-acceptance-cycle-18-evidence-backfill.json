@@ -1,0 +1,420 @@
+{
+  "cycle": "Phase 02 / T3 Cycle 18",
+  "scope": "read-only public source completeness acceptance; not source admission",
+  "source_admission_claimed": false,
+  "database_writes": false,
+  "raw_response_persisted": false,
+  "results": [
+    {
+      "key": "P02",
+      "company": "携程集团",
+      "official_page_url": "https://careers.ctrip.com/#/campus/jobList",
+      "official_link_evidence": "携程官方招聘站的校园招聘岗位页与同域公开接口",
+      "endpoint": "https://careers.ctrip.com/api/hrrecruit/getJobAd",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "requests_made": 1,
+      "reported_total": 53,
+      "unique_ids": 53,
+      "accepted_unique_ids": 53,
+      "complete": true,
+      "scope_evidence": "row fields",
+      "scope_checks": [
+        {
+          "path": "kindName",
+          "raw_values": [
+            "Fresh Graduates"
+          ],
+          "allowed": [
+            "Fresh Graduates",
+            "应届校招生"
+          ],
+          "passed": true
+        }
+      ],
+      "scope_ok": true,
+      "missing_required_fields": [],
+      "pages": [
+        {
+          "cursor": 1,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 53,
+          "accepted_row_count": 53,
+          "new_unique_ids": 53
+        }
+      ],
+      "samples": [
+        {
+          "jobId": "cc485408-52a2-4970-b667-e6a2abf9b9a5",
+          "jobTitle": "AI Solution (Customer Service Intelligence) - Arabic (2027 Graduates)(MJ036717)",
+          "cityName": "Shanghai",
+          "kindName": "Fresh Graduates",
+          "publishDate": "2026-08-26"
+        },
+        {
+          "jobId": "538e8c45-3591-43d5-8929-2cab023a0f6d",
+          "jobTitle": "Eagle Program – Business Analyst (2027 Graduates)(MJ036639)",
+          "cityName": "Shanghai",
+          "kindName": "Fresh Graduates",
+          "publishDate": "2026-08-25"
+        },
+        {
+          "jobId": "8baf3494-8f66-48f0-aef5-dd422c1edc22",
+          "jobTitle": "Eagle Program – Big Data Engineer (2027 Graduates)(MJ036640)",
+          "cityName": "Shanghai",
+          "kindName": "Fresh Graduates",
+          "publishDate": "2026-08-25"
+        },
+        {
+          "jobId": "1437e716-d862-4430-8705-639f09ca7b81",
+          "jobTitle": "旅游业务培训生（业务运营）- 日语/韩语/泰语/粤语（2027届秋招）(MJ036723)",
+          "cityName": "Shanghai",
+          "kindName": "Fresh Graduates",
+          "publishDate": "2026-08-26"
+        },
+        {
+          "jobId": "b36d5e05-9903-445e-b889-ae1fd6b52fde",
+          "jobTitle": "旅游业务培训生（业务运营）（2027届秋招）- 济南(MJ036703)",
+          "cityName": "Jinan",
+          "kindName": "Fresh Graduates",
+          "publishDate": "2026-08-25"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "key": "P14",
+      "company": "大疆创新",
+      "official_page_url": "https://apply.careers.dji.com/campus-recruitment/dji/143359?locale=zh-CN#/jobs",
+      "official_link_evidence": "大疆官方 2027 校招页直链 apply.careers.dji.com 的 Moka 校招租户",
+      "endpoint": "https://api.mokahr.com/api-platform/v1/jobs/dji",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "requests_made": 2,
+      "reported_total": 139,
+      "unique_ids": 139,
+      "accepted_unique_ids": 139,
+      "complete": true,
+      "scope_evidence": "官方 2027 校招页；API 固定 mode=campus 与 siteId=143359",
+      "scope_checks": [
+        {
+          "path": "status",
+          "raw_values": [
+            "open"
+          ],
+          "allowed": [
+            "open"
+          ],
+          "passed": true
+        }
+      ],
+      "scope_ok": true,
+      "missing_required_fields": [],
+      "pages": [
+        {
+          "cursor": 0,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "accepted_row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 100,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 39,
+          "accepted_row_count": 39,
+          "new_unique_ids": 39
+        }
+      ],
+      "samples": [
+        {
+          "id": "093114fd-38fa-497b-ac5a-8a8f47777708",
+          "title": "数字管理研发工程师（深圳）",
+          "locations[].city": "深圳市",
+          "status": "open",
+          "updatedAt": "2026-08-10T07:08:08.000Z"
+        },
+        {
+          "id": "f651ff70-80ea-4c5d-93ce-747c17881061",
+          "title": "产品售后服务岗",
+          "locations[].city": "深圳市",
+          "status": "open",
+          "updatedAt": "2026-07-22T09:32:08.000Z"
+        },
+        {
+          "id": "330f8324-2386-4335-b3bd-88f2f2aa9514",
+          "title": "计算机视觉算法工程师（深圳）",
+          "locations[].city": "深圳市",
+          "status": "open",
+          "updatedAt": "2026-08-13T03:31:54.000Z"
+        },
+        {
+          "id": "673a6c78-ad1a-46ee-99b5-bb3dea082e27",
+          "title": "计算机视觉算法工程师（上海）",
+          "locations[].city": null,
+          "status": "open",
+          "updatedAt": "2026-08-13T03:32:06.000Z"
+        },
+        {
+          "id": "0fcc87ca-5042-4f3a-a827-9027253d43da",
+          "title": "产品售前解决方案岗",
+          "locations[].city": "深圳市",
+          "status": "open",
+          "updatedAt": "2026-07-22T09:32:08.000Z"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "key": "P16",
+      "company": "吉利控股",
+      "official_page_url": "https://campus.geely.com/campus-recruitment/geely/98148#/",
+      "official_link_evidence": "吉利官方 campus.geely.com 的 Moka 校招租户",
+      "endpoint": "https://api.mokahr.com/api-platform/v1/jobs/geely",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "requests_made": 1,
+      "reported_total": 6,
+      "unique_ids": 6,
+      "accepted_unique_ids": 6,
+      "complete": true,
+      "scope_evidence": "官方校招域名；API 固定 mode=campus 与 siteId=98148",
+      "scope_checks": [
+        {
+          "path": "status",
+          "raw_values": [
+            "open"
+          ],
+          "allowed": [
+            "open"
+          ],
+          "passed": true
+        }
+      ],
+      "scope_ok": true,
+      "missing_required_fields": [],
+      "pages": [
+        {
+          "cursor": 0,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 6,
+          "accepted_row_count": 6,
+          "new_unique_ids": 6
+        }
+      ],
+      "samples": [
+        {
+          "id": "05a24043-f568-4d7b-aee2-957b3ecaae94",
+          "title": "招聘实习生",
+          "locations[].city": "杭州市",
+          "status": "open",
+          "updatedAt": "2026-08-18T16:19:53.000Z"
+        },
+        {
+          "id": "7615a5db-70b7-4b34-842a-85e321d4e678",
+          "title": "培训实习生",
+          "locations[].city": "杭州市",
+          "status": "open",
+          "updatedAt": "2026-08-11T16:18:32.000Z"
+        },
+        {
+          "id": "14053057-2d41-4665-9953-5762cfffe1e1",
+          "title": "经营管理实习生",
+          "locations[].city": "襄阳市",
+          "status": "open",
+          "updatedAt": "2026-05-26T09:56:43.000Z"
+        },
+        {
+          "id": "90fd87bc-d55a-44f3-9a4b-b62ba79474cb",
+          "title": "标准化实习生",
+          "locations[].city": "成都市",
+          "status": "open",
+          "updatedAt": "2026-05-26T09:56:43.000Z"
+        },
+        {
+          "id": "6c8d2093-bb28-4ec1-9861-6c08c0dbd750",
+          "title": "运营实习生（新媒体运营）",
+          "locations[].city": "宁波市",
+          "status": "open",
+          "updatedAt": "2026-05-26T09:56:43.000Z"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "key": "J04",
+      "company": "东风日产乘用车公司",
+      "official_page_url": "https://www.dongfeng-nissan.com.cn/about/recruit/intern",
+      "official_link_evidence": "东风日产官网实习招聘页的公开脚本声明同集团 api.dongfeng-nissan.com.cn 接口和 categoryCode=3",
+      "endpoint": "https://api.dongfeng-nissan.com.cn/api/NissanXBeisenAPI/GetJobList",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "requests_made": 1,
+      "reported_total": 4,
+      "unique_ids": 4,
+      "accepted_unique_ids": 4,
+      "complete": true,
+      "scope_evidence": "官网类型字典明确 3=实习生招聘，页面脚本以 categoryCode=3 查询并用短页结束分页",
+      "scope_checks": [],
+      "scope_ok": true,
+      "missing_required_fields": [],
+      "pages": [
+        {
+          "cursor": 1,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 4,
+          "accepted_row_count": 4,
+          "new_unique_ids": 4
+        }
+      ],
+      "samples": [
+        {
+          "id": "511163402",
+          "jobTitle": "2026实习生-造型（GUI设计）(J11692)",
+          "workProvince": "广东省",
+          "workCity": "广州市",
+          "publishDate": "2026-05-25"
+        },
+        {
+          "id": "511163399",
+          "jobTitle": "2026实习生-造型（色彩纹理设计）(J11691)",
+          "workProvince": "广东省",
+          "workCity": "广州市",
+          "publishDate": "2026-05-25"
+        },
+        {
+          "id": "511163392",
+          "jobTitle": "2026实习生-造型（内饰设计）(J11690)",
+          "workProvince": "广东省",
+          "workCity": "广州市",
+          "publishDate": "2026-05-25"
+        },
+        {
+          "id": "511163391",
+          "jobTitle": "2026实习生-造型（外饰设计）(J11689)",
+          "workProvince": "广东省",
+          "workCity": "广州市",
+          "publishDate": "2026-05-25"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "key": "F05",
+      "company": "博世中国",
+      "official_page_url": "https://www.bosch.com.cn/careers/job-offers/",
+      "official_link_evidence": "博世中国官网职位页使用 SmartRecruiters 的 BoschGroup 公开租户",
+      "endpoint": "https://api.smartrecruiters.com/v1/companies/BoschGroup/postings",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "requests_made": 1,
+      "reported_total": 54,
+      "unique_ids": 54,
+      "accepted_unique_ids": 18,
+      "complete": true,
+      "scope_evidence": "完整遍历 q=校招、country=cn 后，仅接收岗位标题明确含 27届校招 的记录",
+      "scope_checks": [],
+      "scope_ok": true,
+      "missing_required_fields": [],
+      "pages": [
+        {
+          "cursor": 0,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 54,
+          "accepted_row_count": 18,
+          "new_unique_ids": 54
+        }
+      ],
+      "samples": [
+        {
+          "id": "744000142551949",
+          "name": "大模型算法工程师(27届校招)_BCSC",
+          "location.fullLocation": "Wuxi, Jiangsu, China",
+          "releasedDate": "2026-08-10T02:33:50.127Z",
+          "refNumber": "REF293751O"
+        },
+        {
+          "id": "744000142088889",
+          "name": "动力域嵌入式软件开发工程师(27届校招)_BCSC",
+          "location.fullLocation": "Wuxi, Jiangsu, China",
+          "releasedDate": "2026-08-07T09:26:54.404Z",
+          "refNumber": "REF293693E"
+        },
+        {
+          "id": "744000142085690",
+          "name": "辅助驾驶预测算法开发工程师(27届校招)_BCSC",
+          "location.fullLocation": "Wuxi, Jiangsu, China",
+          "releasedDate": "2026-08-07T09:24:35.041Z",
+          "refNumber": "REF293692J"
+        },
+        {
+          "id": "744000142082357",
+          "name": "底盘域底软开发工程师(27届校招)_BCSC",
+          "location.fullLocation": "Wuxi, Jiangsu, China",
+          "releasedDate": "2026-08-07T09:03:46.436Z",
+          "refNumber": "REF293685Q"
+        },
+        {
+          "id": "744000142083849",
+          "name": "硬件工程师-低压控制器(27届校招)_BCSC",
+          "location.fullLocation": "Wuxi, Jiangsu, China",
+          "releasedDate": "2026-08-07T09:00:00.659Z",
+          "refNumber": "REF293683J"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "key": "J03",
+      "company": "广汽丰田汽车有限公司",
+      "official_page_url": "https://gac-toyota.zhiye.com/campus/",
+      "official_link_evidence": "广汽丰田官网直链的北森校园招聘页；服务端 HTML 直接给出岗位表",
+      "endpoint": "https://gac-toyota.zhiye.com/campus/",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "requests_made": 1,
+      "reported_total": 1,
+      "unique_ids": 1,
+      "accepted_unique_ids": 1,
+      "complete": true,
+      "scope_evidence": "页面标题为校园招聘，岗位标题明确标注应届可投；pager 容器无下一页链接",
+      "scope_checks": [],
+      "scope_ok": true,
+      "missing_required_fields": [],
+      "pages": [
+        {
+          "cursor": 1,
+          "status": 200,
+          "content_type": "text/html",
+          "row_count": 1,
+          "accepted_row_count": 1,
+          "new_unique_ids": 1
+        }
+      ],
+      "samples": [
+        {
+          "id": "621117741",
+          "title": "仪表板设计工程师（应届可投）",
+          "location": "广东省-广州市",
+          "published_on": "2026-07-15",
+          "href": "/zpdetail/621117741"
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "stable_count_added": 6,
+  "passed": true
+}

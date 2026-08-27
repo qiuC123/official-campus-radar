@@ -1,0 +1,21 @@
+{
+  "cycle": "phase-02-t3-cycle-10-dji-ats",
+  "scope": "one-shot discovery on the official DJI 2027 campus ATS job list verified in a read-only browser",
+  "source_admission_claimed": false,
+  "production_browser_authorized": false,
+  "target_page_invocations_planned": 1,
+  "targets": [
+    {
+      "id": "P14-C10",
+      "company": "大疆创新",
+      "company_type": "民企",
+      "url": "https://apply.careers.dji.com/campus-recruitment/dji/143359?locale=zh-CN#/jobs",
+      "official_evidence_url": "https://careers.dji.com/zh-CN/campus/hot-jobs",
+      "wait": 10,
+      "scroll": false,
+      "reason": "The official 2027 campus page links to this ATS list; browser verification observed 139 jobs, title, location, detail, and five pages. Discover and replay its initial job API once.",
+      "cycle10_page_invocations": 1,
+      "normalized_endpoint_replay_maximum": 6
+    }
+  ]
+}

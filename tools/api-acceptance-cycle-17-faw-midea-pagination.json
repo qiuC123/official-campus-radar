@@ -1,0 +1,48 @@
+{
+  "cycle": "Phase 02 / T3 Cycle 17",
+  "source_admission_claimed": false,
+  "retry_reason": "Cycle 16 证明两个服务端均把请求的 page_size=100 强制降为 10；本周期按服务端实际分页上限重新完整遍历，不覆盖 Cycle 16 失败证据。",
+  "targets": [
+    {
+      "key": "J02",
+      "company": "一汽-大众汽车有限公司",
+      "official_page_url": "https://faw-vw.hotjob.cn/",
+      "official_link_evidence": "一汽-大众招聘入口跳转到 faw-zhaopin.hotjob.cn 的公开校招页",
+      "endpoint": "https://faw-zhaopin.hotjob.cn/wecruit/positionInfo/listPosition/SU64bb3226bef57c7e364a7a2c?iSaJAx=isAjax&request_locale=zh_CN",
+      "method": "POST",
+      "body_encoding": "form",
+      "headers": {"Accept": "application/json", "Referer": "https://faw-zhaopin.hotjob.cn/"},
+      "request": {"recruitType": "1", "currentPage": "1", "pageSize": "10", "coordinateLat": "", "coordinateLng": ""},
+      "pagination": {"mode": "page_index", "page_param": "currentPage", "size_param": "pageSize", "page_size": 10, "start": 1, "max_pages": 5},
+      "list_path": "data.pageForm.pageData",
+      "total_path": "data.pageForm.dataCount",
+      "id_path": "postId",
+      "title_path": "postName",
+      "location_paths": ["workPlaceStr"],
+      "scope_fields": [
+        {"path": "recruitType", "allowed": ["1"]},
+        {"path": "projectName", "allowed": ["2026校园招聘"]}
+      ],
+      "sample_fields": ["postId", "postName", "workPlaceStr", "projectName", "publishDate", "endDate"]
+    },
+    {
+      "key": "P17",
+      "company": "美的集团",
+      "official_page_url": "https://careers.midea.com/schoolOut/post?type=2",
+      "official_link_evidence": "美的官网人才招聘入口直达 careers.midea.com，projectRuleId 对应日常实习生招聘通道",
+      "endpoint": "https://careers.midea.com/backend/school/position/common/position/list",
+      "method": "POST",
+      "body_encoding": "json",
+      "headers": {"Accept": "application/json", "Referer": "https://careers.midea.com/"},
+      "request": {"pageIndex": 1, "pageSize": 10, "projectRuleId": "4286dfd5-d9e8-4146-8f8c-98093833a81b", "recruitCategoryIds": [], "workPlaceCodes": [], "keyword": null},
+      "pagination": {"mode": "page_index", "page_param": "pageIndex", "size_param": "pageSize", "page_size": 10, "start": 1, "max_pages": 20},
+      "list_path": "data.data",
+      "total_path": "data.total",
+      "id_path": "projectPositionId",
+      "title_path": "projectPositionName",
+      "location_paths": ["workplaceDtoList[].workPlaceName", "workPlaceCode"],
+      "scope_evidence": "日常实习生招聘通道（公开项目列表返回的项目名称）",
+      "sample_fields": ["projectPositionId", "projectPositionName", "workPlaceCode", "recruitCategoryName"]
+    }
+  ]
+}

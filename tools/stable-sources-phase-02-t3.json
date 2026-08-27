@@ -1,0 +1,33 @@
+{
+  "as_of": "2026-08-27",
+  "frozen_pool_size": 50,
+  "minimum_required": 25,
+  "stable_count": 25,
+  "sources": [
+    {"key": "P11", "company": "拼多多", "company_type": "民企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-03.json", "evidence_result_key": "pinduoduo"},
+    {"key": "P20", "company": "理想汽车", "company_type": "民企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-03.json", "evidence_result_key": "li_auto"},
+    {"key": "S08", "company": "中国中车集团有限公司", "company_type": "央国企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-03.json", "evidence_result_key": "crrc"},
+    {"key": "P13", "company": "vivo", "company_type": "民企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-06-beisen.json", "evidence_result_key": "vivo_autumn_campus"},
+    {"key": "P08", "company": "美团", "company_type": "民企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-07-meituan.json", "evidence_result_key": "P08-C07"},
+    {"key": "P06", "company": "百度", "company_type": "民企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-11-public-family.json", "evidence_result_key": "P06"},
+    {"key": "P07", "company": "京东", "company_type": "民企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-11-public-family.json", "evidence_result_key": "P07"},
+    {"key": "P10", "company": "网易", "company_type": "民企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-11-public-family.json", "evidence_result_key": "P10"},
+    {"key": "P18", "company": "顺丰", "company_type": "民企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-11-public-family.json", "evidence_result_key": "P18"},
+    {"key": "P12", "company": "OPPO", "company_type": "民企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-12-oppo.json", "evidence_result_key": "P12"},
+    {"key": "P01", "company": "腾讯", "company_type": "民企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-14-tencent-offline.json", "evidence_result_key": null},
+    {"key": "P15", "company": "宁德时代", "company_type": "民企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-15-catl.json", "evidence_result_key": "P15"},
+    {"key": "P19", "company": "比亚迪", "company_type": "民企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-16-seven-sources.json", "evidence_result_key": "P19"},
+    {"key": "S03", "company": "中国电信集团有限公司", "company_type": "央国企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-16-seven-sources.json", "evidence_result_key": "S03"},
+    {"key": "S04", "company": "中国联合网络通信集团有限公司", "company_type": "央国企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-16-seven-sources.json", "evidence_result_key": "S04"},
+    {"key": "F02", "company": "亚马逊中国", "company_type": "外资", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-16-seven-sources.json", "evidence_result_key": "F02"},
+    {"key": "F06", "company": "苹果中国", "company_type": "外资", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-16-seven-sources.json", "evidence_result_key": "F06"},
+    {"key": "J02", "company": "一汽-大众汽车有限公司", "company_type": "中外合资", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-17-faw-midea-pagination.json", "evidence_result_key": "J02"},
+    {"key": "P17", "company": "美的集团", "company_type": "民企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-17-faw-midea-pagination.json", "evidence_result_key": "P17"},
+    {"key": "P02", "company": "携程集团", "company_type": "民企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-18-evidence-backfill.json", "evidence_result_key": "P02"},
+    {"key": "P14", "company": "大疆创新", "company_type": "民企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-18-evidence-backfill.json", "evidence_result_key": "P14"},
+    {"key": "P16", "company": "吉利控股", "company_type": "民企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-18-evidence-backfill.json", "evidence_result_key": "P16"},
+    {"key": "J04", "company": "东风日产乘用车公司", "company_type": "中外合资", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-18-evidence-backfill.json", "evidence_result_key": "J04"},
+    {"key": "F05", "company": "博世中国", "company_type": "外资", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-18-evidence-backfill.json", "evidence_result_key": "F05"},
+    {"key": "J03", "company": "广汽丰田汽车有限公司", "company_type": "中外合资", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-18-evidence-backfill.json", "evidence_result_key": "J03"}
+  ]
+}

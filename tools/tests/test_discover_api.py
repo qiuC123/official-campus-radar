@@ -129,6 +129,20 @@ class PureInferenceTests(unittest.TestCase):
             "Data.Count",
         )
 
+    def test_does_not_treat_array_facet_count_as_job_total(self):
+        infer_total_path = self.require_function("infer_total_path")
+        payload = {
+            "jobs": [{"id": "one", "title": "Intern", "city": "Beijing"}],
+            "facets": {
+                "category_facet": [
+                    {"Finance & Accounting": 6},
+                    {"Software Development": 12},
+                ]
+            },
+        }
+
+        self.assertIsNone(infer_total_path(payload, "jobs"))
+
     def test_finds_allowed_top_level_business_success_markers(self):
         infer_success = self.require_function("infer_success")
 
@@ -168,6 +182,24 @@ class PureInferenceTests(unittest.TestCase):
         )
 
         self.assertEqual(parameters, {"pageIndex": "1", "pageSize": "10"})
+
+    def test_infers_page_no_and_page_num_variants(self):
+        infer_pagination_parameters = self.require_function(
+            "infer_pagination_parameters"
+        )
+
+        self.assertEqual(
+            infer_pagination_parameters(
+                {"page": {"pageNo": 1, "pageSize": 10}}, None
+            ),
+            {"page.pageNo": 1, "page.pageSize": 10},
+        )
+        self.assertEqual(
+            infer_pagination_parameters(
+                {"query": {"pageNum": 2, "limit": 20}}, None
+            ),
+            {"query.pageNum": 2, "query.limit": 20},
+        )
 
     def test_semantic_job_id_wins_over_generic_unique_long_id(self):
         infer_field_map = self.require_function("infer_field_map")

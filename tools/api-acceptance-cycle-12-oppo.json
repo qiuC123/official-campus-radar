@@ -1,0 +1,25 @@
+{
+  "cycle": "Phase 02 / T3 Cycle 12",
+  "source_admission_claimed": false,
+  "targets": [
+    {
+      "key": "P12",
+      "company": "OPPO",
+      "official_page_url": "https://careers.oppo.com/",
+      "endpoint": "https://careers.oppo.com/openapi/position/pageNew",
+      "method": "POST",
+      "body_encoding": "json",
+      "headers": {"Accept": "application/json", "Origin": "https://careers.oppo.com", "Referer": "https://careers.oppo.com/"},
+      "request": {"pageNum": 1, "pageSize": 100, "recruitmentType": "Graduate"},
+      "pagination": {"mode": "page_index", "page_param": "pageNum", "size_param": "pageSize", "page_size": 100, "start": 1, "max_pages": 5},
+      "list_path": "data.records",
+      "total_path": "data.total",
+      "success": {"path": "code", "expect": 0},
+      "id_field": "idRecruitPosition",
+      "title_field": "positionName",
+      "location_paths": ["workCityName", "workCityVOList[].workCityName"],
+      "scope": {"field": "recruitmentType", "allowed": ["Graduate"]},
+      "sample_fields": ["idRecruitPosition", "positionName", "workCityName", "recruitmentType", "recruitmentTypeName", "projectName"]
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "cycle": "phase-02-t3-cycle-09-precise-pages",
+  "scope": "one-shot discovery on seven precise official job or campus routes from the frozen pool",
+  "source_admission_claimed": false,
+  "production_browser_authorized": false,
+  "target_page_invocations_planned": 7,
+  "targets": [
+    {
+      "id": "P03-C09",
+      "company": "华为",
+      "company_type": "民企",
+      "url": "https://career.huawei.com/reccampportal/portal5/campus-recruitment.html?jobTypes=0",
+      "official_evidence_url": "https://career.huawei.com/cn/campus-recruitment",
+      "wait": 10,
+      "scroll": false,
+      "reason": "Official search indexing exposes this recruitment portal route as the graduate-position interface; inspect initial XHR once.",
+      "cycle09_page_invocations": 1,
+      "normalized_endpoint_replay_maximum": 6
+    },
+    {
+      "id": "P06-C09",
+      "company": "百度",
+      "company_type": "民企",
+      "url": "https://talent.baidu.com/jobs/campus",
+      "official_evidence_url": "https://talent.baidu.com/external/baidu/campus.html",
+      "wait": 10,
+      "scroll": false,
+      "reason": "Official indexing identifies this route as the 2027 campus recruitment page; inspect initial XHR once.",
+      "cycle09_page_invocations": 1,
+      "normalized_endpoint_replay_maximum": 6
+    },
+    {
+      "id": "P09-C09",
+      "company": "小米",
+      "company_type": "民企",
+      "url": "https://hr.xiaomi.com/campus/list/0-0-0",
+      "official_evidence_url": "https://campus.hr.xiaomi.com/",
+      "wait": 10,
+      "scroll": false,
+      "reason": "Official search indexing identifies this as Xiaomi's campus position list; inspect initial XHR once.",
+      "cycle09_page_invocations": 1,
+      "normalized_endpoint_replay_maximum": 6
+    },
+    {
+      "id": "P10-C09",
+      "company": "网易",
+      "company_type": "民企",
+      "url": "https://campus.163.com/app/job/position?id=76",
+      "official_evidence_url": "https://campus.163.com/",
+      "wait": 10,
+      "scroll": false,
+      "reason": "Official indexing exposes this current campus position-list route; inspect initial XHR once.",
+      "cycle09_page_invocations": 1,
+      "normalized_endpoint_replay_maximum": 6
+    },
+    {
+      "id": "P16-C09",
+      "company": "吉利控股",
+      "company_type": "民企",
+      "url": "https://campus.geely.com/campus-recruitment/geely/98148#/",
+      "official_evidence_url": "https://campus.geely.com/",
+      "wait": 10,
+      "scroll": false,
+      "reason": "Official indexing identifies this Geely tenant campus page and its hot-job section; inspect initial XHR once.",
+      "cycle09_page_invocations": 1,
+      "normalized_endpoint_replay_maximum": 6
+    },
+    {
+      "id": "P17-C09",
+      "company": "美的集团",
+      "company_type": "民企",
+      "url": "https://careers.midea.com/schoolOut/post?type=2",
+      "official_evidence_url": "https://careers.midea.com/",
+      "wait": 10,
+      "scroll": false,
+      "reason": "The official campus site exposes this position-delivery route; inspect initial XHR once and keep project metadata distinct from jobs.",
+      "cycle09_page_invocations": 1,
+      "normalized_endpoint_replay_maximum": 6
+    },
+    {
+      "id": "P19-C09",
+      "company": "比亚迪",
+      "company_type": "民企",
+      "url": "https://job.byd.com/portal/pc/",
+      "official_evidence_url": "https://job.byd.com/portal/mobile/school-home",
+      "wait": 10,
+      "scroll": false,
+      "reason": "Official indexing exposes the current PC recruitment portal; inspect initial XHR once and do not treat schedules or materials as jobs.",
+      "cycle09_page_invocations": 1,
+      "normalized_endpoint_replay_maximum": 6
+    }
+  ]
+}

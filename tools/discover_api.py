@@ -213,6 +213,10 @@ def infer_total_path(payload: object, list_path: str) -> str | None:
     list_parent = _path_parts(list_path)[:-1]
     ranked: list[tuple[int, int, str]] = []
     for path in _iter_integer_fields(payload):
+        # Values inside arrays are commonly facet/category counts or row-level
+        # counters. They cannot safely describe the candidate job list total.
+        if re.search(r"\[\d+\]", path):
+            continue
         parts = _path_parts(path)
         common = 0
         for left, right in zip(list_parent, parts[:-1]):
@@ -251,9 +255,9 @@ def _pagination_role(key: str) -> str | None:
         "pageoffset"
     ):
         return "offset"
-    if normalized in {"page", "index", "pageindex"}:
+    if normalized in {"page", "index", "pageindex", "pageno", "pagenum"}:
         return "page"
-    if normalized.endswith("pageindex"):
+    if normalized.endswith(("pageindex", "pageno", "pagenum")):
         return "page"
     return None
 

@@ -1,0 +1,366 @@
+{
+  "cycle": "Phase 02 / T3 Cycle 11",
+  "scope": "read-only public API completeness acceptance; not source admission",
+  "source_admission_claimed": false,
+  "database_writes": false,
+  "raw_response_persisted": false,
+  "results": [
+    {
+      "key": "P06",
+      "company": "百度",
+      "official_page_url": "https://talent.baidu.com/jobs?recruitType=GRADUATE",
+      "endpoint": "https://talent.baidu.com/httservice/getPostListNew",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "requests_made": 8,
+      "reported_total": 157,
+      "unique_ids": 157,
+      "complete": true,
+      "scope_raw_values": [],
+      "scope_ok": true,
+      "missing_required_fields": [],
+      "pages": [
+        {
+          "cursor": 1,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 20,
+          "new_unique_ids": 20
+        },
+        {
+          "cursor": 2,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 20,
+          "new_unique_ids": 20
+        },
+        {
+          "cursor": 3,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 20,
+          "new_unique_ids": 20
+        },
+        {
+          "cursor": 4,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 20,
+          "new_unique_ids": 20
+        },
+        {
+          "cursor": 5,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 20,
+          "new_unique_ids": 20
+        },
+        {
+          "cursor": 6,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 20,
+          "new_unique_ids": 20
+        },
+        {
+          "cursor": 7,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 20,
+          "new_unique_ids": 20
+        },
+        {
+          "cursor": 8,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 17,
+          "new_unique_ids": 17
+        }
+      ],
+      "samples": [
+        {
+          "postId": "545e6823-28d2-4cb5-aba2-3c520a31b4e0",
+          "name": "北京-网络研发工程师(J100700)",
+          "workPlace": "北京市",
+          "projectType": "校招",
+          "publishDate": "2026-07-08",
+          "updateDate": "2026-08-05"
+        },
+        {
+          "postId": "72145a13-5eb1-41ce-8853-d00aa7369281",
+          "name": "北京-后端开发工程师(J100737)",
+          "workPlace": "北京市",
+          "projectType": "校招",
+          "publishDate": "2026-07-08",
+          "updateDate": "2026-07-21"
+        },
+        {
+          "postId": "423c0fa3-a0f3-4def-a882-7466d3685b79",
+          "name": "北京-AI产品经理(J100665)",
+          "workPlace": "北京市",
+          "projectType": "校招",
+          "publishDate": "2026-07-08",
+          "updateDate": "2026-07-21"
+        },
+        {
+          "postId": "b9ad50c9-07c7-4b9c-998d-7049bb706edf",
+          "name": "北京-多模态算法工程师(J100765)",
+          "workPlace": "北京市",
+          "projectType": "校招",
+          "publishDate": "2026-07-08",
+          "updateDate": "2026-07-21"
+        },
+        {
+          "postId": "6061be03-f92b-4430-a1b8-9168de0f91f6",
+          "name": "北京-AI测试开发工程师(J101055)",
+          "workPlace": "北京市",
+          "projectType": "校招",
+          "publishDate": "2026-07-08",
+          "updateDate": "2026-07-21"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "key": "P07",
+      "company": "京东",
+      "official_page_url": "https://campus.jd.com/",
+      "endpoint": "https://campus.jd.com/api/wx/position/page?type=present",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "requests_made": 2,
+      "reported_total": 125,
+      "unique_ids": 125,
+      "complete": true,
+      "scope_raw_values": [],
+      "scope_ok": true,
+      "missing_required_fields": [],
+      "pages": [
+        {
+          "cursor": 0,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 1,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 25,
+          "new_unique_ids": 25
+        }
+      ],
+      "samples": [
+        {
+          "publishId": 9073,
+          "positionName": "市场营销",
+          "jobDirection": "市场与商务方向",
+          "publishTime": 1784814534000
+        },
+        {
+          "publishId": 9076,
+          "positionName": "客户体验提升",
+          "jobDirection": "运营方向",
+          "publishTime": 1784814534000
+        },
+        {
+          "publishId": 9114,
+          "positionName": "机械工程师",
+          "jobDirection": "技术方向",
+          "publishTime": 1784814565000
+        },
+        {
+          "publishId": 9257,
+          "positionName": "营业部/集配站站长",
+          "jobDirection": "基层管理方向",
+          "publishTime": 1786938172000
+        },
+        {
+          "publishId": 9277,
+          "positionName": "仓/场地经理",
+          "jobDirection": "基层管理方向",
+          "publishTime": 1786938172000
+        }
+      ],
+      "passed": true
+    },
+    {
+      "key": "P12",
+      "company": "OPPO",
+      "requests_made": 0,
+      "errors": [
+        "business success check failed"
+      ],
+      "passed": false
+    },
+    {
+      "key": "P10",
+      "company": "网易",
+      "official_page_url": "https://hr.163.com/job-list.html?workType=1",
+      "endpoint": "https://hr.163.com/api/hr163/position/queryPage",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "requests_made": 3,
+      "reported_total": 494,
+      "unique_ids": 494,
+      "complete": true,
+      "scope_raw_values": [
+        "1"
+      ],
+      "scope_ok": true,
+      "missing_required_fields": [],
+      "pages": [
+        {
+          "cursor": 1,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 200,
+          "new_unique_ids": 200
+        },
+        {
+          "cursor": 2,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 200,
+          "new_unique_ids": 200
+        },
+        {
+          "cursor": 3,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 94,
+          "new_unique_ids": 94
+        }
+      ],
+      "samples": [
+        {
+          "id": 68492,
+          "name": "视觉设计实习生",
+          "workPlaceNameList": [
+            "杭州市"
+          ],
+          "workType": "1",
+          "reqWorkYearsName": "不限",
+          "updateTime": 1787803459000
+        },
+        {
+          "id": 66222,
+          "name": "游戏技术美术AITA（Agent研发向日常实习生）",
+          "workPlaceNameList": [
+            "杭州市"
+          ],
+          "workType": "1",
+          "reqWorkYearsName": "不限",
+          "updateTime": 1787802988000
+        },
+        {
+          "id": 71012,
+          "name": "海外产品运营实习生（韩语）",
+          "workPlaceNameList": [
+            "广州市"
+          ],
+          "workType": "1",
+          "reqWorkYearsName": "不限",
+          "updateTime": 1787802988000
+        },
+        {
+          "id": 71406,
+          "name": "文案策划实习生（燕云）",
+          "workPlaceNameList": [
+            "杭州市"
+          ],
+          "workType": "1",
+          "reqWorkYearsName": "不限",
+          "updateTime": 1787802988000
+        },
+        {
+          "id": 71531,
+          "name": "AI技术运营实习生",
+          "workPlaceNameList": [
+            "广州市"
+          ],
+          "workType": "1",
+          "reqWorkYearsName": "不限",
+          "updateTime": 1787802988000
+        }
+      ],
+      "passed": true
+    },
+    {
+      "key": "P18",
+      "company": "顺丰",
+      "official_page_url": "https://campus.sf-express.com/",
+      "endpoint": "https://campus.sf-express.com/api/web/position/query",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "requests_made": 1,
+      "reported_total": 20,
+      "unique_ids": 20,
+      "complete": true,
+      "scope_raw_values": [
+        "2"
+      ],
+      "scope_ok": true,
+      "missing_required_fields": [],
+      "pages": [
+        {
+          "cursor": 1,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 20,
+          "new_unique_ids": 20
+        }
+      ],
+      "samples": [
+        {
+          "id": 2260,
+          "positionName": "集团管培生",
+          "demandCity": "深圳市",
+          "recruitCity": null,
+          "seasonType": "2",
+          "positionTypeName": "管培生类"
+        },
+        {
+          "id": 2246,
+          "positionName": "AI全栈研发工程师（顺丰科技）",
+          "demandCity": "深圳市",
+          "recruitCity": null,
+          "seasonType": "2",
+          "positionTypeName": "研发类"
+        },
+        {
+          "id": 2247,
+          "positionName": "Java开发工程师（顺丰科技）",
+          "demandCity": "成都市,武汉市,深圳市",
+          "recruitCity": null,
+          "seasonType": "2",
+          "positionTypeName": "研发类"
+        },
+        {
+          "id": 2240,
+          "positionName": "大模型算法工程师-LLM方向（顺丰科技）",
+          "demandCity": "深圳市",
+          "recruitCity": null,
+          "seasonType": "2",
+          "positionTypeName": "研发类"
+        },
+        {
+          "id": 2241,
+          "positionName": "大模型算法工程师-VLA方向（顺丰科技）",
+          "demandCity": "深圳市",
+          "recruitCity": null,
+          "seasonType": "2",
+          "positionTypeName": "研发类"
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "stable_count_added": 4,
+  "passed": false
+}

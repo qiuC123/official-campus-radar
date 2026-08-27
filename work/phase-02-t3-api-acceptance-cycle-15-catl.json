@@ -1,0 +1,163 @@
+{
+  "cycle": "Phase 02 / T3 Cycle 15",
+  "scope": "read-only public API completeness acceptance; not source admission",
+  "source_admission_claimed": false,
+  "database_writes": false,
+  "raw_response_persisted": false,
+  "results": [
+    {
+      "key": "P15",
+      "company": "宁德时代",
+      "official_page_url": "https://app.mokahr.com/campus-recruitment/catlhr/148948#/",
+      "endpoint": "https://api.mokahr.com/api-platform/v1/jobs/catlhr",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "requests_made": 7,
+      "reported_total": 629,
+      "unique_ids": 629,
+      "complete": true,
+      "scope_raw_values": [
+        "open"
+      ],
+      "scope_ok": true,
+      "missing_required_fields": [],
+      "pages": [
+        {
+          "cursor": 0,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 100,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 200,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 300,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 400,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 500,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 100,
+          "new_unique_ids": 100
+        },
+        {
+          "cursor": 600,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 29,
+          "new_unique_ids": 29
+        }
+      ],
+      "samples": [
+        {
+          "id": "64e1ac36-d4f3-46e2-947a-345c07ebce05",
+          "title": "电芯工艺工程师-基地",
+          "status": "open",
+          "locations": [
+            {
+              "id": 209788,
+              "province": "福建",
+              "city": "宁德市",
+              "area": "霞浦县",
+              "country": "中国",
+              "address": "经济开发区长富路6号 时代一汽动力电池有限公司（导航可直达） "
+            }
+          ],
+          "updatedAt": "2026-08-27T05:15:45.000Z"
+        },
+        {
+          "id": "ae3c2aa8-9e16-4af7-ad4f-f247ab2784cf",
+          "title": "设备工程师-基地",
+          "status": "open",
+          "locations": [
+            {
+              "id": 209788,
+              "province": "福建",
+              "city": "宁德市",
+              "area": "霞浦县",
+              "country": "中国",
+              "address": "经济开发区长富路6号 时代一汽动力电池有限公司（导航可直达） "
+            }
+          ],
+          "updatedAt": "2026-08-27T05:21:36.000Z"
+        },
+        {
+          "id": "50218063-694b-42fb-aeb8-01f510720187",
+          "title": "电芯过程质量工程师-基地",
+          "status": "open",
+          "locations": [
+            {
+              "id": 209788,
+              "province": "福建",
+              "city": "宁德市",
+              "area": "霞浦县",
+              "country": "中国",
+              "address": "经济开发区长富路6号 时代一汽动力电池有限公司（导航可直达） "
+            }
+          ],
+          "updatedAt": "2026-08-27T05:26:04.000Z"
+        },
+        {
+          "id": "6a480b12-1a54-4ef6-b0ef-8efacfe9615d",
+          "title": "生产主管-基地",
+          "status": "open",
+          "locations": [
+            {
+              "id": 209788,
+              "province": "福建",
+              "city": "宁德市",
+              "area": "霞浦县",
+              "country": "中国",
+              "address": "经济开发区长富路6号 时代一汽动力电池有限公司（导航可直达） "
+            }
+          ],
+          "updatedAt": "2026-08-27T05:27:11.000Z"
+        },
+        {
+          "id": "91d3ad2a-5336-4801-981a-1bff9607c727",
+          "title": "设备技术员-基地",
+          "status": "open",
+          "locations": [
+            {
+              "id": 209788,
+              "province": "福建",
+              "city": "宁德市",
+              "area": "霞浦县",
+              "country": "中国",
+              "address": "经济开发区长富路6号 时代一汽动力电池有限公司（导航可直达） "
+            }
+          ],
+          "updatedAt": "2026-08-27T05:27:29.000Z"
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "stable_count_added": 1,
+  "passed": true
+}
