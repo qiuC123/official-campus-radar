@@ -188,6 +188,25 @@ py -3.13 tools/family_parser_drafts.py `
 explicitly blocked from production while runtime browser collection remains
 unauthorized.
 
+### T3 Cycle 03 two-page API acceptance
+
+`tools/validate_live_api_cycle03.py` is a narrower read-only validator for the
+three frozen targets that already have explicit API evidence. It sends exactly
+page 1 and page 2 with minimal headers, no Cookie and no retry, then stores only
+allow-listed samples. Its JSON, query and form transports are acceptance-only;
+they do not silently add form support to the production adapter.
+
+Run its offline safety tests before the one permitted live invocation:
+
+```powershell
+py -3.13 -m unittest tools.tests.test_validate_live_api_cycle03 -v
+py -3.13 tools/validate_live_api_cycle03.py
+```
+
+Do not run the live command again inside Cycle 03. The report records that the
+earlier China Railway Rolling Stock request-body diagnosis already spent three
+of that endpoint's six-request budget.
+
 Run the offline tests without installing or launching a browser:
 
 ```powershell

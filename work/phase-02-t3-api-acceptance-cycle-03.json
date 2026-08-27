@@ -1,0 +1,407 @@
+{
+  "cycle": "phase-02-t3-cycle-03",
+  "scope": "read-only two-page API acceptance; not source admission",
+  "source_admission_claimed": false,
+  "database_writes": false,
+  "raw_responses_persisted": false,
+  "results": [
+    {
+      "key": "pinduoduo",
+      "company": "拼多多",
+      "endpoint": "https://careers.pddglobalhr.com/api/careers/api/recruit/position/list",
+      "method": "POST",
+      "body_encoding": "json",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "requests_made": 2,
+      "request_budget_after_run": 2,
+      "pages": [
+        {
+          "page": 1,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 10,
+          "ids": [
+            "d7b39bad-01cd-4734-b284-65dbc24eeb99",
+            "f40e809d-f585-43d6-a43c-7f0c76c92ed9",
+            "54ad4666-f80b-47be-840b-5a99cf04a3d7",
+            "8ab7c0c7-1bcb-413d-a87a-86739b24d716",
+            "a8313a59-90d2-4769-be6e-d39ea37ef3de",
+            "fcd0cbd8-81a6-45b2-9d6f-1c703ccceb63",
+            "112fa007-b180-4fc2-970d-8401f45fc79c",
+            "797461cf-f0b5-4ae1-acb7-c0e2e3c1d546",
+            "7b1d3817-054a-44a2-8930-7da7684e88cf",
+            "6960a252-29c1-49e1-8510-b10617e6907a"
+          ],
+          "missing_required_fields": [],
+          "samples": [
+            {
+              "id": "d7b39bad-01cd-4734-b284-65dbc24eeb99",
+              "jobName": "语言",
+              "workLocation": "上海",
+              "releaseTime": 1783316661000,
+              "recruitTypeName": "管培生"
+            },
+            {
+              "id": "f40e809d-f585-43d6-a43c-7f0c76c92ed9",
+              "jobName": "职能",
+              "workLocation": "上海",
+              "releaseTime": 1783255809000,
+              "recruitTypeName": "管培生"
+            },
+            {
+              "id": "54ad4666-f80b-47be-840b-5a99cf04a3d7",
+              "jobName": "职能",
+              "workLocation": "广东省",
+              "releaseTime": 1785218152000,
+              "recruitTypeName": "管培生"
+            },
+            {
+              "id": "8ab7c0c7-1bcb-413d-a87a-86739b24d716",
+              "jobName": "运营",
+              "workLocation": "上海",
+              "releaseTime": 1783408143000,
+              "recruitTypeName": "管培生"
+            },
+            {
+              "id": "a8313a59-90d2-4769-be6e-d39ea37ef3de",
+              "jobName": "产品",
+              "workLocation": "上海",
+              "releaseTime": 1783256848000,
+              "recruitTypeName": "管培生"
+            }
+          ]
+        },
+        {
+          "page": 2,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 3,
+          "ids": [
+            "7379d879-2e7a-4ca3-a63c-1011216a6a1d",
+            "34d74aab-48c9-4e96-8183-86ade70f2756",
+            "a35740d5-17b1-4616-bfe1-3e2ca88c57d5"
+          ],
+          "missing_required_fields": [],
+          "samples": [
+            {
+              "id": "7379d879-2e7a-4ca3-a63c-1011216a6a1d",
+              "jobName": "设计",
+              "workLocation": "上海",
+              "releaseTime": 1783256661000,
+              "recruitTypeName": "管培生"
+            },
+            {
+              "id": "34d74aab-48c9-4e96-8183-86ade70f2756",
+              "jobName": "视觉类",
+              "workLocation": "上海",
+              "releaseTime": 1783256647000,
+              "recruitTypeName": "管培生"
+            },
+            {
+              "id": "a35740d5-17b1-4616-bfe1-3e2ca88c57d5",
+              "jobName": "职能",
+              "workLocation": "上海",
+              "releaseTime": 1783255785000,
+              "recruitTypeName": "管培生"
+            }
+          ]
+        }
+      ],
+      "pagination": {
+        "page_ids_are_distinct": true,
+        "passed": true
+      },
+      "campus_evidence": {
+        "mode": "row_field",
+        "raw_values": [
+          "管培生"
+        ],
+        "passed": true
+      },
+      "adapter_transport_supported": true,
+      "adapter_note": "",
+      "errors": [],
+      "passed": true
+    },
+    {
+      "key": "li_auto",
+      "company": "理想汽车",
+      "endpoint": "https://api-web.lixiang.com/osd-hr-recruitment-website/v1/recruit/school/job-page",
+      "method": "GET",
+      "body_encoding": "query",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "requests_made": 2,
+      "request_budget_after_run": 2,
+      "pages": [
+        {
+          "page": 1,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 10,
+          "ids": [
+            "18450",
+            "18451",
+            "18452",
+            "18459",
+            "19125",
+            "19152",
+            "19430",
+            "18432",
+            "19200",
+            "19712"
+          ],
+          "missing_required_fields": [],
+          "samples": [
+            {
+              "id": 18450,
+              "title": "高速选址运营实习生",
+              "location_title": "北京",
+              "job_type_title": null
+            },
+            {
+              "id": 18451,
+              "title": "充电网络工程供应管理实习生",
+              "location_title": "上海",
+              "job_type_title": null
+            },
+            {
+              "id": 18452,
+              "title": "电力大客户实习生",
+              "location_title": "北京",
+              "job_type_title": null
+            },
+            {
+              "id": 18459,
+              "title": "充电网络规划实习生",
+              "location_title": "北京",
+              "job_type_title": null
+            },
+            {
+              "id": 19125,
+              "title": "间接采购实习生",
+              "location_title": "北京",
+              "job_type_title": null
+            }
+          ],
+          "reported_total": 104,
+          "total_kind": "pages"
+        },
+        {
+          "page": 2,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 10,
+          "ids": [
+            "19968",
+            "18433",
+            "18945",
+            "19713",
+            "19969",
+            "18946",
+            "19202",
+            "19714",
+            "19970",
+            "19715"
+          ],
+          "missing_required_fields": [],
+          "samples": [
+            {
+              "id": 19968,
+              "title": "工艺工程师-常州",
+              "location_title": "常州武进区",
+              "job_type_title": null
+            },
+            {
+              "id": 18433,
+              "title": "汽车政策研究专员",
+              "location_title": "北京顺义区",
+              "job_type_title": null
+            },
+            {
+              "id": 18945,
+              "title": "具身智能产业规划工程师",
+              "location_title": "北京顺义区",
+              "job_type_title": null
+            },
+            {
+              "id": 19713,
+              "title": "高级AI战略管理专员",
+              "location_title": "北京",
+              "job_type_title": null
+            },
+            {
+              "id": 19969,
+              "title": "制动电控集成工程师-北京",
+              "location_title": "北京",
+              "job_type_title": null
+            }
+          ],
+          "reported_total": 104,
+          "total_kind": "pages"
+        }
+      ],
+      "pagination": {
+        "page_ids_are_distinct": true,
+        "passed": true
+      },
+      "campus_evidence": {
+        "mode": "endpoint_contains",
+        "raw_values": [
+          "/school/"
+        ],
+        "passed": true
+      },
+      "adapter_transport_supported": true,
+      "adapter_note": "total_pages is a page count, not a row count; it cannot be copied to total_path unchanged",
+      "errors": [],
+      "passed": true
+    },
+    {
+      "key": "crrc",
+      "company": "中国中车",
+      "endpoint": "https://wecruit.hotjob.cn/wecruit/positionInfo/listPosition/SU64d480906202cc36e27a5fd8?iSaJAx=isAjax&request_locale=zh_CN",
+      "method": "POST",
+      "body_encoding": "form",
+      "minimal_request": true,
+      "cookies_sent": false,
+      "requests_made": 2,
+      "request_budget_after_run": 5,
+      "pages": [
+        {
+          "page": 1,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 10,
+          "ids": [
+            "6a8c015b1ad6db7cf834c7e7",
+            "6a8bf9d14315481304cda9b9",
+            "68bfe060778ced4f3930fa53",
+            "68bfd80a720ec0268293e91d",
+            "68bfe05f778ced4f3930fa4c",
+            "6a8bf53e1ad6db7cf834ba45",
+            "6a8bf3e61ad6db7cf834b907",
+            "6a8bf36768cc6f624f74356d",
+            "6a88091a68cc6f624f61e4d3",
+            "6a8808501ad6db7cf81f89d0"
+          ],
+          "missing_required_fields": [],
+          "samples": [
+            {
+              "postId": "6a8c015b1ad6db7cf834c7e7",
+              "postName": "市场投标报价岗",
+              "workPlaceStr": "无锡市",
+              "publishDate": "2026-08-24 16:31:16",
+              "recruitType": 1
+            },
+            {
+              "postId": "6a8bf9d14315481304cda9b9",
+              "postName": "数字化工程师",
+              "workPlaceStr": "成都市",
+              "publishDate": "2026-08-24 15:59:08",
+              "recruitType": 1
+            },
+            {
+              "postId": "68bfe060778ced4f3930fa53",
+              "postName": "焊接工艺师",
+              "workPlaceStr": "成都市",
+              "publishDate": "2026-08-24 15:57:21",
+              "recruitType": 1
+            },
+            {
+              "postId": "68bfd80a720ec0268293e91d",
+              "postName": "化工工艺师",
+              "workPlaceStr": "成都市",
+              "publishDate": "2026-08-24 15:55:45",
+              "recruitType": 1
+            },
+            {
+              "postId": "68bfe05f778ced4f3930fa4c",
+              "postName": "检修（售后）工程师(电气、自动化类)",
+              "workPlaceStr": "成都市、重庆市、昆明市",
+              "publishDate": "2026-08-24 15:48:23",
+              "recruitType": 1
+            }
+          ],
+          "reported_total": 40,
+          "total_kind": "pages"
+        },
+        {
+          "page": 2,
+          "status": 200,
+          "content_type": "application/json",
+          "row_count": 10,
+          "ids": [
+            "6a88076568cc6f624f61e3a0",
+            "6a8806891ad6db7cf81f888c",
+            "6a8805eb4315481304b977f1",
+            "6a8801cc1ad6db7cf81f84f4",
+            "6a8800944315481304b97405",
+            "6a88001768cc6f624f61d940",
+            "6a87ff7f1ad6db7cf81f839a",
+            "6a87fee04315481304b972ee",
+            "6a87fe074315481304b97257",
+            "6a87fd781ad6db7cf81f8213"
+          ],
+          "missing_required_fields": [],
+          "samples": [
+            {
+              "postId": "6a88076568cc6f624f61e3a0",
+              "postName": "博士后-视觉算法方向",
+              "workPlaceStr": "青岛市",
+              "publishDate": "2026-08-21 16:07:50",
+              "recruitType": 1
+            },
+            {
+              "postId": "6a8806891ad6db7cf81f888c",
+              "postName": "博士后-具身智能方向",
+              "workPlaceStr": "青岛市",
+              "publishDate": "2026-08-21 16:04:19",
+              "recruitType": 1
+            },
+            {
+              "postId": "6a8805eb4315481304b977f1",
+              "postName": "博士后-焊接方向",
+              "workPlaceStr": "青岛市",
+              "publishDate": "2026-08-21 16:01:42",
+              "recruitType": 1
+            },
+            {
+              "postId": "6a8801cc1ad6db7cf81f84f4",
+              "postName": "售后工程师",
+              "workPlaceStr": "青岛市",
+              "publishDate": "2026-08-21 15:44:03",
+              "recruitType": 1
+            },
+            {
+              "postId": "6a8800944315481304b97405",
+              "postName": "焊接工程师",
+              "workPlaceStr": "青岛市",
+              "publishDate": "2026-08-21 15:38:54",
+              "recruitType": 1
+            }
+          ],
+          "reported_total": 40,
+          "total_kind": "pages"
+        }
+      ],
+      "pagination": {
+        "page_ids_are_distinct": true,
+        "passed": true
+      },
+      "campus_evidence": {
+        "mode": "request_value",
+        "raw_values": [
+          "1"
+        ],
+        "passed": true
+      },
+      "adapter_transport_supported": false,
+      "adapter_note": "endpoint requires application/x-www-form-urlencoded; current JsonApiSourceAdapter only sends JSON POST bodies",
+      "errors": [],
+      "passed": true
+    }
+  ],
+  "passed": true
+}
