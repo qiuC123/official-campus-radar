@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import date, datetime
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
@@ -7,7 +8,15 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 
 from radar.collectors.base import FetchedPage, RecruitmentBatchCandidate, PositionCandidate
-from radar.models import OfficialSource, Organization, RecruitmentBatch, RecruitmentPosition
+from radar.models import (
+    FetchRun,
+    OfficialSource,
+    Organization,
+    PublicationEvent,
+    RecruitmentBatch,
+    RecruitmentPosition,
+    SourceVersion,
+)
 from radar.services.update_runner import run_update
 from radar.tests.helpers import complete_candidate, create_enabled_source
 
@@ -23,6 +32,12 @@ class HealthyAdapter:
 class FailingAdapter:
     def fetch(self, source):
         raise RuntimeError("fixture source failure")
+
+
+class RejectingAdapter(HealthyAdapter):
+    def extract(self, source, page):
+        candidate = complete_candidate(source, title="社会招聘")
+        return [replace(candidate, recruitment_type="other")]
 
 
 class UpdateRunnerTests(TestCase):
@@ -62,3 +77,62 @@ class UpdateRunnerTests(TestCase):
         OfficialSource.objects.update(is_active=False)
         with self.assertRaises(CommandError):
             call_command("run_daily_update", "--trigger", "scheduled")
+
+    def test_rejected_same_hash_requires_explicit_scoped_reprocessing(self) -> None:
+        OfficialSource.objects.exclude(pk=self.good.pk).update(is_active=False)
+        with patch(
+            "radar.services.update_runner.AdapterRegistry.get",
+            return_value=RejectingAdapter(),
+        ):
+            first = run_update(trigger="manual", source_ids=[self.good.pk])
+            unchanged = run_update(trigger="manual", source_ids=[self.good.pk])
+            retried = run_update(
+                trigger="manual",
+                source_ids=[self.good.pk],
+                reprocess_rejected=True,
+            )
+
+        self.assertEqual(first.status, "partial_failure")
+        self.assertEqual(first.batches_rejected, 1)
+        self.assertEqual(unchanged.batches_rejected, 0)
+        self.assertEqual(retried.batches_rejected, 1)
+        self.assertEqual(SourceVersion.objects.filter(source=self.good).count(), 2)
+        self.assertEqual(
+            PublicationEvent.objects.filter(
+                source_version__source=self.good,
+                event_type="rejected",
+            ).count(),
+            2,
+        )
+        self.assertEqual(
+            FetchRun.objects.filter(source=self.good, status="unchanged").count(),
+            1,
+        )
+
+    def test_reprocessing_flag_is_manual_and_requires_explicit_sources(self) -> None:
+        with self.assertRaisesRegex(CommandError, "only be reprocessed manually"):
+            call_command(
+                "run_daily_update",
+                "--trigger",
+                "scheduled",
+                "--source-id",
+                str(self.good.pk),
+                "--reprocess-rejected",
+            )
+
+    def test_service_rejects_unscoped_or_scheduled_reprocessing(self) -> None:
+        with self.assertRaisesRegex(ValueError, "only be reprocessed manually"):
+            run_update(
+                trigger="scheduled",
+                source_ids=[self.good.pk],
+                reprocess_rejected=True,
+            )
+        with self.assertRaisesRegex(ValueError, "requires source IDs"):
+            run_update(trigger="manual", reprocess_rejected=True)
+        with self.assertRaisesRegex(CommandError, "requires --source-id"):
+            call_command(
+                "run_daily_update",
+                "--trigger",
+                "manual",
+                "--reprocess-rejected",
+            )

@@ -259,12 +259,24 @@ def _publish_candidate(
         source, candidate.official_page_url
     ):
         reasons.append("missing_official_page_url")
-    classification_text = " ".join(
-        [candidate.recruitment_type, candidate.title]
-        + [position.title for position in target_positions]
-        + [position.raw_text for position in target_positions]
-    )
-    recruitment_type = classify_recruitment(classification_text)
+    declared_recruitment_type = classify_recruitment(candidate.recruitment_type)
+    declared_type_is_authoritative = source.adapter_name in {
+        "json_api",
+        "ats_json_api",
+        "moka_public_api",
+    }
+    if declared_type_is_authoritative and declared_recruitment_type in {
+        RecruitmentBatch.RecruitmentType.CAMPUS_RECRUITMENT,
+        RecruitmentBatch.RecruitmentType.INTERNSHIP,
+    }:
+        recruitment_type = declared_recruitment_type
+    else:
+        classification_text = " ".join(
+            [candidate.recruitment_type, candidate.title]
+            + [position.title for position in target_positions]
+            + [position.raw_text for position in target_positions]
+        )
+        recruitment_type = classify_recruitment(classification_text)
     if recruitment_type not in {
         RecruitmentBatch.RecruitmentType.CAMPUS_RECRUITMENT,
         RecruitmentBatch.RecruitmentType.INTERNSHIP,

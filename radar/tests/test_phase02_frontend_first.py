@@ -24,6 +24,7 @@ from radar.tests.helpers import (
     publish_formal_notice,
     valid_html_parser_config,
 )
+from radar.viewmodels import RecruitmentBatchVM
 
 
 class Phase02FrontendFirstTests(TestCase):
@@ -61,6 +62,32 @@ class Phase02FrontendFirstTests(TestCase):
             ),
         )
         self.assertEqual(_effective_date(position), date(2026, 8, 29))
+
+    def test_batch_location_summary_caps_large_real_location_sets(self):
+        positions = tuple(
+            SimpleNamespace(locations=(f"地点{index}",))
+            for index in range(1, 9)
+        )
+        batch = RecruitmentBatchVM(
+            id=1,
+            company="示例公司",
+            company_type="民企",
+            industry="测试",
+            title="示例批次",
+            recruitment_type="校园招聘",
+            target_audience="2027届",
+            deadline=None,
+            status="招聘中",
+            official_page_url="https://example.test/",
+            progress_value="not_applied",
+            progress_label="未投递",
+            positions=positions,
+        )
+
+        self.assertEqual(
+            batch.location_summary,
+            "地点1、地点2、地点3、地点4、地点5、地点6，另有 2 个地点",
+        )
 
     @override_settings(DEBUG=True)
     def test_preview_is_clearly_mocked_and_does_not_write_business_tables(self):

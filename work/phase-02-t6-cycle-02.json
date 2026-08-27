@@ -1,0 +1,246 @@
+{
+  "cycle": "Phase 02 / T6 Cycle 02",
+  "mode": "scoped correction and retry of previously unpublished sources",
+  "update_run_ids": [
+    6,
+    7,
+    8
+  ],
+  "database_writes": true,
+  "raw_responses_persisted": false,
+  "expected_source_ids": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    11,
+    12,
+    13,
+    15,
+    18,
+    19,
+    21,
+    22
+  ],
+  "protected_source_ids_not_accessed": [
+    1,
+    9,
+    10,
+    14,
+    16,
+    17,
+    20,
+    23,
+    24,
+    25
+  ],
+  "source_attempt_count": 15,
+  "published_source_count": 14,
+  "rejected_source_count": 0,
+  "failed_source_count": 1,
+  "accepted_position_count": 4437,
+  "run_statuses": [
+    {
+      "update_run_id": 6,
+      "status": "success",
+      "error_message": ""
+    },
+    {
+      "update_run_id": 7,
+      "status": "success",
+      "error_message": ""
+    },
+    {
+      "update_run_id": 8,
+      "status": "partial_failure",
+      "error_message": "partial update: sources_failed=1"
+    }
+  ],
+  "results": [
+    {
+      "source_id": 2,
+      "company": "理想汽车",
+      "update_run_id": 6,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 1033,
+      "outcome": "published"
+    },
+    {
+      "source_id": 3,
+      "company": "中国中车集团有限公司",
+      "update_run_id": 6,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 392,
+      "outcome": "published"
+    },
+    {
+      "source_id": 4,
+      "company": "vivo",
+      "update_run_id": 6,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 136,
+      "outcome": "published"
+    },
+    {
+      "source_id": 5,
+      "company": "美团",
+      "update_run_id": 6,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 379,
+      "outcome": "published"
+    },
+    {
+      "source_id": 6,
+      "company": "百度",
+      "update_run_id": 6,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 157,
+      "outcome": "published"
+    },
+    {
+      "source_id": 7,
+      "company": "京东",
+      "update_run_id": 7,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 125,
+      "outcome": "published"
+    },
+    {
+      "source_id": 8,
+      "company": "网易",
+      "update_run_id": 7,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 494,
+      "outcome": "published"
+    },
+    {
+      "source_id": 11,
+      "company": "腾讯",
+      "update_run_id": 7,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 438,
+      "outcome": "published"
+    },
+    {
+      "source_id": 12,
+      "company": "宁德时代",
+      "update_run_id": 7,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 630,
+      "outcome": "published"
+    },
+    {
+      "source_id": 13,
+      "company": "比亚迪",
+      "update_run_id": 7,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 340,
+      "outcome": "published"
+    },
+    {
+      "source_id": 15,
+      "company": "中国联合网络通信集团有限公司",
+      "update_run_id": 8,
+      "fetch_status": "failed",
+      "http_status": null,
+      "error": "ValueError: JSON API list_path 'data.jobList' must resolve to a list",
+      "publication_event": "",
+      "reason_codes": [],
+      "accepted_position_count": 0,
+      "outcome": "failed"
+    },
+    {
+      "source_id": 18,
+      "company": "一汽-大众汽车有限公司",
+      "update_run_id": 8,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 19,
+      "outcome": "published"
+    },
+    {
+      "source_id": 19,
+      "company": "美的集团",
+      "update_run_id": 8,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 149,
+      "outcome": "published"
+    },
+    {
+      "source_id": 21,
+      "company": "大疆创新",
+      "update_run_id": 8,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 139,
+      "outcome": "published"
+    },
+    {
+      "source_id": 22,
+      "company": "吉利控股",
+      "update_run_id": 8,
+      "fetch_status": "success",
+      "http_status": 200,
+      "error": "",
+      "publication_event": "published",
+      "reason_codes": [],
+      "accepted_position_count": 6,
+      "outcome": "published"
+    }
+  ],
+  "completed": true,
+  "outcome": "partial_acceptance"
+}

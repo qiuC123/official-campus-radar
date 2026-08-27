@@ -223,7 +223,11 @@ def validate_offline() -> dict:
 
         positions = list(candidates[0].positions) if len(candidates) == 1 else []
         position_keys = [position.position_key for position in positions]
-        location_count = sum(bool(position.location_text.strip()) for position in positions)
+        location_count = sum(
+            bool(position.location_text.strip())
+            and position.location_text.strip() != "未说明"
+            for position in positions
+        )
         updated_count = sum(position.source_updated_on is not None for position in positions)
         parser_config = source.parser_config
         if source.adapter_name == "moka_public_api":

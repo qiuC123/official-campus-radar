@@ -90,9 +90,13 @@ class RecruitmentBatchVM:
 
     @property
     def location_summary(self) -> str:
-        return "、".join(dict.fromkeys(
+        locations = tuple(dict.fromkeys(
             location for position in self.positions for location in position.locations
         ))
+        preview = "、".join(locations[:6])
+        if len(locations) > 6:
+            preview += f"，另有 {len(locations) - 6} 个地点"
+        return preview
 
     @property
     def primary_application_url(self) -> str:

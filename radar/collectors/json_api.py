@@ -542,6 +542,31 @@ class JsonApiSourceAdapter:
 
         if aggregate_document is None or last_response is None:
             raise ValueError("JSON API pagination returned no response")
+        duplicate_rows_removed = 0
+        position_key_path = str(config["field_map"]["position_key"]).strip()
+        unique_positions: list[object] = []
+        rows_by_key: dict[str, str] = {}
+        for row in positions:
+            if not isinstance(row, dict):
+                unique_positions.append(row)
+                continue
+            raw_key = _field_value(row, position_key_path, "")
+            position_key = self._raw_text(raw_key).strip()
+            if not position_key:
+                unique_positions.append(row)
+                continue
+            canonical_row = _canonical_json(row)
+            previous_row = rows_by_key.get(position_key)
+            if previous_row is None:
+                rows_by_key[position_key] = canonical_row
+                unique_positions.append(row)
+            elif previous_row == canonical_row:
+                duplicate_rows_removed += 1
+            else:
+                raise ValueError(
+                    f"JSON API returned conflicting rows for position key {position_key!r}"
+                )
+        positions = unique_positions
         _set_path(aggregate_document, list_path, positions)
         aggregate_document["_radar"] = {
             "positions_complete": positions_complete,
@@ -553,6 +578,7 @@ class JsonApiSourceAdapter:
             "html_fields": copy.deepcopy(config.get("html_fields", [])),
             "pagination_total_kind": total_kind,
             "pagination_mode": pagination_mode,
+            "duplicate_rows_removed": duplicate_rows_removed,
         }
         body = _canonical_json(aggregate_document)
         return FetchedPage(
@@ -741,6 +767,9 @@ class JsonApiSourceAdapter:
             location = self._field_text(
                 "location", raw_location, html_fields
             ).strip()
+            location_is_missing = not location
+            if location_is_missing:
+                location = "未说明"
             description = self._field_text(
                 "raw_text", raw_description, html_fields
             ).strip()
@@ -765,10 +794,18 @@ class JsonApiSourceAdapter:
             }
             if location_path:
                 position_evidence["location"] = FieldEvidenceValue(
-                    self._raw_text(raw_location),
+                    (
+                        EXPLICIT_MISSING
+                        if location_is_missing
+                        else self._raw_text(raw_location)
+                    ),
                     f"{base_locator}.{location_path}",
                     location,
-                    excerpt=location if "location" in html_fields else None,
+                    excerpt=(
+                        location
+                        if location_is_missing or "location" in html_fields
+                        else None
+                    ),
                 )
             if raw_text_path:
                 position_evidence["raw_text"] = FieldEvidenceValue(
@@ -892,6 +929,7 @@ class JsonApiSourceAdapter:
                     f"rows={len(rows)} retained={len(positions)} "
                     f"skipped_missing_identity={skipped_missing_identity} "
                     f"filtered_invalid={filtered_invalid}"
+                    f" duplicate_rows_removed={metadata.get('duplicate_rows_removed', 0)}"
                 ),
                 positions=tuple(positions),
                 field_locators={

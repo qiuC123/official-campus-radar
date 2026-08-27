@@ -13,6 +13,7 @@ from radar.collectors.registry import AdapterRegistry
 from radar.models import (
     FetchRun,
     OfficialSource,
+    PublicationEvent,
     RecruitmentBatch,
     RecruitmentPosition,
     SourceVersion,
@@ -61,6 +62,7 @@ def _apply_source_page(
     page: FetchedPage,
     candidates: list[RecruitmentBatchCandidate],
     local_date,
+    reprocess_rejected: bool = False,
 ) -> list[PublicationResult]:
     source = OfficialSource.objects.select_for_update().get(pk=source.pk)
     latest_applied = (
@@ -76,7 +78,21 @@ def _apply_source_page(
             http_status=page.http_status,
         )
         results: list[PublicationResult] = []
-    elif latest_applied is not None and latest_applied.content_hash == page.content_hash:
+    elif (
+        latest_applied is not None
+        and latest_applied.content_hash == page.content_hash
+        and not (
+            reprocess_rejected
+            and latest_applied.publication_events.exists()
+            and not latest_applied.publication_events.exclude(
+                event_type__in={
+                    PublicationEvent.EventType.REJECTED,
+                    PublicationEvent.EventType.AMBIGUOUS,
+                    PublicationEvent.EventType.OUT_OF_SCOPE,
+                }
+            ).exists()
+        )
+    ):
         FetchRun.objects.create(
             update_run=update_run,
             source=source,
@@ -147,7 +163,13 @@ def run_update(
     trigger: str,
     now: datetime | None = None,
     source_ids: Iterable[int] | None = None,
+    reprocess_rejected: bool = False,
 ) -> UpdateSummary:
+    requested_source_ids = tuple(source_ids) if source_ids is not None else None
+    if reprocess_rejected and trigger != UpdateRun.Trigger.MANUAL:
+        raise ValueError("rejected versions can only be reprocessed manually")
+    if reprocess_rejected and not requested_source_ids:
+        raise ValueError("reprocessing rejected versions requires source IDs")
     current = now or timezone.now()
     local_date = current.astimezone(ZoneInfo("Asia/Shanghai")).date()
     update_run = UpdateRun.objects.create(
@@ -162,8 +184,8 @@ def run_update(
         ).select_related("organization")
     )
     sources = [source for source in sources if source_is_admitted(source)]
-    if source_ids is not None:
-        allowed_ids = set(source_ids)
+    if requested_source_ids is not None:
+        allowed_ids = set(requested_source_ids)
         sources = [source for source in sources if source.pk in allowed_ids]
     demo_keys = {source.local_demo_key for source in sources}
     if len(demo_keys) == 1 and "" not in demo_keys:
@@ -184,6 +206,7 @@ def run_update(
                 page=page,
                 candidates=candidates,
                 local_date=local_date,
+                reprocess_rejected=reprocess_rejected,
             )
         except Exception as error:
             failed += 1
@@ -198,13 +221,20 @@ def run_update(
         UpdateRun.Status.FAILED
         if not successful_source_ids
         else UpdateRun.Status.PARTIAL_FAILURE
-        if failed
+        if failed or rejected
         else UpdateRun.Status.SUCCESS
     )
     if not sources:
         update_run.error_message = "no active admitted source"
     elif not successful_source_ids:
         update_run.error_message = "all checked sources failed"
+    elif failed or rejected:
+        parts = []
+        if failed:
+            parts.append(f"sources_failed={failed}")
+        if rejected:
+            parts.append(f"batches_rejected={rejected}")
+        update_run.error_message = "partial update: " + " ".join(parts)
     update_run.completed_at = timezone.now()
     update_run.save(update_fields=["status", "completed_at", "error_message"])
     return UpdateSummary(

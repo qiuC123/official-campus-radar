@@ -668,6 +668,53 @@ class JsonApiFetchTests(SimpleTestCase):
         self.assertEqual(first_call.kwargs["params"]["pageSize"], 2)
         self.assertNotIn("json", first_call.kwargs)
 
+    @patch("radar.collectors.json_api.time.sleep")
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_fetch_deduplicates_identical_position_keys(
+        self, request: Mock, sleep: Mock
+    ) -> None:
+        duplicate = {"PostId": "same", "RecruitPostName": "工程师"}
+        request.side_effect = [
+            json_response(
+                {"Data": {"Count": 2, "Posts": [duplicate]}}
+            ),
+            json_response(
+                {"Data": {"Count": 2, "Posts": [copy.deepcopy(duplicate)]}}
+            ),
+        ]
+
+        document = json.loads(self.fetch(BASE_CONFIG).body)
+
+        self.assertEqual(document["Data"]["Posts"], [duplicate])
+        self.assertEqual(document["_radar"]["duplicate_rows_removed"], 1)
+
+    @patch("radar.collectors.json_api.time.sleep")
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_fetch_rejects_conflicting_duplicate_position_keys(
+        self, request: Mock, sleep: Mock
+    ) -> None:
+        request.side_effect = [
+            json_response(
+                {
+                    "Data": {
+                        "Count": 2,
+                        "Posts": [{"PostId": "same", "RecruitPostName": "工程师"}],
+                    }
+                }
+            ),
+            json_response(
+                {
+                    "Data": {
+                        "Count": 2,
+                        "Posts": [{"PostId": "same", "RecruitPostName": "产品经理"}],
+                    }
+                }
+            ),
+        ]
+
+        with self.assertRaisesRegex(ValueError, "conflicting rows"):
+            self.fetch(BASE_CONFIG)
+
     @patch("radar.collectors.json_api.requests.Session.request")
     def test_fetch_rejects_non_integer_totals(self, request: Mock) -> None:
         invalid_totals = [True, False, 1.0, 1.5, "01", "+1", "1.0", " 1 "]
@@ -1081,6 +1128,28 @@ class JsonApiExtractionTests(SimpleTestCase):
         self.assertEqual(
             candidate.field_evidence["deadline"].parsed_value,
             "2026-12-31",
+        )
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_missing_location_is_retained_as_explicitly_unknown(
+        self, request: Mock
+    ) -> None:
+        payload = load_json_fixture("json_api_page.json")
+        payload["Data"]["Posts"][0]["LocationName"] = ""
+        request.return_value = json_response(payload)
+        source = make_source(copy.deepcopy(BASE_CONFIG))
+        adapter = JsonApiSourceAdapter()
+
+        position = adapter.extract(source, adapter.fetch(source))[0].positions[0]
+
+        self.assertEqual(position.location_text, "未说明")
+        self.assertEqual(
+            position.field_evidence["location"].raw_value,
+            "[not-provided]",
+        )
+        self.assertEqual(
+            position.field_evidence["location"].parsed_value,
+            "未说明",
         )
 
     @patch("radar.collectors.json_api.requests.Session.request")
