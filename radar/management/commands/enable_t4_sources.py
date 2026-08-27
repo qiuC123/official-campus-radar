@@ -1,19 +1,22 @@
 import json
 from pathlib import Path
-from urllib.parse import urlparse
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from radar.collectors.registry import AdapterRegistry
-from radar.models import OfficialSource
-from radar.services.admission import approve_application_host, transition_source
+from radar.models import OfficialSource, RecruitmentBatch, RecruitmentPosition
+from radar.services.admission import (
+    _validated_admission_chain,
+    source_is_admitted,
+    transition_source,
+)
 from tools.build_t4_source_catalog import build_rows
 from tools.validate_t4_offline import validate_offline
 
 
 class Command(BaseCommand):
-    help = "Verify T4 candidates from the deterministic offline Cycle 02 report."
+    help = "Enable the verified T4 source batch without running collection."
 
     def add_arguments(self, parser) -> None:
         parser.add_argument("--report", required=True)
@@ -30,6 +33,10 @@ class Command(BaseCommand):
         actor = str(options["actor"]).strip()
         if not actor:
             raise CommandError("actor is required")
+        if RecruitmentBatch.objects.exists() or RecruitmentPosition.objects.exists():
+            raise CommandError(
+                "T4 Cycle 03 requires empty recruitment batch and position tables"
+            )
 
         catalog = {row["organization_name"]: row for row in build_rows()}
         report_companies = {result["company"] for result in report["results"]}
@@ -44,28 +51,28 @@ class Command(BaseCommand):
                     source_url=row["source_url"],
                 )
             except OfficialSource.DoesNotExist as error:
-                raise CommandError(f"candidate source is missing for {company}") from error
-            if source.admission_state != OfficialSource.AdmissionState.CANDIDATE:
-                raise CommandError(f"source is not a candidate: {company}")
+                raise CommandError(f"verified source is missing for {company}") from error
+            if source.admission_state != OfficialSource.AdmissionState.VERIFIED:
+                raise CommandError(f"source is not verified: {company}")
+            if not source.is_verified or source.is_active:
+                raise CommandError(f"verified flags are inconsistent: {company}")
             if source.adapter_name != row["adapter_name"]:
                 raise CommandError(f"adapter does not match the catalog: {company}")
             if source.parser_config != json.loads(row["parser_config"]):
                 raise CommandError(f"parser config does not match the catalog: {company}")
+            if _validated_admission_chain(source) is None:
+                raise CommandError(f"admission chain is invalid: {company}")
             try:
                 AdapterRegistry.validate_source_config(source)
             except ValueError as error:
                 raise CommandError(f"invalid adapter config for {company}: {error}") from error
             sources.append(source)
 
-        ats_count = sum(
-            source.source_type == OfficialSource.SourceType.ATS for source in sources
-        )
         source_count = len(sources)
         if options["dry_run"]:
             self.stdout.write(
-                f"validated={source_count} would_verify={source_count} "
-                f"would_approve_ats_hosts={ats_count} "
-                "would_enable=0 dry_run=true"
+                f"validated={source_count} would_enable={source_count} "
+                "would_collect=0 dry_run=true"
             )
             return
 
@@ -74,28 +81,23 @@ class Command(BaseCommand):
             for source in sources:
                 transition_source(
                     source,
-                    to_state=OfficialSource.AdmissionState.VERIFIED,
+                    to_state=OfficialSource.AdmissionState.ENABLED,
                     actor_label=actor,
-                    reason="T4 Cycle 02 saved-sample contract verification passed",
+                    reason="T4 Cycle 03 source batch explicitly approved for enablement",
                     evidence=(
-                        f"{evidence_path}; T3 scope, pagination, identity, title, "
-                        "location, and adapter checks passed offline"
+                        f"user confirmation; {evidence_path}; Cycle 02 offline "
+                        "validation passed and no collection was run"
                     ),
                 )
                 source.refresh_from_db()
-                if source.source_type == OfficialSource.SourceType.ATS:
-                    approve_application_host(
-                        source,
-                        host=urlparse(source.source_url).hostname or "",
-                        actor_label=actor,
-                        evidence=(
-                            f"{source.official_entrypoint_url} is the saved official "
-                            f"entrypoint for {source.source_url}"
-                        ),
+                if not source_is_admitted(source):
+                    raise CommandError(
+                        f"enabled source failed admission recheck: {source.organization.name}"
                     )
 
         self.stdout.write(
-            f"verified={source_count} approved_ats_hosts={ats_count} enabled=0"
+            f"enabled={source_count} admitted={source_count} "
+            "network_requests=0 batches=0 positions=0"
         )
 
     @staticmethod

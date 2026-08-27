@@ -2,7 +2,7 @@
 
 `data/source_catalog.csv` 当前包含 T3 稳定台账中的 25 个来源定义，但不包含任何已启用状态。CSV 中的 `admission_evidence` 只作为待复核候选备注；导入命令只创建 `candidate`，或刷新仍处于 `candidate` 的配置，绝不会凭这段文本自动核验或启用。已经进入 `verified` 或后续状态的来源禁止被目录重导入覆盖。准入状态只能按 `candidate → verified → enabled → suspended/revoked` 追加迁移，已写事件不能在 Admin 改写或删除。
 
-本地数据库当前 25 家均已由 T4 Cycle 02 的保存样本报告推进到 `verified`，8 个外部 ATS host 已记录批准；`enabled` 仍为 0。这里的“已核验”不等于“已上线”。
+本地数据库当前 25 家均已完成 T4 Cycle 02 离线核验，并在用户明确确认后由 Cycle 03 推进到 `enabled`；8 个外部 ATS host 已记录批准。启用表示具备采集资格，不表示已经访问来源或取得岗位；当前 `UpdateRun`、招聘批次和岗位仍均为 0。
 
 CSV 的 `official_entrypoint_url` 用于外部 ATS：它必须指向企业自身官方域名中的入口。`source_url` 则是实际公开招聘页；两者不能用一个宽松域名白名单代替。目录可使用注册表中的生产适配器，但导入时只校验目录格式；适配器配置要到启用前再次独立验证。
 
@@ -18,6 +18,8 @@ CSV 的 `official_entrypoint_url` 用于外部 ATS：它必须指向企业自身
 8. 运行 `py -3.13 tools/build_t4_source_catalog.py --check`，再运行 `py -3.13 manage.py import_source_catalog --path data/source_catalog.csv --dry-run`；
 9. 运行 `py -3.13 tools/validate_t4_offline.py --check`；完整通过后，使用 `py -3.13 manage.py verify_t4_sources --report work/phase-02-t4-offline-validation-cycle-02.json --dry-run` 预览核验批次；
 10. 在启用新的线上来源批次前取得单独批准。
+
+T4 冻结批次使用 `py -3.13 manage.py enable_t4_sources --report work/phase-02-t4-offline-validation-cycle-02.json --dry-run` 预览启用。正式执行只追加准入事件并激活来源，不会调用采集器；首次真实采集仍是独立的 T6 操作。
 
 每次经批准的本地状态迁移都必须记录操作者标签、理由和新的证据。例如核验候选（示例 ID 仅为占位，执行前先在 Admin 只读页或 Django shell 确认真实 ID）：
 

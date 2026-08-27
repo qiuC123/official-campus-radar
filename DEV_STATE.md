@@ -2,7 +2,7 @@
 
 Last verified: 2026-08-27 Asia/Shanghai
 
-Phase and status: Phase 02 / H1、H2、G10、H3 已通过。T3 Cycle 18 已收口并达到 25/50。T4 Cycle 02 已完成：25 家全部离线核验为 `verified`，8 个 ATS host 已批准；0 家 `enabled`，未采集真实岗位。
+Phase and status: Phase 02 / H1、H2、G10、H3 已通过。T3 Cycle 18 已收口并达到 25/50。T4 Cycle 03 已完成：25 家全部为 `enabled` 且完整准入复核通过；未运行采集，真实岗位仍为 0。
 
 ## Current result
 
@@ -34,6 +34,10 @@ Phase and status: Phase 02 / H1、H2、G10、H3 已通过。T3 Cycle 18 已收�
 - T4 Cycle 02 使用 T3 脱敏样本和通过报告执行 25/25 离线提取验收，网络请求 0。修正美团城市对象、腾讯旧标签白名单、请求级范围字段和官网更新时间语义；中国电信发布时间、Apple 发布日期不再冒充更新时间。
 - 当前数据库有 25 个 `verified`、0 个 `candidate`、0 个 `enabled`，50 个准入事件形成 25/25 有效哈希链，另有 8 个 ATS host 批准；业务批次和岗位仍为 0。Cycle 02 写入前备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-t4-cycle02-20260827.sqlite3`。
 - T4 Cycle 02 回归：开发工具测试 140/140、Django 完整测试 369/369 均通过；目录和离线报告确定性检查、`manage.py check`、迁移检查和 `git diff --check` 通过。
+- T4 Cycle 03 在用户明确确认后新增原子批量启用命令。命令先重建 Cycle 02 离线报告、核对冻结目录、哈希链、ATS host 和适配器，再追加 25 条 `verified → enabled` 事件；任一来源启用后准入复核失败会整批回滚。
+- 当前数据库有 25 个 `enabled`，25/25 `is_active=true` 且 `source_is_admitted` 通过；准入事件 75、有效哈希链 25/25、ATS host 批准 8。`UpdateRun=0`、业务批次 0、岗位 0，Cycle 03 网络请求为 0。
+- Cycle 03 写入前备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-t4-cycle03-20260827-160114.sqlite3`。复审提出的核验命令输出硬编码数量已改为 `len(sources)`；已启用配置仍禁止被候选目录导入器覆盖。
+- T4 Cycle 03 回归：开发工具测试 140/140、Django 完整测试 370/370 均通过；目录和离线报告确定性检查、`manage.py check`、迁移检查和 `git diff --check` 通过。
 
 ## Candidate validation evidence
 
@@ -63,8 +67,8 @@ Phase and status: Phase 02 / H1、H2、G10、H3 已通过。T3 Cycle 18 已收�
 
 ## Explicitly not started
 
-T4 的 `enabled` 迁移、T6 真实岗位采集、生产浏览器采集、Windows 计划任务、微信模块和云部署均未开始。
+T6 真实岗位采集、生产浏览器采集、Windows 计划任务、微信模块和云部署均未开始。
 
 ## Exact next task
 
-等待用户决定是否启动 T4 Cycle 03：把这 25 家从 `verified` 迁移到 `enabled`。启用前先做全批次 dry-run 和配置复核；即使启用也不自动进入 T6，首次真实岗位采集仍需单独开始。
+等待用户决定是否启动 T6 Cycle 01：对 25 个已启用公开来源执行首次受控真实采集。该步骤会产生企业网络请求，并可能写入真实招聘批次和岗位；不自动注册定时任务。

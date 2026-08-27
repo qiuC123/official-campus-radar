@@ -152,6 +152,39 @@ class T4CatalogTests(TestCase):
             )
         )
 
+    def test_cycle_03_command_enables_without_collecting(self) -> None:
+        catalog = str(ROOT / "data" / "source_catalog.csv")
+        report = str(ROOT / "work" / "phase-02-t4-offline-validation-cycle-02.json")
+        call_command("import_source_catalog", "--path", catalog)
+        call_command("verify_t4_sources", "--report", report)
+
+        call_command("enable_t4_sources", "--report", report, "--dry-run")
+        self.assertEqual(
+            OfficialSource.objects.filter(
+                admission_state=OfficialSource.AdmissionState.VERIFIED
+            ).count(),
+            25,
+        )
+
+        call_command("enable_t4_sources", "--report", report)
+
+        sources = list(OfficialSource.objects.select_related("organization"))
+        self.assertEqual(len(sources), 25)
+        self.assertTrue(
+            all(
+                source.admission_state == OfficialSource.AdmissionState.ENABLED
+                and source.is_verified
+                and source.is_active
+                and source_is_admitted(source)
+                for source in sources
+            )
+        )
+        self.assertEqual(SourceAdmissionEvent.objects.count(), 75)
+        from radar.models import RecruitmentBatch, RecruitmentPosition
+
+        self.assertEqual(RecruitmentBatch.objects.count(), 0)
+        self.assertEqual(RecruitmentPosition.objects.count(), 0)
+
 
 class JsonPathContractTests(TestCase):
     def test_array_segments_and_fallback_paths_support_real_location_shapes(self) -> None:
