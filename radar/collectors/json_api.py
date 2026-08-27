@@ -5,7 +5,7 @@ import math
 import re
 import time
 import warnings
-from datetime import date
+from datetime import date, datetime, timezone
 from urllib.parse import urlparse
 
 import requests
@@ -570,9 +570,21 @@ class JsonApiSourceAdapter:
         text = str(value or "").strip()
         if not text:
             return None
+        if re.fullmatch(r"\d{10}|\d{13}", text):
+            timestamp = int(text)
+            if len(text) == 13:
+                timestamp /= 1000
+            try:
+                return datetime.fromtimestamp(timestamp, tz=timezone.utc).date()
+            except (OverflowError, OSError, ValueError):
+                return None
         try:
             return date.fromisoformat(text)
         except ValueError:
+            try:
+                return datetime.fromisoformat(text.replace("Z", "+00:00")).date()
+            except ValueError:
+                pass
             match = re.fullmatch(
                 r"(?P<year>\d{4})年(?P<month>\d{1,2})月(?P<day>\d{1,2})日",
                 text,

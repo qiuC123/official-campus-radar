@@ -2,7 +2,7 @@
 
 Last verified: 2026-08-27 Asia/Shanghai
 
-Phase and status: Phase 02 / H1、H2、G10、H3 已通过。T3 Cycle 18 已收口并达到 25/50。用户确认 25 家全部进入 T4；T4 Cycle 01 已把 25 家写为候选来源，尚未核验或启用。
+Phase and status: Phase 02 / H1、H2、G10、H3 已通过。T3 Cycle 18 已收口并达到 25/50。T4 Cycle 02 已完成：25 家全部离线核验为 `verified`，8 个 ATS host 已批准；0 家 `enabled`，未采集真实岗位。
 
 ## Current result
 
@@ -31,6 +31,9 @@ Phase and status: Phase 02 / H1、H2、G10、H3 已通过。T3 Cycle 18 已收�
 - 正式公司类型已与领域词汇统一为民企、央国企、外资、中外合资、银行、事业单位、社会机构；迁移 0013 已应用。导入器新增 `official_entrypoint_url`，支持官网直链 ATS 的证据边界。
 - T4 目录生成器会从冻结稳定台账和各 Cycle 配置生成 25 行，避免手工复制；适配器新增外部 ATS JSON 和 Apple/广汽丰田服务端内嵌岗位格式，并补充安全请求头、数组路径、字段回退、行过滤、单页和短页结束能力。本 Cycle 仍未执行任何企业网络请求。
 - T4 Cycle 01 回归：目录检查 25/25、开发工具测试 137/137、Django 完整测试 362/362 均通过；`manage.py check`、迁移检查和 `git diff --check` 通过。
+- T4 Cycle 02 使用 T3 脱敏样本和通过报告执行 25/25 离线提取验收，网络请求 0。修正美团城市对象、腾讯旧标签白名单、请求级范围字段和官网更新时间语义；中国电信发布时间、Apple 发布日期不再冒充更新时间。
+- 当前数据库有 25 个 `verified`、0 个 `candidate`、0 个 `enabled`，50 个准入事件形成 25/25 有效哈希链，另有 8 个 ATS host 批准；业务批次和岗位仍为 0。Cycle 02 写入前备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-t4-cycle02-20260827.sqlite3`。
+- T4 Cycle 02 回归：开发工具测试 140/140、Django 完整测试 369/369 均通过；目录和离线报告确定性检查、`manage.py check`、迁移检查和 `git diff --check` 通过。
 
 ## Candidate validation evidence
 
@@ -60,8 +63,8 @@ Phase and status: Phase 02 / H1、H2、G10、H3 已通过。T3 Cycle 18 已收�
 
 ## Explicitly not started
 
-T4 的 `verified` / `enabled` 两段迁移、T6 真实岗位采集、生产浏览器采集、Windows 计划任务、微信模块和云部署均未开始。
+T4 的 `enabled` 迁移、T6 真实岗位采集、生产浏览器采集、Windows 计划任务、微信模块和云部署均未开始。
 
 ## Exact next task
 
-执行 T4 Cycle 02：使用保存的脱敏样本逐来源验证提取结果和招聘范围；通过者依次写入 `verified`，外部 ATS 再记录 host 批准。`enabled` 仍需在离线验收结果明确后执行，且不自动进入 T6。
+等待用户决定是否启动 T4 Cycle 03：把这 25 家从 `verified` 迁移到 `enabled`。启用前先做全批次 dry-run 和配置复核；即使启用也不自动进入 T6，首次真实岗位采集仍需单独开始。

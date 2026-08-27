@@ -61,10 +61,11 @@ SOURCE_META = {
 
 INTERNSHIP_KEYS = {"P08", "P17", "F02", "F06", "J04"}
 UPDATED_FIELDS = {
+    "P06": "updateDate",
     "P13": "ChangeDate",
     "P10": "updateTime",
     "P19": "updateTime",
-    "S03": "ReleaseTime",
+    "S04": "job.modifiedTime",
     "P14": "updatedAt",
     "P15": "updatedAt",
     "P16": "updatedAt",
@@ -153,7 +154,7 @@ def _location_path(target: dict) -> str:
         "li_auto": "location_title",
         "crrc": "workPlaceStr",
         "vivo_autumn_campus": "LocNames",
-        "P08-C07": "cityList",
+        "P08-C07": "cityList[].name",
     }.get(str(target.get("key")), "")
 
 
@@ -169,6 +170,7 @@ def _title_path(target: dict) -> str:
 
 def _row_filters(target: dict) -> list[dict]:
     filters = []
+    request_values = _request_values(target)
     row_filter = target.get("row_filter")
     if isinstance(row_filter, dict):
         if "allowed" in row_filter:
@@ -176,6 +178,11 @@ def _row_filters(target: dict) -> list[dict]:
         elif "contains_any" in row_filter:
             filters.append({"path": row_filter["path"], "contains_any": row_filter["contains_any"]})
     for scope in target.get("scope_fields", []):
+        # A field already fixed in the request is a server-side scope guard.
+        # Requiring the same field in every response row breaks APIs that do
+        # not echo request filters (for example FAW-VW recruitType).
+        if scope["path"] in request_values:
+            continue
         filters.append({"path": scope["path"], "equals_any": scope["allowed"]})
     scope = target.get("scope")
     if isinstance(scope, dict) and scope.get("field") and scope.get("allowed"):
@@ -198,7 +205,10 @@ def _generic_config(source_key: str, company: str, target: dict, audience: str) 
             "title": _title_path(target),
             "location": _location_path(target),
         },
-        "row_filters": _row_filters(target),
+        # Tencent's projectMappingIdList already limits the response to the
+        # three accepted campus projects. Cycle 14 proved that the older
+        # recruitLabelName whitelist was incomplete and would drop valid rows.
+        "row_filters": [] if source_key == "P01" else _row_filters(target),
         "request_delay_seconds": 1,
     }
     values = _request_values(target)
@@ -238,7 +248,9 @@ def _embedded_config(source_key: str, company: str, target: dict, audience: str)
             "position_key": _field_path(target, "id_path", "id_field"),
             "title": _title_path(target),
             "location": _location_path(target),
-            "updated_at": "postingDate" if source_key == "F06" else "",
+            # Apple calls this a posting date, not an update timestamp. Keep it
+            # out of source_updated_on so a publication date is not mislabeled.
+            "updated_at": "",
             "application_url": "href" if source_key == "J03" else "",
         },
         "row_filters": _row_filters(target),

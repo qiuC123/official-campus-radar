@@ -1,4 +1,5 @@
 import json
+from datetime import date
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -7,7 +8,12 @@ from django.test import TestCase
 
 from radar.collectors.json_api import _field_value, _path_value
 from radar.collectors.registry import AdapterRegistry
-from radar.models import OfficialSource, Organization, SourceAdmissionEvent
+from radar.models import (
+    ApprovedApplicationHost,
+    OfficialSource,
+    Organization,
+    SourceAdmissionEvent,
+)
 from radar.services.admission import (
     approve_application_host,
     source_is_admitted,
@@ -98,6 +104,54 @@ class T4CatalogTests(TestCase):
             with self.subTest(source=source.organization.name):
                 self.assertTrue(source_is_admitted(source))
 
+    def test_reimport_refreshes_only_candidate_configuration(self) -> None:
+        catalog = str(ROOT / "data" / "source_catalog.csv")
+        call_command("import_source_catalog", "--path", catalog)
+        source = OfficialSource.objects.get(organization__name="美团")
+        source.parser_config = {"stale": True}
+        source.save(update_fields=["parser_config"])
+
+        call_command("import_source_catalog", "--path", catalog)
+
+        source.refresh_from_db()
+        self.assertEqual(
+            source.parser_config["field_map"]["location"], "cityList[].name"
+        )
+        self.assertEqual(SourceAdmissionEvent.objects.count(), 25)
+
+    def test_cycle_02_command_verifies_but_does_not_enable_sources(self) -> None:
+        catalog = str(ROOT / "data" / "source_catalog.csv")
+        report = str(ROOT / "work" / "phase-02-t4-offline-validation-cycle-02.json")
+        call_command("import_source_catalog", "--path", catalog)
+
+        call_command("verify_t4_sources", "--report", report, "--dry-run")
+        self.assertEqual(
+            OfficialSource.objects.filter(
+                admission_state=OfficialSource.AdmissionState.CANDIDATE
+            ).count(),
+            25,
+        )
+
+        call_command("verify_t4_sources", "--report", report)
+
+        self.assertEqual(
+            OfficialSource.objects.filter(
+                admission_state=OfficialSource.AdmissionState.VERIFIED,
+                is_verified=True,
+                is_active=False,
+            ).count(),
+            25,
+        )
+        expected_ats = sum(row["source_type"] == "ats" for row in build_rows())
+        self.assertEqual(ApprovedApplicationHost.objects.count(), expected_ats)
+        self.assertEqual(SourceAdmissionEvent.objects.count(), 50)
+        self.assertFalse(
+            any(
+                source_is_admitted(source)
+                for source in OfficialSource.objects.select_related("organization")
+            )
+        )
+
 
 class JsonPathContractTests(TestCase):
     def test_array_segments_and_fallback_paths_support_real_location_shapes(self) -> None:
@@ -111,3 +165,19 @@ class JsonPathContractTests(TestCase):
             ["北京", "上海"],
         )
         self.assertEqual(_field_value(row, "missing||backup"), "深圳")
+
+    def test_unix_millisecond_update_time_is_parsed_as_a_date(self) -> None:
+        from radar.collectors.json_api import JsonApiSourceAdapter
+
+        self.assertEqual(
+            JsonApiSourceAdapter._parse_date(1787803459000),
+            date(2026, 8, 27),
+        )
+
+    def test_iso_datetime_update_time_is_parsed_as_a_date(self) -> None:
+        from radar.collectors.json_api import JsonApiSourceAdapter
+
+        self.assertEqual(
+            JsonApiSourceAdapter._parse_date("2026-08-06T17:47:21"),
+            date(2026, 8, 6),
+        )

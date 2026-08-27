@@ -40,6 +40,8 @@ class Command(BaseCommand):
         if options["dry_run"]:
             self.stdout.write(f"validated_rows={len(rows)} dry_run=true")
             return
+        created_count = 0
+        updated_count = 0
         with transaction.atomic():
             for row in rows:
                 organization = self._resolve_organization(row["organization_name"])
@@ -62,6 +64,7 @@ class Command(BaseCommand):
                 if not created and source.admission_state != OfficialSource.AdmissionState.CANDIDATE:
                     raise CommandError("catalog import cannot rewrite an admitted source")
                 if created:
+                    created_count += 1
                     SourceAdmissionEvent.objects.create(
                         source=source,
                         from_state="",
@@ -70,7 +73,29 @@ class Command(BaseCommand):
                         reason="candidate imported from local catalog",
                         evidence=row["admission_evidence"],
                     )
-        self.stdout.write(f"imported_rows={len(rows)}")
+                else:
+                    source.source_type = row["source_type"]
+                    source.official_entrypoint_url = row["official_entrypoint_url"]
+                    source.admission_evidence = row["admission_evidence"]
+                    source.adapter_name = row["adapter_name"]
+                    source.parser_config = row["parser_config"]
+                    source.is_active = False
+                    source.is_verified = False
+                    source.save(
+                        update_fields=[
+                            "source_type",
+                            "official_entrypoint_url",
+                            "admission_evidence",
+                            "adapter_name",
+                            "parser_config",
+                            "is_active",
+                            "is_verified",
+                        ]
+                    )
+                    updated_count += 1
+        self.stdout.write(
+            f"imported_rows={len(rows)} created={created_count} updated={updated_count}"
+        )
 
     def _validated_rows(self, path: Path) -> list[dict]:
         if not path.is_file():
