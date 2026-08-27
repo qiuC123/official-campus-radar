@@ -207,6 +207,26 @@ Do not run the live command again inside Cycle 03. The report records that the
 earlier China Railway Rolling Stock request-body diagnosis already spent three
 of that endpoint's six-request budget.
 
+### T3 Cycle 04 family revalidation
+
+Cycle 04 deliberately treats a platform-family label as a hypothesis, not an
+integration fact. The six frozen entries live in
+`tools/targets-phase-02-t3-cycle-04.json`; four distinct follow-up resources
+derived offline from those entries live in the separate follow-up file. Run
+the offline tests before either network stage:
+
+```powershell
+py -3.13 -m unittest tools.tests.test_validate_family_cycle04 -v
+py -3.13 tools/validate_family_cycle04.py
+py -3.13 tools/validate_family_cycle04.py --stage followup
+```
+
+Both network commands are one-shot Cycle 04 evidence commands and must not be
+rerun. Raw HTML/JavaScript stays in the system temporary directory; committed
+reports retain only hashes, small position samples, form field names and short
+candidate strings. A redirect, timeout, size-limit failure or missing position
+list remains a recorded failure instead of triggering a retry.
+
 Run the offline tests without installing or launching a browser:
 
 ```powershell

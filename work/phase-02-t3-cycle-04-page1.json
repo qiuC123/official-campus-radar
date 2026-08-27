@@ -1,0 +1,148 @@
+{
+  "cycle": "phase-02-t3-cycle-04",
+  "stage": "page-one direct HTML capture",
+  "source_admission_claimed": false,
+  "database_writes": false,
+  "requests_made": 6,
+  "results": [
+    {
+      "id": "S10-C04",
+      "company": "中国航空工业集团有限公司",
+      "expected_family": "beisen_zhiye",
+      "url": "https://avic.zhiye.com/campus",
+      "official_evidence_url": "https://www.avic.com/",
+      "requests_made": 1,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "status": 302,
+      "content_type": "text/html",
+      "location": "/404?errorpath=%2fcampus",
+      "body_bytes": 141,
+      "body_sha256": "1faf6b63114b712a256f7fc5938bf323d41f6a42329121b63449374a55a200c6",
+      "error": "HTTP 302; no retry in this cycle"
+    },
+    {
+      "id": "J01-C04",
+      "company": "上汽大众汽车有限公司",
+      "expected_family": "beisen_zhiye",
+      "url": "https://csvw.zhiye.com/campus",
+      "official_evidence_url": "https://www.csvw.com/",
+      "requests_made": 1,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "status": 200,
+      "content_type": "text/html",
+      "location": "",
+      "body_bytes": 45095,
+      "body_sha256": "a6f8d900774a3184c38e7d092380d19c57d1e6176f57cafa7bde0286b071c99d",
+      "inspection": {
+        "title": "众里寻星 新篇将启",
+        "position_sample_count": 0,
+        "position_samples": [],
+        "campus_terms": [],
+        "forms": [],
+        "pagination_snippets": [],
+        "family_marker_present": true
+      },
+      "raw_capture_path": "C:\\Users\\Mayn\\AppData\\Local\\Temp\\official-campus-radar-cycle04\\J01-C04.html"
+    },
+    {
+      "id": "J03-C04",
+      "company": "广汽丰田汽车有限公司",
+      "expected_family": "beisen_zhiye",
+      "url": "https://gac-toyota.zhiye.com/campus/",
+      "official_evidence_url": "https://www.gac-toyota.com.cn/",
+      "requests_made": 1,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "status": 200,
+      "content_type": "text/html",
+      "location": "",
+      "body_bytes": 16701,
+      "body_sha256": "e5f925033ba9f418a2784b0710b4268a84a2dd2e8f99149d7a78f9db091e83b6",
+      "inspection": {
+        "title": "广汽丰田汽车有限公司招聘系统--校园招聘",
+        "position_sample_count": 1,
+        "position_samples": [
+          {
+            "position_key": "621117741",
+            "title": "仪表板设计工程师（应届可投）",
+            "location_candidate": "广东省-广州市",
+            "row_text": "仪表板设计工程师（应届可投） | 广东省-广州市 | 2026-07-15",
+            "href": "/zpdetail/621117741"
+          }
+        ],
+        "campus_terms": [
+          "校园招聘",
+          "应届",
+          "实习"
+        ],
+        "forms": [],
+        "pagination_snippets": [],
+        "family_marker_present": true
+      },
+      "raw_capture_path": "C:\\Users\\Mayn\\AppData\\Local\\Temp\\official-campus-radar-cycle04\\J03-C04.html"
+    },
+    {
+      "id": "P13-C04",
+      "company": "vivo",
+      "expected_family": "wintalent_classic",
+      "url": "https://hr.vivo.com/wt/vivo/web/index/CompvivoAboutCampus",
+      "official_evidence_url": "https://hr.vivo.com/wt/vivo/web/index/CompvivoAboutCampus",
+      "requests_made": 1,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "status": 200,
+      "content_type": "text/html",
+      "location": "",
+      "body_bytes": 1898,
+      "body_sha256": "a9eb0cd9a0bdc338d9afdd47435ed513c0609da543f285df888e3f7bba7c1a33",
+      "inspection": {
+        "title": "vivo招聘官方网站",
+        "position_sample_count": 0,
+        "position_samples": [],
+        "campus_terms": [],
+        "forms": [],
+        "pagination_snippets": [],
+        "family_marker_present": false
+      },
+      "raw_capture_path": "C:\\Users\\Mayn\\AppData\\Local\\Temp\\official-campus-radar-cycle04\\P13-C04.html"
+    },
+    {
+      "id": "S03-C04",
+      "company": "中国电信集团有限公司",
+      "expected_family": "wintalent_classic",
+      "url": "https://job.chinatelecom.com.cn/wt/TELE/web/index?brandCode=1",
+      "official_evidence_url": "https://www.chinatelecom.com.cn/ct/zp/",
+      "requests_made": 1,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "status": 200,
+      "content_type": "text/html",
+      "location": "",
+      "body_bytes": 1463,
+      "body_sha256": "d2c25ffc6ef7a728563797a189cad838265c83d184a159d5f716f6280038521b",
+      "inspection": {
+        "title": "中国电信招聘",
+        "position_sample_count": 0,
+        "position_samples": [],
+        "campus_terms": [],
+        "forms": [],
+        "pagination_snippets": [],
+        "family_marker_present": true
+      },
+      "raw_capture_path": "C:\\Users\\Mayn\\AppData\\Local\\Temp\\official-campus-radar-cycle04\\S03-C04.html"
+    },
+    {
+      "id": "I01-C04",
+      "company": "中国信息通信研究院",
+      "expected_family": "wintalent_classic",
+      "url": "https://www.hotjob.cn/wt/caict/web/index/webPosition210!getPostListByConditionShowPic",
+      "official_evidence_url": "https://www.caict.ac.cn/zpxx/",
+      "requests_made": 1,
+      "cookies_sent": false,
+      "redirects_followed": false,
+      "error": "HTTPSConnectionPool(host='www.hotjob.cn', port=443): Max retries exceeded with url: /wt/caict/web/index/webPosition210!getPostListByConditionShowPic (Caused by ConnectTimeoutError(<HTTPSConnection(host='www.hotjob.cn', port=443) at 0x1c731c6f390>, 'Connection to www.hotjob.cn timed out. (connect timeout=20)'))"
+    }
+  ]
+}

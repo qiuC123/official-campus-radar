@@ -1,0 +1,40 @@
+{
+  "cycle": "phase-02-t3-cycle-04-followups",
+  "basis": "derived offline from the one-request page-one captures",
+  "source_admission_claimed": false,
+  "followups": [
+    {
+      "id": "S10-C04",
+      "company": "中国航空工业集团有限公司",
+      "expected_family": "beisen_zhiye",
+      "kind": "html",
+      "url": "https://avic.zhiye.com/",
+      "reason": "the frozen /campus entry returned a same-host 404 redirect; inspect the tenant root once for a current public campus link",
+      "request_budget": {"maximum": 4, "prior_requests": 1, "planned": 1}
+    },
+    {
+      "id": "J01-C04",
+      "company": "上汽大众汽车有限公司",
+      "kind": "javascript",
+      "url": "https://acdn.bstatics.com/ux/ux-recruitment-portal-2022/release/dist/pc-ef703ae29522fd7fa535.chunk.min.js",
+      "reason": "the page-one HTML identified a new Beisen portal and this exact public bundle; inspect endpoint strings without rendering",
+      "request_budget": {"maximum": 4, "prior_requests": 1, "planned": 1}
+    },
+    {
+      "id": "P13-C04",
+      "company": "vivo",
+      "kind": "javascript",
+      "url": "https://hr.vivo.com/assets/index.0aaa4c4d.js",
+      "reason": "the old WinTalent URL now serves a vivo SPA shell with this exact public entry bundle",
+      "request_budget": {"maximum": 4, "prior_requests": 1, "planned": 1}
+    },
+    {
+      "id": "S03-C04",
+      "company": "中国电信集团有限公司",
+      "kind": "javascript",
+      "url": "https://job.chinatelecom.com.cn/wt/jsp/web/templets/custom/static/js/app.94013b49.js",
+      "reason": "the old WinTalent URL now serves a Vue shell with this exact public entry bundle",
+      "request_budget": {"maximum": 4, "prior_requests": 1, "planned": 1}
+    }
+  ]
+}

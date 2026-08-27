@@ -1,0 +1,62 @@
+{
+  "cycle": "phase-02-t3-cycle-04",
+  "scope": "six frozen Beisen and classic WinTalent family candidates",
+  "source_admission_claimed": false,
+  "production_browser_authorized": false,
+  "targets": [
+    {
+      "id": "S10-C04",
+      "company": "中国航空工业集团有限公司",
+      "company_type": "央国企",
+      "expected_family": "beisen_zhiye",
+      "url": "https://avic.zhiye.com/campus",
+      "official_evidence_url": "https://www.avic.com/",
+      "request_budget": {"maximum": 4, "page1_planned": 1, "page2_planned": 0}
+    },
+    {
+      "id": "J01-C04",
+      "company": "上汽大众汽车有限公司",
+      "company_type": "中外合资",
+      "expected_family": "beisen_zhiye",
+      "url": "https://csvw.zhiye.com/campus",
+      "official_evidence_url": "https://www.csvw.com/",
+      "request_budget": {"maximum": 4, "page1_planned": 1, "page2_planned": 0}
+    },
+    {
+      "id": "J03-C04",
+      "company": "广汽丰田汽车有限公司",
+      "company_type": "中外合资",
+      "expected_family": "beisen_zhiye",
+      "url": "https://gac-toyota.zhiye.com/campus/",
+      "official_evidence_url": "https://www.gac-toyota.com.cn/",
+      "request_budget": {"maximum": 4, "page1_planned": 1, "page2_planned": 0}
+    },
+    {
+      "id": "P13-C04",
+      "company": "vivo",
+      "company_type": "民企",
+      "expected_family": "wintalent_classic",
+      "url": "https://hr.vivo.com/wt/vivo/web/index/CompvivoAboutCampus",
+      "official_evidence_url": "https://hr.vivo.com/wt/vivo/web/index/CompvivoAboutCampus",
+      "request_budget": {"maximum": 4, "page1_planned": 1, "page2_planned": 0}
+    },
+    {
+      "id": "S03-C04",
+      "company": "中国电信集团有限公司",
+      "company_type": "央国企",
+      "expected_family": "wintalent_classic",
+      "url": "https://job.chinatelecom.com.cn/wt/TELE/web/index?brandCode=1",
+      "official_evidence_url": "https://www.chinatelecom.com.cn/ct/zp/",
+      "request_budget": {"maximum": 4, "page1_planned": 1, "page2_planned": 0}
+    },
+    {
+      "id": "I01-C04",
+      "company": "中国信息通信研究院",
+      "company_type": "事业单位",
+      "expected_family": "wintalent_classic",
+      "url": "https://www.hotjob.cn/wt/caict/web/index/webPosition210!getPostListByConditionShowPic",
+      "official_evidence_url": "https://www.caict.ac.cn/zpxx/",
+      "request_budget": {"maximum": 4, "page1_planned": 1, "page2_planned": 0}
+    }
+  ]
+}
