@@ -1,0 +1,22 @@
+{
+  "title": {
+    "parsed_value": "顺丰2027届校园招聘",
+    "excerpt": "顺丰2027届校园招聘",
+    "locator": "document/title"
+  },
+  "recruitment_type": {
+    "parsed_value": "campus_recruitment",
+    "excerpt": "顺丰校园招聘",
+    "locator": "body/heading[顺丰校园招聘]"
+  },
+  "target_audience": {
+    "parsed_value": "2027届毕业生",
+    "excerpt": "顺丰2027届校园招聘",
+    "locator": "document/title"
+  },
+  "availability": {
+    "parsed_value": "active",
+    "excerpt": "岗位投递",
+    "locator": "body/navigation[岗位投递]"
+  }
+}

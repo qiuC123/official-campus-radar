@@ -17,10 +17,7 @@
     <nav aria-label="页面视图">
       <a class="nav-button {% if not history %}active{% endif %}" href="{% if is_preview %}{% url 'phase02_preview' %}?view=active{% else %}/{% endif %}">招聘中</a>
       <a class="nav-button {% if history %}active{% endif %}" href="{% if is_preview %}{% url 'phase02_preview' %}?view=history{% else %}/history/{% endif %}">历史</a>
-      {% if show_operations %}
-        {% if is_preview %}<button class="update-button" type="button" disabled title="预览页不会触发真实更新">立即更新</button>
-        {% else %}<form method="post" action="{% url 'update_now' %}">{% csrf_token %}<button class="update-button live" type="submit">立即更新</button></form>{% endif %}
-      {% endif %}
+      {% if not is_preview %}<a class="nav-button" href="{% url 'application_progress_list' %}">我的进度</a>{% endif %}
     </nav>
   </header>
 
@@ -37,8 +34,8 @@
         <span class="health-dot"></span><small class="admin-only">仅管理员可见</small>
         {% if is_preview and preview_health == 'missing' %}<strong>模拟：计划更新漏跑</strong><span class="health-copy">岗位数据保留，不伪装成空。</span>
         {% elif is_preview and preview_health == 'failure' %}<strong>模拟：1 个来源失败</strong><span class="health-copy">其他来源保留上次成功数据。</span>
-        {% elif scheduled_run_missing %}<strong>计划更新可能漏跑</strong><span class="health-copy">最近成功：{% if last_successful_update %}{{ last_successful_update.completed_at|date:'Y-m-d H:i' }}{% else %}尚无记录{% endif %}</span>
         {% elif source_failures %}<strong>来源健康降级：{{ source_failures|length }} 个来源失败</strong>{% for failure in source_failures %}<span class="health-copy">{{ failure.source.organization.name }}：{{ failure.error_message }}</span>{% endfor %}
+        {% elif scheduled_run_missing %}<strong>计划更新可能漏跑</strong><span class="health-copy">最近成功：{% if last_successful_update %}{{ last_successful_update.completed_at|date:'Y-m-d H:i' }}{% else %}尚无记录{% endif %}</span>
         {% else %}<strong>{% if is_preview %}模拟运行状态：运行正常{% else %}运行正常{% endif %}</strong><span class="health-copy">{% if is_preview %}最近成功更新：今天 08:20{% elif last_successful_update %}最近成功更新：{{ last_successful_update.completed_at|date:'Y-m-d H:i' }}{% else %}尚无成功更新记录{% endif %}</span>{% endif %}
       </div>
       {% if is_preview %}<div class="health-switch" aria-label="模拟运行状态">
@@ -90,7 +87,7 @@
       <div class="form-actions wide">
         <button class="primary-button" type="submit">查询</button>
         <a class="reset-button" href="{% if is_preview %}{% url 'phase02_preview' %}{% if history %}?view=history{% endif %}{% elif history %}/history/{% else %}/{% endif %}">重置</a>
-        <strong id="filter-summary">今日：{{ summary.today_updated_companies }}家｜近三天：{{ summary.updated_companies_in_3_days }}家｜1天内截止：{{ summary.deadline_companies_in_1_day }}家｜3天内截止：{{ summary.deadline_companies_in_3_days }}家</strong>
+        <strong id="filter-summary">今日更新：{{ summary.today_updated_companies }}家</strong>
       </div>
     </form>
   </section>
@@ -105,7 +102,7 @@
     <table class="recruitment-table">
       <thead><tr>
         <th>公司名称</th><th>公司类型</th><th>所属行业</th><th>招聘类型</th><th>招聘对象</th><th>工作地点</th>
-        <th>岗位 <small>（点击查看全部）</small></th><th>投递进度</th><th>更新时间</th><th>相关链接</th><th>批次官网</th>
+        <th>岗位 <small>（悬停查看）</small></th><th>投递进度</th><th>更新时间</th><th>相关链接</th><th>招聘公告</th>
       </tr></thead>
       <tbody>
       {% for batch in batches %}
@@ -116,13 +113,12 @@
           <td><span class="badge recruit-badge">{{ batch.recruitment_type }}</span></td>
           <td><span class="badge audience-badge">{{ batch.target_audience }}</span></td>
           <td class="locations-cell">{{ batch.location_summary }}</td>
-          <td><button type="button" class="positions-summary" aria-expanded="false" data-expand-url="{% if not is_preview %}{% url 'batch_positions' batch.id %}{% if current_query %}?{{ current_query }}{% endif %}{% endif %}" title="点击查看全部岗位">{{ batch.position_summary }}</button></td>
+          <td><div class="positions-preview" tabindex="0" aria-label="代表岗位：{{ batch.position_summary }}"><span class="positions-summary">{{ batch.position_summary }}</span><span class="positions-tooltip" role="tooltip">{% for position in batch.hover_positions %}{{ position.title }}{% if not forloop.last %}、{% endif %}{% endfor %}{% if batch.hover_remaining_count %}<br>另有 {{ batch.hover_remaining_count }} 个岗位未在提示中列出{% endif %}</span></div></td>
           <td><select class="batch-progress" aria-label="{{ batch.title }}投递进度" data-current-value="{{ batch.progress_value }}" data-save-url="{% if not is_preview %}{% url 'update_progress' batch.id %}{% endif %}">{% for value,label in progress_choices %}<option value="{{ value }}" {% if value == batch.progress_value %}selected{% endif %}>{% if label == '已挂' %}未通过{% else %}{{ label }}{% endif %}</option>{% endfor %}</select></td>
           <td class="date-cell">{{ batch.effective_updated_on|date:'Y-m-d' }}</td>
-          <td><a class="action-link apply{% if is_preview %} preview-external{% endif %}" href="{% if is_preview %}#{% else %}{{ batch.primary_application_url }}{% endif %}" {% if not is_preview %}target="_blank" rel="noopener"{% endif %}{% if batch.primary_application_uses_batch_page %} title="官网没有岗位直投链接，已回退到批次官网"{% endif %}>投递</a></td>
-          <td><a class="action-link notice{% if is_preview %} preview-external{% endif %}" href="{% if is_preview %}#{% else %}{{ batch.official_page_url }}{% endif %}" {% if not is_preview %}target="_blank" rel="noopener"{% endif %}>官方页</a></td>
+          <td>{% if batch.primary_application_url %}<a class="action-link apply{% if is_preview %} preview-external{% endif %}" href="{% if is_preview %}#{% else %}{{ batch.primary_application_url }}{% endif %}" {% if not is_preview %}target="_blank" rel="noopener"{% endif %}>投递</a>{% elif batch.primary_application_note %}<span class="action-link apply instructions" title="{{ batch.primary_application_note }}">小程序投递</span>{% else %}<span class="action-link unavailable" title="公告与岗位来源都没有给出可核验的投递入口">投递待确认</span>{% endif %}</td>
+          <td>{% if batch.announcement_url %}<a class="action-link notice{% if is_preview %} preview-external{% endif %}" href="{% if is_preview %}#{% else %}{{ batch.announcement_url }}{% endif %}" {% if not is_preview %}target="_blank" rel="noopener"{% endif %} title="{{ batch.announcement_label }}">公告</a>{% else %}<span class="action-link unavailable" title="{{ batch.announcement_instructions }}">小程序公告</span>{% endif %}</td>
         </tr>
-        <tr class="positions-detail-row" data-detail-for="{{ batch.id }}" hidden><td colspan="11"><div class="positions-detail"><strong>全部岗位</strong><ul {% if not is_preview %}data-loaded="false"{% endif %}>{% if is_preview %}{% include 'radar/position_rows.html' with positions=batch.positions %}{% endif %}</ul></div></td></tr>
       {% endfor %}
       </tbody>
     </table>

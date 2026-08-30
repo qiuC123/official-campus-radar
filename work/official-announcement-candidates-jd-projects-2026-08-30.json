@@ -1,0 +1,14 @@
+{
+  "schema_version": "1",
+  "query": "site:campus.jd.com 京东 JDS 新星计划 TET 管理培训生 新锐之星",
+  "source": {"orchestrator": "agent_reach", "providers": ["exa"]},
+  "candidates": [
+    {
+      "url": "https://campus.jd.com/?id=4910",
+      "title_hint": "京东校招人才项目",
+      "provider": "exa",
+      "rank": 1,
+      "result_id": "jd-projects-4910"
+    }
+  ]
+}

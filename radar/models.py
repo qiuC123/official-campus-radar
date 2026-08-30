@@ -1,8 +1,11 @@
 import hashlib
 import json
+import re
+from urllib.parse import urlsplit
 
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 
@@ -41,6 +44,7 @@ class OrganizationAlias(models.Model):
 class OfficialSource(models.Model):
     class SourceType(models.TextChoices):
         WEBSITE = "website", "企业官网"
+        ANNOUNCEMENT = "announcement", "企业官网公告源"
         ATS = "ats", "官网关联投递系统"
         WECHAT = "wechat", "官方招聘公众号"
         API = "api", "官方招聘接口"
@@ -75,6 +79,287 @@ class OfficialSource(models.Model):
 
     def __str__(self) -> str:
         return f"{self.organization}: {self.source_url}"
+
+
+class WeChatAccountIdentity(models.Model):
+    """Radar-owned mapping from a company to an official WeChat account."""
+
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.PROTECT,
+        related_name="wechat_account_identities",
+    )
+    display_name = models.CharField(max_length=200)
+    biz_id = models.CharField(max_length=512, blank=True)
+    identity_evidence = models.TextField()
+    is_verified = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "display_name"],
+                name="unique_wechat_display_name_per_organization",
+            ),
+            models.UniqueConstraint(
+                fields=["biz_id"],
+                condition=~Q(biz_id=""),
+                name="unique_nonempty_wechat_biz_id",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.organization}: {self.display_name}"
+
+    def clean(self) -> None:
+        super().clean()
+        if self.is_verified and (
+            not self.identity_evidence.strip() or self.verified_at is None
+        ):
+            raise ValidationError(
+                "verified WeChat identities require evidence and verification time"
+            )
+
+
+class RecruitmentAnnouncement(models.Model):
+    """The single official notice that admits one or more recruitment batches."""
+
+    class SourceKind(models.TextChoices):
+        WEBSITE = "website", "企业官网公告"
+        RECRUITING_SYSTEM = "recruiting_system", "官方招聘系统项目页"
+        WECHAT_ARTICLE = "wechat_article", "微信公众号文章"
+        WECHAT_MINIPROGRAM = "wechat_miniprogram", "微信小程序通知"
+
+    class VerificationStatus(models.TextChoices):
+        CANDIDATE = "candidate", "候选"
+        VERIFIED = "verified", "已核验"
+        PENDING_IMAGE = "pending_image", "图片待核验"
+        REJECTED = "rejected", "已拒绝"
+
+    class VerificationMethod(models.TextChoices):
+        HTTP = "http", "官网 HTTP 回读"
+        BROWSER = "browser", "隔离浏览器回读"
+        WXCLI = "wxcli", "wxcli 微信证据"
+        HUMAN_SNAPSHOT = "human_snapshot", "人工确认快照"
+        MANUAL_REVIEW = "manual_review", "人工审核"
+
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.PROTECT,
+        related_name="recruitment_announcements",
+    )
+    source = models.ForeignKey(
+        OfficialSource,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="recruitment_announcements",
+    )
+    identity_key = models.CharField(max_length=512)
+    source_kind = models.CharField(max_length=24, choices=SourceKind.choices)
+    title = models.CharField(max_length=500)
+    url = models.URLField(blank=True)
+    miniprogram_name = models.CharField(max_length=200, blank=True)
+    miniprogram_path = models.CharField(max_length=500, blank=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+    last_verified_at = models.DateTimeField(null=True, blank=True)
+    identity_evidence = models.TextField()
+    account_display_name = models.CharField(max_length=200, blank=True)
+    account_biz_id = models.CharField(max_length=512, blank=True)
+    content_sha256 = models.CharField(max_length=64, blank=True)
+    evidence_sha256 = models.CharField(max_length=64, blank=True)
+    observed_external_links = models.JSONField(default=list, blank=True)
+    observed_media = models.JSONField(default=list, blank=True)
+    verification_status = models.CharField(
+        max_length=24,
+        choices=VerificationStatus.choices,
+        default=VerificationStatus.CANDIDATE,
+    )
+    verification_method = models.CharField(
+        max_length=24,
+        choices=VerificationMethod.choices,
+        default=VerificationMethod.MANUAL_REVIEW,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "source_kind", "identity_key"],
+                name="unique_announcement_identity_per_organization",
+            ),
+        ]
+
+    @property
+    def priority(self) -> int:
+        return {
+            self.SourceKind.WEBSITE: 1,
+            self.SourceKind.RECRUITING_SYSTEM: 2,
+            self.SourceKind.WECHAT_ARTICLE: 3,
+            self.SourceKind.WECHAT_MINIPROGRAM: 4,
+        }[self.source_kind]
+
+    def clean(self) -> None:
+        super().clean()
+        if self.source_id and self.source.organization_id != self.organization_id:
+            raise ValidationError("announcement source must belong to its organization")
+        if self.source_kind == self.SourceKind.WECHAT_MINIPROGRAM:
+            if not self.miniprogram_name.strip():
+                raise ValidationError("mini-program announcements require a name")
+        elif not self.url.strip():
+            raise ValidationError("web announcements require a URL")
+        if self.url and urlsplit(self.url).scheme != "https":
+            raise ValidationError("announcement URLs must use HTTPS")
+        if (
+            self.source_kind == self.SourceKind.WECHAT_ARTICLE
+            and (urlsplit(self.url).hostname or "").casefold() != "mp.weixin.qq.com"
+        ):
+            raise ValidationError("WeChat article announcements require an mp.weixin.qq.com URL")
+        if self.verification_status == self.VerificationStatus.VERIFIED:
+            if not self.identity_evidence.strip() or self.last_verified_at is None:
+                raise ValidationError("verified announcements require identity evidence and verification time")
+            if len(self.content_sha256) != 64 or any(
+                character not in "0123456789abcdef"
+                for character in self.content_sha256.casefold()
+            ):
+                raise ValidationError("verified announcements require a SHA-256 content fingerprint")
+            if self.source_kind in {self.SourceKind.WEBSITE, self.SourceKind.RECRUITING_SYSTEM} and not self.source_id:
+                raise ValidationError("verified official-site announcements require a source")
+
+    def __str__(self) -> str:
+        return self.title
+
+
+class AnnouncementDiscoveryCandidate(models.Model):
+    """Temporary, untrusted search result awaiting source verification."""
+
+    class State(models.TextChoices):
+        NEW = "new", "待核验"
+        VERIFIED = "verified", "已核验"
+        MERGED = "merged", "已合并"
+        SEPARATE = "separate", "独立批次"
+        DISCARDED = "discarded", "已丢弃"
+        FAILED = "failed", "读取失败"
+
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.PROTECT,
+        related_name="announcement_candidates",
+    )
+    source_kind = models.CharField(max_length=24, choices=RecruitmentAnnouncement.SourceKind.choices)
+    url = models.URLField()
+    title_hint = models.CharField(max_length=500, blank=True)
+    provider = models.CharField(max_length=64)
+    provider_result_id = models.CharField(max_length=128, blank=True)
+    state = models.CharField(max_length=16, choices=State.choices, default=State.NEW)
+    error_code = models.CharField(max_length=64, blank=True)
+    final_url = models.URLField(blank=True)
+    content_sha256 = models.CharField(max_length=64, blank=True)
+    recruitment_signal_found = models.BooleanField(default=False)
+    technical_verified_at = models.DateTimeField(null=True, blank=True)
+    announcement = models.ForeignKey(
+        RecruitmentAnnouncement,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="discovery_candidates",
+    )
+    discovered_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "url"],
+                name="unique_announcement_candidate_url_per_organization",
+            ),
+        ]
+
+
+class RecruitmentPolicy(models.Model):
+    """A guarded switch for the one-time announcement-driven cutover."""
+
+    key = models.CharField(max_length=32, unique=True, default="default")
+    announcement_gate_enforced = models.BooleanField(default=False)
+    preview_digest = models.CharField(max_length=64, blank=True)
+    preview_generated_at = models.DateTimeField(null=True, blank=True)
+    activated_at = models.DateTimeField(null=True, blank=True)
+
+    @classmethod
+    def announcement_gate_is_enforced(cls) -> bool:
+        policy = cls.objects.filter(key="default").only("announcement_gate_enforced").first()
+        return bool(policy and policy.announcement_gate_enforced)
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            previous = type(self).objects.filter(pk=self.pk).values_list(
+                "announcement_gate_enforced", flat=True
+            ).first()
+            if previous and not self.announcement_gate_enforced:
+                raise ValidationError("an activated announcement gate cannot be disabled")
+        return super().save(*args, **kwargs)
+
+
+class RecruitmentPolicyEvent(models.Model):
+    class EventType(models.TextChoices):
+        ACTIVATED = "activated", "公告门控已开启"
+
+    policy = models.ForeignKey(
+        RecruitmentPolicy,
+        on_delete=models.PROTECT,
+        related_name="events",
+    )
+    event_type = models.CharField(max_length=24, choices=EventType.choices)
+    actor_label = models.CharField(max_length=100)
+    preview_digest = models.CharField(max_length=64)
+    previous_event_hash = models.CharField(max_length=64)
+    event_hash = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    @staticmethod
+    def calculate_hash(
+        *,
+        policy_id: int,
+        event_type: str,
+        actor_label: str,
+        preview_digest: str,
+        previous_event_hash: str,
+    ) -> str:
+        payload = json.dumps(
+            {
+                "policy_id": policy_id,
+                "event_type": event_type,
+                "actor_label": actor_label,
+                "preview_digest": preview_digest,
+                "previous_event_hash": previous_event_hash,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            raise ValidationError("RecruitmentPolicyEvent is append-only")
+        self.actor_label = self.actor_label.strip()
+        latest = type(self).objects.filter(policy_id=self.policy_id).order_by("-pk").first()
+        self.previous_event_hash = latest.event_hash if latest else "0" * 64
+        self.event_hash = self.calculate_hash(
+            policy_id=self.policy_id,
+            event_type=self.event_type,
+            actor_label=self.actor_label,
+            preview_digest=self.preview_digest,
+            previous_event_hash=self.previous_event_hash,
+        )
+        if (
+            not self.actor_label
+            or not re.fullmatch(r"[0-9a-f]{64}", self.preview_digest)
+        ):
+            raise ValidationError("policy event actor and preview digest are required")
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError("RecruitmentPolicyEvent is append-only")
 
 
 class SourceAdmissionEvent(models.Model):
@@ -317,32 +602,80 @@ class SourceVersion(models.Model):
 class RecruitmentBatchQuerySet(models.QuerySet):
     def formal(self):
         from radar.services.admission import valid_admitted_source_ids
+        from radar.services.announcements import (
+            announcement_direction_projection_is_complete,
+            announcement_evidence_is_complete,
+        )
         from radar.services.evidence import batch_projection_has_valid_evidence
 
+        gate_enforced = RecruitmentPolicy.announcement_gate_is_enforced()
         queryset = self.filter(
             source_id__in=valid_admitted_source_ids(),
             organization_id=models.F("source__organization_id"),
-            latest_publication_event__event_type__in=("published", "updated"),
-            latest_publication_event__evidence_complete=True,
-            latest_publication_event__source_version__is_applied=True,
-            latest_publication_event__batch_id=models.F("pk"),
-            latest_publication_event__source_version__source_id=models.F(
-                "source_id"
-            ),
+            status=RecruitmentBatch.Status.ACTIVE,
+        )
+        if gate_enforced:
+            queryset = queryset.filter(
+                announcement_admission=RecruitmentBatch.AnnouncementAdmission.ADMITTED,
+                primary_announcement__verification_status=RecruitmentAnnouncement.VerificationStatus.VERIFIED,
+                primary_announcement__organization_id=models.F("organization_id"),
+            )
+        else:
+            queryset = queryset.filter(
+                latest_publication_event__event_type__in=("published", "updated"),
+                latest_publication_event__evidence_complete=True,
+                latest_publication_event__source_version__is_applied=True,
+                latest_publication_event__batch_id=models.F("pk"),
+                latest_publication_event__source_version__source_id=models.F("source_id"),
+            )
+        verification_queryset = queryset.select_related(
+            "source__organization",
+            "latest_publication_event__source_version",
+            "primary_announcement__organization",
+            "primary_announcement__source__organization",
+        ).prefetch_related(
+            "announcement_evidence",
+            "evidence",
+            "positions",
+            "application_links",
+            "source__admission_events",
+            "source__approved_application_hosts__admission_event",
+            "primary_announcement__source__admission_events",
+            "primary_announcement__source__approved_application_hosts__admission_event",
+            "primary_announcement__organization__official_sources__organization",
+            "primary_announcement__organization__official_sources__admission_events",
+            "primary_announcement__organization__official_sources__approved_application_hosts__admission_event",
         )
         valid_ids = [
             batch.pk
-            for batch in queryset.select_related(
-                "latest_publication_event__source_version"
+            for batch in verification_queryset
+            if (
+                batch_projection_has_valid_evidence(
+                    batch,
+                    announcement_fields=gate_enforced,
+                )
+                if not gate_enforced
+                else announcement_evidence_is_complete(batch)
+                and (
+                    batch_projection_has_valid_evidence(
+                        batch,
+                        announcement_fields=True,
+                    )
+                    or announcement_direction_projection_is_complete(batch)
+                )
             )
-            if batch_projection_has_valid_evidence(batch)
         ]
         return queryset.filter(pk__in=valid_ids).distinct()
 
     def historical(self):
         from radar.services.admission import valid_historical_source_ids
+        from radar.services.announcements import (
+            announcement_direction_projection_is_complete,
+            announcement_evidence_is_complete,
+        )
         from radar.services.evidence import batch_has_trusted_history
 
+        gate_enforced = RecruitmentPolicy.announcement_gate_is_enforced()
         queryset = self.filter(
             source_id__in=valid_historical_source_ids(),
             organization_id=models.F("source__organization_id"),
@@ -351,10 +684,27 @@ class RecruitmentBatchQuerySet(models.QuerySet):
                 RecruitmentBatch.Status.WITHDRAWN,
             ),
         )
+        if gate_enforced:
+            queryset = queryset.filter(
+                announcement_admission=RecruitmentBatch.AnnouncementAdmission.ADMITTED,
+                primary_announcement__verification_status=RecruitmentAnnouncement.VerificationStatus.VERIFIED,
+                primary_announcement__organization_id=models.F("organization_id"),
+            )
         valid_ids = [
             batch.pk
-            for batch in queryset.select_related("source")
-            if batch_has_trusted_history(batch)
+            for batch in queryset.select_related("source", "primary_announcement")
+            if (
+                batch_has_trusted_history(batch)
+                if not gate_enforced
+                else announcement_evidence_is_complete(batch)
+                and (
+                    batch_has_trusted_history(batch)
+                    or announcement_direction_projection_is_complete(
+                        batch,
+                        current_only=False,
+                    )
+                )
+            )
         ]
         return queryset.filter(pk__in=valid_ids).distinct()
 
@@ -366,16 +716,41 @@ class RecruitmentBatch(models.Model):
         WITHDRAWN = "withdrawn", "已撤回"
 
     class RecruitmentType(models.TextChoices):
+        SPRING = "spring", "春招"
+        SPRING_SUPPLEMENT = "spring_supplement", "春招补录"
+        AUTUMN = "autumn", "秋招"
+        AUTUMN_SUPPLEMENT = "autumn_supplement", "秋招补录"
+        AUTUMN_EARLY = "autumn_early", "秋招提前批"
         CAMPUS_RECRUITMENT = "campus_recruitment", "校园招聘"
         INTERNSHIP = "internship", "实习"
+        SPECIAL_PROGRAM = "special_program", "专项计划"
         OTHER = "other", "其他"
         UNKNOWN = "unknown", "未知"
+
+    class AnnouncementAdmission(models.TextChoices):
+        LEGACY = "legacy", "旧规则待迁移"
+        ADMITTED = "admitted", "公告已准入"
+        PENDING = "pending", "待核验"
+        SUPERSEDED = "superseded", "已被精确批次取代"
+        EXCLUDED = "excluded", "不进入正式页"
 
     organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name="recruitment_batches")
     source = models.ForeignKey(OfficialSource, on_delete=models.PROTECT, related_name="recruitment_batches")
     identity_key = models.CharField(max_length=255)
     title = models.CharField(max_length=300)
     official_page_url = models.URLField()
+    primary_announcement = models.ForeignKey(
+        RecruitmentAnnouncement,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="recruitment_batches",
+    )
+    announcement_admission = models.CharField(
+        max_length=16,
+        choices=AnnouncementAdmission.choices,
+        default=AnnouncementAdmission.LEGACY,
+    )
     recruitment_type = models.CharField(
         max_length=32,
         choices=RecruitmentType.choices,
@@ -405,13 +780,66 @@ class RecruitmentBatch(models.Model):
                 name="unique_batch_identity_per_source",
             ),
             models.UniqueConstraint(
-                fields=["source", "official_page_url"],
-                name="unique_batch_url_per_source",
+                fields=["primary_announcement"],
+                condition=Q(primary_announcement__isnull=False),
+                name="one_batch_per_primary_announcement",
             ),
         ]
 
     def __str__(self) -> str:
         return self.title
+
+    def clean(self) -> None:
+        super().clean()
+        if (
+            self.primary_announcement_id
+            and self.primary_announcement.organization_id != self.organization_id
+        ):
+            raise ValidationError("primary announcement must belong to the batch organization")
+        if self.announcement_admission == self.AnnouncementAdmission.ADMITTED:
+            if (
+                not self.primary_announcement_id
+                or self.primary_announcement.verification_status
+                != RecruitmentAnnouncement.VerificationStatus.VERIFIED
+            ):
+                raise ValidationError("admitted batches require a verified primary announcement")
+
+
+class AnnouncementFieldEvidence(models.Model):
+    """Append-only proof for fields interpreted from the batch's primary notice."""
+
+    batch = models.ForeignKey(
+        RecruitmentBatch,
+        on_delete=models.PROTECT,
+        related_name="announcement_evidence",
+    )
+    announcement = models.ForeignKey(
+        RecruitmentAnnouncement,
+        on_delete=models.PROTECT,
+        related_name="field_evidence",
+    )
+    position = models.ForeignKey(
+        "RecruitmentPosition",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="announcement_evidence",
+    )
+    field_name = models.CharField(max_length=64)
+    excerpt = models.TextField()
+    locator = models.CharField(max_length=500)
+    parsed_value = models.TextField()
+    value_hash = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            raise ValidationError("AnnouncementFieldEvidence is append-only")
+        self.value_hash = hashlib.sha256(self.parsed_value.encode("utf-8")).hexdigest()
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError("AnnouncementFieldEvidence is append-only")
 
 
 class PublicationEvent(models.Model):
@@ -452,12 +880,17 @@ class PublicationEvent(models.Model):
 
 
 class RecruitmentPosition(models.Model):
+    class Kind(models.TextChoices):
+        POSITION = "position", "招聘岗位"
+        DIRECTION = "direction", "岗位方向"
+
     batch = models.ForeignKey(RecruitmentBatch, on_delete=models.PROTECT, related_name="positions")
     position_key = models.CharField(max_length=255)
     title = models.CharField(max_length=300)
     location_text = models.CharField(max_length=300)
     normalized_locations = models.JSONField(default=list, blank=True)
     raw_text = models.TextField(blank=True)
+    kind = models.CharField(max_length=16, choices=Kind.choices, default=Kind.POSITION)
     source_updated_on = models.DateField(null=True, blank=True)
     first_seen_at = models.DateTimeField(auto_now_add=True)
     content_changed_at = models.DateTimeField(default=timezone.now)
@@ -477,14 +910,42 @@ class ApplicationLink(models.Model):
     class LinkType(models.TextChoices):
         BATCH_PAGE = "batch_page", "招聘批次官方页面"
         APPLICATION = "application", "投递入口"
+        EMAIL = "email", "招聘邮箱"
+        MINI_PROGRAM = "mini_program", "投递小程序"
 
     batch = models.ForeignKey(RecruitmentBatch, on_delete=models.PROTECT, related_name="application_links")
     position = models.ForeignKey(RecruitmentPosition, null=True, blank=True, on_delete=models.PROTECT, related_name="application_links")
-    url = models.URLField()
+    url = models.URLField(blank=True)
+    email = models.EmailField(blank=True)
+    miniprogram_name = models.CharField(max_length=200, blank=True)
+    miniprogram_path = models.CharField(max_length=500, blank=True)
+    instructions = models.CharField(max_length=500, blank=True)
+    verification_evidence = models.TextField(blank=True)
     link_type = models.CharField(max_length=16, choices=LinkType.choices)
     verified_at = models.DateTimeField(default=timezone.now)
     is_current = models.BooleanField(default=True)
     removed_at = models.DateTimeField(null=True, blank=True)
+
+    @property
+    def href(self) -> str:
+        if self.link_type == self.LinkType.EMAIL and self.email:
+            return f"mailto:{self.email}"
+        return self.url
+
+    def clean(self) -> None:
+        super().clean()
+        if self.link_type == self.LinkType.EMAIL:
+            if not self.email or self.url or self.miniprogram_name or self.miniprogram_path:
+                raise ValidationError("email application links require only an email address")
+        elif self.link_type == self.LinkType.MINI_PROGRAM:
+            if not self.miniprogram_name.strip() or self.email:
+                raise ValidationError("mini-program application links require a name and no email")
+            if not (self.url or self.miniprogram_path.strip() or self.instructions.strip()):
+                raise ValidationError("mini-program application links require an opening instruction")
+        elif not self.url or self.email or self.miniprogram_name or self.miniprogram_path:
+            raise ValidationError("non-email application links require a URL")
+        if self.position_id is None and not self.verification_evidence.strip():
+            raise ValidationError("batch-level application channels require verification evidence")
 
 
 class Evidence(models.Model):

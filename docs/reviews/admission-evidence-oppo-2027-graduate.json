@@ -1,0 +1,22 @@
+{
+  "title": {
+    "parsed_value": "OPPO 2027应届生校园招聘",
+    "excerpt": "来，开启新征程 应届生",
+    "locator": "body/section[来，开启新征程]/item[应届生]"
+  },
+  "recruitment_type": {
+    "parsed_value": "campus_recruitment",
+    "excerpt": "校园招聘 应届生 马上启程",
+    "locator": "body/section[校园招聘]/item[应届生]"
+  },
+  "target_audience": {
+    "parsed_value": "中国大陆高校2027年1月至12月毕业本硕；港澳台及海外院校2026年1月至2027年12月毕业本硕",
+    "excerpt": "2027年1月-2027年12月的中国大陆高校本硕毕业生；2026年1月-2027年12月的中国港澳台及海外院校本硕毕业生",
+    "locator": "body/section[来，开启新征程]/item[应届生]/graduation-window"
+  },
+  "availability": {
+    "parsed_value": "active",
+    "excerpt": "应届生 马上启程",
+    "locator": "body/section[来，开启新征程]/item[应届生]/action[马上启程]"
+  }
+}

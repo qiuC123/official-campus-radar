@@ -45,10 +45,24 @@ BATCH_EVIDENCE_FIELDS = {
     "official_page_url",
 }
 POSITION_EVIDENCE_FIELDS = {"position_title", "location"}
-OPTIONAL_POSITION_EVIDENCE_FIELDS = {"raw_text", "source_updated_on"}
+OPTIONAL_POSITION_EVIDENCE_FIELDS = {"raw_text", "source_updated_on", "position_kind"}
+ELIGIBLE_RECRUITMENT_TYPES = {
+    RecruitmentBatch.RecruitmentType.SPRING,
+    RecruitmentBatch.RecruitmentType.SPRING_SUPPLEMENT,
+    RecruitmentBatch.RecruitmentType.AUTUMN,
+    RecruitmentBatch.RecruitmentType.AUTUMN_SUPPLEMENT,
+    RecruitmentBatch.RecruitmentType.AUTUMN_EARLY,
+    RecruitmentBatch.RecruitmentType.CAMPUS_RECRUITMENT,
+    RecruitmentBatch.RecruitmentType.INTERNSHIP,
+    RecruitmentBatch.RecruitmentType.SPECIAL_PROGRAM,
+}
 
 
-def _candidate_conflict_indexes(candidates: list[RecruitmentBatchCandidate]) -> set[int]:
+def _candidate_conflict_indexes(
+    candidates: list[RecruitmentBatchCandidate],
+    *,
+    shared_portal_allowed: bool = False,
+) -> set[int]:
     by_identity: dict[str, list[int]] = {}
     by_url: dict[str, list[int]] = {}
     for index, candidate in enumerate(candidates):
@@ -63,10 +77,11 @@ def _candidate_conflict_indexes(candidates: list[RecruitmentBatchCandidate]) -> 
     for indexes in by_identity.values():
         if len(indexes) > 1:
             conflicts.update(indexes)
-    for indexes in by_url.values():
-        identities = {candidates[index].identity_key for index in indexes}
-        if len(identities) > 1:
-            conflicts.update(indexes)
+    if not shared_portal_allowed:
+        for indexes in by_url.values():
+            identities = {candidates[index].identity_key for index in indexes}
+            if len(identities) > 1:
+                conflicts.update(indexes)
     return conflicts
 
 
@@ -179,17 +194,18 @@ def _publish_candidate(
         if identity_key
         else None
     )
+    shared_portal_allowed = bool(
+        isinstance(source.parser_config, dict)
+        and source.parser_config.get("batch_partitions")
+    )
     existing_by_url = (
         RecruitmentBatch.objects.filter(
             source=source, official_page_url=official_page_url
-        ).first()
+        ).exclude(pk=getattr(existing_by_identity, "pk", None)).first()
         if official_page_url
         else None
     )
-    if existing_by_url is not None and (
-        existing_by_identity is None
-        or existing_by_url.pk != existing_by_identity.pk
-    ):
+    if existing_by_url is not None and not shared_portal_allowed:
         return _reject(
             source,
             candidate,
@@ -199,6 +215,18 @@ def _publish_candidate(
             batch=existing_by_identity or existing_by_url,
         )
     existing_batch = existing_by_identity
+    if (
+        existing_batch is not None
+        and existing_batch.announcement_admission
+        == RecruitmentBatch.AnnouncementAdmission.SUPERSEDED
+    ):
+        return _reject(
+            source,
+            candidate,
+            version,
+            ["superseded_batch"],
+            batch=existing_batch,
+        )
     target_positions = [
         _drop_unproven_position_details(position)
         for position in candidate.positions
@@ -262,17 +290,22 @@ def _publish_candidate(
         source, candidate.official_page_url
     ):
         reasons.append("missing_official_page_url")
-    declared_recruitment_type = classify_recruitment(candidate.recruitment_type)
+    raw_declared_recruitment_type = candidate.recruitment_type.strip()
+    declared_recruitment_type = (
+        raw_declared_recruitment_type
+        if raw_declared_recruitment_type in ELIGIBLE_RECRUITMENT_TYPES
+        else classify_recruitment(raw_declared_recruitment_type)
+    )
     declared_type_is_authoritative = source.adapter_name in {
         "json_api",
         "ats_json_api",
         "isolated_browser_json",
         "moka_public_api",
     }
-    if declared_type_is_authoritative and declared_recruitment_type in {
-        RecruitmentBatch.RecruitmentType.CAMPUS_RECRUITMENT,
-        RecruitmentBatch.RecruitmentType.INTERNSHIP,
-    }:
+    if (
+        declared_type_is_authoritative
+        and declared_recruitment_type in ELIGIBLE_RECRUITMENT_TYPES
+    ):
         recruitment_type = declared_recruitment_type
     else:
         classification_text = " ".join(
@@ -281,15 +314,17 @@ def _publish_candidate(
             + [position.raw_text for position in target_positions]
         )
         recruitment_type = classify_recruitment(classification_text)
-    if recruitment_type not in {
-        RecruitmentBatch.RecruitmentType.CAMPUS_RECRUITMENT,
-        RecruitmentBatch.RecruitmentType.INTERNSHIP,
-    }:
+    if recruitment_type not in ELIGIBLE_RECRUITMENT_TYPES:
         reasons.append("not_eligible_recruitment_type")
     if not target_positions:
         reasons.append("missing_positions")
     if any(not position.position_key.strip() for position in target_positions):
         reasons.append("missing_stable_position_identity")
+    if any(
+        position.kind not in RecruitmentPosition.Kind.values
+        for position in target_positions
+    ):
+        reasons.append("invalid_position_kind")
     if len({position.position_key for position in target_positions}) != len(
         target_positions
     ):
@@ -322,20 +357,26 @@ def _publish_candidate(
             deadline=candidate.deadline,
         )
     else:
+        announcement_controls_batch = (
+            batch.announcement_admission
+            == RecruitmentBatch.AnnouncementAdmission.ADMITTED
+            and batch.primary_announcement_id is not None
+        )
         batch_content_changed = any((
-            batch.title != candidate.title,
+            (not announcement_controls_batch and batch.title != candidate.title),
             batch.official_page_url != official_page_url,
-            batch.recruitment_type != recruitment_type,
-            batch.target_audience != candidate.target_audience,
-            batch.published_on != candidate.published_on,
+            (not announcement_controls_batch and batch.recruitment_type != recruitment_type),
+            (not announcement_controls_batch and batch.target_audience != candidate.target_audience),
+            (not announcement_controls_batch and batch.published_on != candidate.published_on),
             batch.deadline != candidate.deadline,
             batch.status != RecruitmentBatch.Status.ACTIVE,
         ))
-        batch.title = candidate.title
+        if not announcement_controls_batch:
+            batch.title = candidate.title
+            batch.recruitment_type = recruitment_type
+            batch.target_audience = candidate.target_audience
+            batch.published_on = candidate.published_on
         batch.official_page_url = official_page_url
-        batch.recruitment_type = recruitment_type
-        batch.target_audience = candidate.target_audience
-        batch.published_on = candidate.published_on
         batch.deadline = candidate.deadline
         batch.status = RecruitmentBatch.Status.ACTIVE
         batch.last_verified_at = timezone.now()
@@ -383,6 +424,7 @@ def _publish_candidate(
                     position_candidate.location_text
                 ),
                 "raw_text": position_candidate.raw_text,
+                "kind": position_candidate.kind,
                 "source_updated_on": position_candidate.source_updated_on,
                 "is_current": True,
                 "removed_at": None,
@@ -396,6 +438,7 @@ def _publish_candidate(
                     position_candidate.location_text
                 ),
                 "raw_text": position_candidate.raw_text,
+                "kind": position_candidate.kind,
                 "source_updated_on": position_candidate.source_updated_on,
                 "is_current": True,
                 "removed_at": None,
@@ -499,7 +542,13 @@ def publish_candidates(
         )
         for candidate in candidates
     ]
-    conflicts = _candidate_conflict_indexes(candidate_list)
+    conflicts = _candidate_conflict_indexes(
+        candidate_list,
+        shared_portal_allowed=bool(
+            isinstance(source.parser_config, dict)
+            and source.parser_config.get("batch_partitions")
+        ),
+    )
     results: list[PublicationResult] = []
     for index, candidate in enumerate(candidate_list):
         if index in conflicts:

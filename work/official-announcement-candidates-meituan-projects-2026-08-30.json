@@ -1,0 +1,28 @@
+{
+  "schema_version": "1",
+  "query": "site:zhaopin.meituan.com 美团 日常实习 LongCat 北斗计划",
+  "source": {"orchestrator": "agent_reach", "providers": ["exa", "official_site_navigation"]},
+  "candidates": [
+    {
+      "url": "https://zhaopin.meituan.com/web/campus",
+      "title_hint": "美团校园招聘项目",
+      "provider": "exa",
+      "rank": 1,
+      "result_id": "meituan-campus-projects"
+    },
+    {
+      "url": "https://zhaopin.meituan.com/longcatprogram",
+      "title_hint": "美团 LongCat 大模型人才招聘",
+      "provider": "exa",
+      "rank": 2,
+      "result_id": "meituan-longcat"
+    },
+    {
+      "url": "https://zhaopin.meituan.com/web/beidouprogram",
+      "title_hint": "美团北斗计划",
+      "provider": "official_site_navigation",
+      "rank": 3,
+      "result_id": "meituan-beidou-program"
+    }
+  ]
+}

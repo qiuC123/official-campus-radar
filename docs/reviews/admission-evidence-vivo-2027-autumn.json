@@ -1,0 +1,22 @@
+{
+  "title": {
+    "parsed_value": "vivo2027届秋季校园招聘",
+    "excerpt": "vivo2027届秋季校园招聘公告&FAQ",
+    "locator": "body/section[校招公告]/item[vivo2027届秋季校园招聘公告&FAQ]"
+  },
+  "recruitment_type": {
+    "parsed_value": "autumn",
+    "excerpt": "招聘项目 秋季校园招聘 共136个职位",
+    "locator": "body/section[招聘项目]/item[秋季校园招聘]"
+  },
+  "target_audience": {
+    "parsed_value": "2027届",
+    "excerpt": "vivo2027届秋季校园招聘公告&FAQ",
+    "locator": "body/section[校招公告]/item[vivo2027届秋季校园招聘公告&FAQ]"
+  },
+  "availability": {
+    "parsed_value": "active",
+    "excerpt": "秋季校园招聘 共136个职位",
+    "locator": "body/section[招聘项目]/item[秋季校园招聘]/count[136]"
+  }
+}

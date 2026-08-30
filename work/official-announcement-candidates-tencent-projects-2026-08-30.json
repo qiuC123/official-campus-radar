@@ -1,0 +1,14 @@
+{
+  "schema_version": "1",
+  "query": "site:join.qq.com 腾讯 应届生招聘 青云计划 AI 产品经理培训生",
+  "source": {"orchestrator": "agent_reach", "providers": ["exa"]},
+  "candidates": [
+    {
+      "url": "https://join.qq.com/",
+      "title_hint": "腾讯校招招聘项目",
+      "provider": "exa",
+      "rank": 1,
+      "result_id": "tencent-projects-home"
+    }
+  ]
+}

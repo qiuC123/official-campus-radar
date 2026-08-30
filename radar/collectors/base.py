@@ -37,6 +37,7 @@ class PositionCandidate:
     position_key: str = ""
     field_evidence: dict[str, FieldEvidenceValue] = field(default_factory=dict)
     source_updated_on: date | None = None
+    kind: str = "position"
 
 
 @dataclass(frozen=True)

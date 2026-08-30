@@ -48,7 +48,12 @@ def _api_endpoint_is_official(source: OfficialSource) -> bool:
 
 
 def _validated_admission_chain(source: OfficialSource) -> list[SourceAdmissionEvent] | None:
-    events = list(source.admission_events.order_by("created_at", "pk"))
+    prefetched = getattr(source, "_prefetched_objects_cache", {}).get("admission_events")
+    events = (
+        sorted(prefetched, key=lambda item: (item.created_at, item.pk))
+        if prefetched is not None
+        else list(source.admission_events.order_by("created_at", "pk"))
+    )
     if not events:
         return None
     current_state = OfficialSource.AdmissionState.CANDIDATE
@@ -100,8 +105,15 @@ def _has_valid_application_host_approval(
     if not chain:
         return False
     chain_event_ids = {event.pk for event in chain}
-    approvals = source.approved_application_hosts.filter(host=host).select_related(
-        "admission_event"
+    prefetched = getattr(source, "_prefetched_objects_cache", {}).get(
+        "approved_application_hosts"
+    )
+    approvals = (
+        [item for item in prefetched if item.host == host]
+        if prefetched is not None
+        else source.approved_application_hosts.filter(host=host).select_related(
+            "admission_event"
+        )
     )
     return any(
         approval.source_id == source.pk
@@ -132,7 +144,10 @@ def source_is_admitted(source: OfficialSource) -> bool:
         return False
     source_host = _host(source.source_url)
     official_domain = source.organization.official_domain
-    if source.source_type == OfficialSource.SourceType.WEBSITE:
+    if source.source_type in {
+        OfficialSource.SourceType.WEBSITE,
+        OfficialSource.SourceType.ANNOUNCEMENT,
+    }:
         return _belongs_to_official_domain(source_host, official_domain)
     if source.source_type == OfficialSource.SourceType.API:
         return (
@@ -156,7 +171,9 @@ def valid_admitted_source_ids() -> list[int]:
         admission_state=OfficialSource.AdmissionState.ENABLED,
         is_verified=True,
         is_active=True,
-    ).select_related("organization").prefetch_related("admission_events")
+    ).select_related("organization").prefetch_related(
+        "admission_events", "approved_application_hosts__admission_event"
+    )
     return [source.pk for source in sources if source_is_admitted(source)]
 
 
@@ -183,7 +200,11 @@ def source_permits_application_url(source: OfficialSource, url: str) -> bool:
     if urlparse(url).scheme != "https":
         return False
     host = _host(url)
-    source = OfficialSource.objects.select_related("organization").get(pk=source.pk)
+    cache = getattr(source, "_prefetched_objects_cache", {})
+    if "admission_events" not in cache or "organization" not in source._state.fields_cache:
+        source = OfficialSource.objects.select_related("organization").prefetch_related(
+            "admission_events", "approved_application_hosts__admission_event"
+        ).get(pk=source.pk)
     chain = _validated_admission_chain(source)
     if not chain:
         return False
@@ -210,6 +231,7 @@ def _validate_verification_candidate(source: OfficialSource) -> None:
         raise ValidationError("source URL must use HTTPS")
     if source.source_type in {
         OfficialSource.SourceType.WEBSITE,
+        OfficialSource.SourceType.ANNOUNCEMENT,
         OfficialSource.SourceType.API,
     }:
         if not _belongs_to_official_domain(source_host, official_domain):
@@ -261,7 +283,10 @@ def transition_source(
         )
     ):
         raise ValidationError("ATS source host requires official-entrypoint approval")
-    if to_state == OfficialSource.AdmissionState.ENABLED:
+    if (
+        to_state == OfficialSource.AdmissionState.ENABLED
+        and source.source_type != OfficialSource.SourceType.ANNOUNCEMENT
+    ):
         from radar.collectors.registry import AdapterRegistry
 
         try:

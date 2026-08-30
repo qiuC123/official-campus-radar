@@ -180,7 +180,12 @@ def run_update(
     )
     sources = list(
         OfficialSource.objects.filter(
-            admission_state=OfficialSource.AdmissionState.ENABLED
+            admission_state=OfficialSource.AdmissionState.ENABLED,
+        ).exclude(
+            source_type__in={
+                OfficialSource.SourceType.ANNOUNCEMENT,
+                OfficialSource.SourceType.WECHAT,
+            },
         ).select_related("organization")
     )
     sources = [source for source in sources if source_is_admitted(source)]
@@ -200,6 +205,8 @@ def run_update(
             adapter = AdapterRegistry.get(source)
             page = adapter.fetch(source)
             candidates = [] if page.not_modified else list(adapter.extract(source, page))
+            if not page.not_modified and not candidates:
+                raise ValueError("source returned no recruitment batches")
             results = _apply_source_page(
                 update_run=update_run,
                 source=source,

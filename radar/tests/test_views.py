@@ -3,8 +3,13 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from radar.models import RecruitmentPosition, Organization, RecruitmentBatch
-from radar.services.update_runner import UpdateSummary
+from radar.models import (
+    ApplicationProgress,
+    RecruitmentPosition,
+    Organization,
+    RecruitmentBatch,
+    RecruitmentPolicy,
+)
 from radar.tests.helpers import create_enabled_source, publish_formal_notice
 
 
@@ -33,18 +38,38 @@ class DashboardViewTests(TestCase):
         self.assertEqual(self.beijing.application_progress.status, "interviewed")
         self.assertEqual(self.client.post(f"/batches/{self.beijing.pk}/progress/", {"status": "bad"}).status_code, 400)
 
+    def test_existing_progress_remains_editable_after_batch_is_hidden(self) -> None:
+        progress, _ = ApplicationProgress.objects.update_or_create(
+            batch=self.beijing,
+            defaults={"status": ApplicationProgress.Status.APPLIED},
+        )
+        policy, _ = RecruitmentPolicy.objects.get_or_create(key="default")
+        policy.announcement_gate_enforced = True
+        policy.save(update_fields=["announcement_gate_enforced"])
+        self.beijing.announcement_admission = (
+            RecruitmentBatch.AnnouncementAdmission.SUPERSEDED
+        )
+        self.beijing.save(update_fields=["announcement_admission"])
+
+        response = self.client.get("/applications/")
+        self.assertContains(response, self.beijing.title)
+        self.assertContains(response, "已被精确批次取代")
+        update = self.client.post(
+            f"/batches/{self.beijing.pk}/progress/",
+            {"status": ApplicationProgress.Status.INTERVIEWED},
+        )
+        self.assertEqual(update.status_code, 200)
+        progress.refresh_from_db()
+        self.assertEqual(progress.status, ApplicationProgress.Status.INTERVIEWED)
+
     def test_default_listing_hides_expired_but_status_filter_shows_it(self) -> None:
         self.assertNotContains(self.client.get("/"), self.expired.official_page_url)
         self.assertContains(self.client.get("/history/"), self.expired.official_page_url)
 
-    @patch("radar.views.run_update")
-    def test_manual_update_reports_actual_summary(self, run_update) -> None:
+    def test_immediate_update_endpoint_remains_deferred(self) -> None:
         administrator = get_user_model().objects.create_superuser("owner", "owner@example.test", "test")
         self.client.force_login(administrator)
-        run_update.return_value = UpdateSummary(7, 2, 0, 1, 0, 0, status="success")
-        response = self.client.post("/update-now/", follow=True)
-        self.assertContains(response, 'class="message info"')
-        run_update.assert_called_once_with(trigger="manual")
+        self.assertEqual(self.client.post("/update-now/").status_code, 404)
 
     @patch("radar.views.scheduled_run_is_missing", return_value=True)
     def test_missing_schedule_displays_a_factual_update_banner(self, _missing) -> None:
@@ -52,11 +77,11 @@ class DashboardViewTests(TestCase):
         self.client.force_login(administrator)
         response = self.client.get("/")
         self.assertContains(response, 'class="health-panel" data-health="missing"')
-        self.assertContains(response, 'action="/update-now/"')
+        self.assertNotContains(response, 'action="/update-now/"')
 
     @patch("radar.views.scheduled_run_is_missing", return_value=True)
     def test_operations_are_hidden_from_non_admin_visitors(self, _missing) -> None:
         response = self.client.get("/")
         self.assertNotContains(response, 'action="/update-now/"')
         self.assertNotContains(response, 'class="health warning scheduled-alert"')
-        self.assertEqual(self.client.post("/update-now/").status_code, 302)
+        self.assertEqual(self.client.post("/update-now/").status_code, 404)

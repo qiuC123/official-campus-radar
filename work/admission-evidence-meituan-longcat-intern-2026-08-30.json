@@ -1,0 +1,6 @@
+{
+  "title": {"parsed_value": "美团 LongCat 实习招聘", "excerpt": "美团 LongCat 大模型人才招聘……欢迎加入我们！", "locator": "LongCat大模型人才招聘/项目说明"},
+  "recruitment_type": {"parsed_value": "internship", "excerpt": "LongCat 大模型人才校招实习生招聘是否提供转正机会？", "locator": "LongCat大模型人才招聘/Q&A/实习生招聘"},
+  "target_audience": {"parsed_value": "LongCat 实习生招聘对象", "excerpt": "LongCat 大模型人才校招实习生招聘", "locator": "LongCat大模型人才招聘/Q&A/实习生招聘"},
+  "availability": {"parsed_value": "active", "excerpt": "美团 LongCat 大模型人才招聘……欢迎加入我们！", "locator": "LongCat大模型人才招聘/当前项目页"}
+}

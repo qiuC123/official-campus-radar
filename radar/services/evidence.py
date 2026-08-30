@@ -91,6 +91,8 @@ def candidate_evidence_is_valid(candidate, positions, recruitment_type: str) -> 
             values["application_link"] = position.application_url
         if position.source_updated_on:
             values["source_updated_on"] = position.source_updated_on
+        if getattr(position, "kind", "position") == "direction":
+            values["position_kind"] = "direction"
         for field_name, actual_value in values.items():
             evidence = position.field_evidence.get(field_name)
             if evidence is None:
@@ -107,18 +109,28 @@ def candidate_evidence_is_valid(candidate, positions, recruitment_type: str) -> 
 
 
 def batch_projection_has_valid_evidence_for_event(
-    batch, event, *, current_only: bool
+    batch, event, *, current_only: bool, announcement_fields: bool | None = None
 ) -> bool:
     if event is None or event.batch_id != batch.pk:
         return False
     version = event.source_version
     if version.source_id != batch.source_id or not version.is_applied:
         return False
-    evidence = list(
-        batch.evidence.filter(
-            publication_event=event,
-            source_version=version,
-        ).select_related("position", "application_link")
+    prefetched = getattr(batch, "_prefetched_objects_cache", {})
+    cached_evidence = prefetched.get("evidence")
+    evidence = (
+        [
+            item for item in cached_evidence
+            if item.publication_event_id == event.pk
+            and item.source_version_id == version.pk
+        ]
+        if cached_evidence is not None
+        else list(
+            batch.evidence.filter(
+                publication_event=event,
+                source_version=version,
+            ).select_related("position", "application_link")
+        )
     )
     evidence_by_field = defaultdict(list)
     for item in evidence:
@@ -132,19 +144,43 @@ def batch_projection_has_valid_evidence_for_event(
             for item in evidence_by_field[(field_name, position_id, link_id)]
         )
 
-    batch_values = {
-        "title": batch.title,
-        "recruitment_type": batch.recruitment_type,
-        "target_audience": batch.target_audience,
-        "published_on": batch.published_on,
-        "deadline": batch.deadline,
-        "official_page_url": batch.official_page_url,
-    }
+    from radar.models import RecruitmentBatch, RecruitmentPolicy
+
+    if announcement_fields is None:
+        announcement_fields = (
+            RecruitmentPolicy.announcement_gate_is_enforced()
+            and batch.announcement_admission
+            == RecruitmentBatch.AnnouncementAdmission.ADMITTED
+        )
+    if announcement_fields:
+        batch_values = {
+            "deadline": batch.deadline,
+            "official_page_url": batch.official_page_url,
+        }
+    else:
+        batch_values = {
+            "title": batch.title,
+            "recruitment_type": batch.recruitment_type,
+            "target_audience": batch.target_audience,
+            "published_on": batch.published_on,
+            "deadline": batch.deadline,
+            "official_page_url": batch.official_page_url,
+        }
     if any(not matching(name, value) for name, value in batch_values.items()):
         return False
     if current_only:
-        positions = list(batch.positions.filter(is_current=True))
-        links = list(batch.application_links.filter(is_current=True))
+        cached_positions = prefetched.get("positions")
+        cached_links = prefetched.get("application_links")
+        positions = (
+            [item for item in cached_positions if item.is_current]
+            if cached_positions is not None
+            else list(batch.positions.filter(is_current=True))
+        )
+        links = (
+            [item for item in cached_links if item.is_current]
+            if cached_links is not None
+            else list(batch.application_links.filter(is_current=True))
+        )
     else:
         position_ids = {
             item.position_id
@@ -176,10 +212,28 @@ def batch_projection_has_valid_evidence_for_event(
             position_id=position.pk,
         ):
             return False
+        if getattr(position, "kind", "position") == "direction" and not matching(
+            "position_kind",
+            "direction",
+            position_id=position.pk,
+        ):
+            return False
     position_ids = {position.pk for position in positions}
     from radar.services.admission import source_permits_application_url
 
     for link in links:
+        if link.position_id is None:
+            if not link.verification_evidence.strip():
+                return False
+            application_source = (
+                batch.primary_announcement.source
+                if batch.primary_announcement_id
+                and batch.primary_announcement.source_id
+                else batch.source
+            )
+            if link.url and not source_permits_application_url(application_source, link.url):
+                return False
+            continue
         if (
             link.batch_id != batch.pk
             or link.position_id not in position_ids
@@ -196,9 +250,16 @@ def batch_projection_has_valid_evidence_for_event(
     return True
 
 
-def batch_projection_has_valid_evidence(batch) -> bool:
+def batch_projection_has_valid_evidence(
+    batch,
+    *,
+    announcement_fields: bool | None = None,
+) -> bool:
     return batch_projection_has_valid_evidence_for_event(
-        batch, batch.latest_publication_event, current_only=True
+        batch,
+        batch.latest_publication_event,
+        current_only=True,
+        announcement_fields=announcement_fields,
     )
 
 

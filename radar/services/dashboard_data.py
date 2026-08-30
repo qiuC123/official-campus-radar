@@ -1,11 +1,10 @@
 from datetime import date, timedelta
 
 from django.core.paginator import Paginator
-from django.db.models import Q
 from django.utils import timezone
-from django.utils.dateparse import parse_date
 
 from radar.models import ApplicationLink, ApplicationProgress, RecruitmentBatch
+from radar.services.announcements import announcement_direction_projection_is_complete
 from radar.services.evidence import trusted_historical_projection
 from radar.services.locations import (
     matches_selected_cities,
@@ -14,6 +13,7 @@ from radar.services.locations import (
 )
 from radar.viewmodels import (
     DashboardSummaryVM,
+    MAX_SELECTED_PROVINCES,
     PREVIEW_COMPANY_TYPE_CHOICES,
     PREVIEW_RECRUITMENT_TYPE_CHOICES,
     RecruitmentBatchVM,
@@ -39,12 +39,17 @@ def _position_vm(
 ) -> RecruitmentPositionVM:
     link = next(
         (
-            item.url
+            item.href
             for item in position.application_links.all()
             if item.batch_id == position.batch_id
             and (item.is_current or include_historical_links)
-            and item.link_type == ApplicationLink.LinkType.APPLICATION
+            and item.link_type in {
+                ApplicationLink.LinkType.APPLICATION,
+                ApplicationLink.LinkType.EMAIL,
+                ApplicationLink.LinkType.MINI_PROGRAM,
+            }
             and (allowed_link_ids is None or item.pk in allowed_link_ids)
+            and item.href
         ),
         None,
     )
@@ -53,10 +58,11 @@ def _position_vm(
         title=position.title,
         locations=tuple(normalize_locations(position.location_text) or ["地点未说明"]),
         details=position.raw_text or "官网未提供岗位详情。",
-        application_url=link or batch_official_page_url,
+        application_url=link,
         uses_batch_page=link is None,
         effective_updated_on=_effective_date(position),
         is_current=position.is_current,
+        kind=position.kind,
     )
 
 
@@ -65,20 +71,24 @@ def _position_keywords(params) -> tuple[str, ...]:
     return tuple(item.strip().casefold() for item in value.replace("，", ",").split(",") if item.strip())
 
 
-def canonical_audience(recruitment_type: str, target_audience: str) -> str:
-    """Present generic source wording using this phase's agreed audience labels."""
+GENERIC_GRADUATE_AUDIENCE = "应届毕业生（届次未说明）"
+GENERIC_MIXED_AUDIENCE = "应届毕业生/实习生（届次未说明）"
+def canonical_audience(
+    recruitment_type: str,
+    target_audience: str,
+) -> str:
+    """Display only the audience explicitly stored from the primary announcement."""
 
     value = str(target_audience or "").strip()
-    if recruitment_type == RecruitmentBatch.RecruitmentType.INTERNSHIP:
-        return "实习生"
-    if recruitment_type == RecruitmentBatch.RecruitmentType.CAMPUS_RECRUITMENT:
-        if "应届" in value or value in {"校招", "校园招聘", ""}:
-            return "2027届"
+    if value in {"校招", "校园招聘", "应届", "应届毕业生", ""}:
+        return GENERIC_GRADUATE_AUDIENCE
+    if "应届" in value and "实习" in value:
+        return GENERIC_MIXED_AUDIENCE
     return value or "未说明"
 
 
 def filter_position_vms(positions, params):
-    selected_cities = params.getlist("city")
+    selected_cities = params.getlist("city")[:MAX_SELECTED_PROVINCES]
     keywords = _position_keywords(params)
     return [
         item
@@ -88,45 +98,23 @@ def filter_position_vms(positions, params):
     ]
 
 
-def _matches_deadline(deadline: date | None, window: str, today: date) -> bool:
-    if not window:
-        return True
-    if window == "unknown":
-        return deadline is None
-    if not window.isdigit() or deadline is None:
-        return False
-    return today <= deadline <= today + timedelta(days=int(window))
-
-
 def _summary(batches: list[RecruitmentBatchVM], today: date) -> DashboardSummaryVM:
     positions = [position for batch in batches for position in batch.positions]
     today_companies = {batch.company for batch in batches if batch.effective_updated_on == today}
     recent_companies = {
         batch.company for batch in batches if batch.effective_updated_on >= today - timedelta(days=2)
     }
-    due_one = {
-        batch.company for batch in batches
-        if batch.deadline and today <= batch.deadline <= today + timedelta(days=1)
-    }
-    due_three = {
-        batch.company for batch in batches
-        if batch.deadline and today <= batch.deadline <= today + timedelta(days=3)
-    }
     return DashboardSummaryVM(
         active_positions=sum(1 for item in positions if item.is_current),
         changed_in_3_days=sum(item.effective_updated_on >= today - timedelta(days=2) for item in positions),
-        deadline_in_7_days=sum(
-            len(batch.positions)
-            for batch in batches
-            if batch.deadline and today <= batch.deadline <= today + timedelta(days=7)
-        ),
+        deadline_in_7_days=0,
         applications_in_progress=sum(
             batch.progress_value in {"applied", "written_test", "interviewed"} for batch in batches
         ),
         today_updated_companies=len(today_companies),
         updated_companies_in_3_days=len(recent_companies),
-        deadline_companies_in_1_day=len(due_one),
-        deadline_companies_in_3_days=len(due_three),
+        deadline_companies_in_1_day=0,
+        deadline_companies_in_3_days=0,
     )
 
 
@@ -135,8 +123,8 @@ def build_orm_dashboard(params, *, history: bool = False):
     queryset = queryset.filter(
         status__in=(RecruitmentBatch.Status.EXPIRED, RecruitmentBatch.Status.WITHDRAWN)
         if history else (RecruitmentBatch.Status.ACTIVE,)
-    ).select_related("organization", "application_progress").prefetch_related(
-        "positions__application_links"
+    ).select_related("organization", "application_progress", "primary_announcement").prefetch_related(
+        "positions__application_links", "application_links"
     )
     if params.get("company"):
         queryset = queryset.filter(organization__name__icontains=params["company"])
@@ -150,35 +138,10 @@ def build_orm_dashboard(params, *, history: bool = False):
     if params.get("industry"):
         queryset = queryset.filter(organization__industry__icontains=params["industry"])
     audience = params.get("audience") or params.get("target_audience")
-    if audience:
-        if audience == "2027届":
-            queryset = queryset.filter(
-                Q(target_audience__icontains="2027届")
-                | Q(
-                    recruitment_type=RecruitmentBatch.RecruitmentType.CAMPUS_RECRUITMENT,
-                    target_audience__icontains="应届",
-                )
-                | Q(
-                    recruitment_type=RecruitmentBatch.RecruitmentType.CAMPUS_RECRUITMENT,
-                    target_audience__in=("", "校招", "校园招聘"),
-                )
-            )
-        elif audience == "实习生":
-            queryset = queryset.filter(
-                recruitment_type=RecruitmentBatch.RecruitmentType.INTERNSHIP
-            )
-        else:
-            queryset = queryset.filter(target_audience__icontains=audience)
-    if params.get("deadline_before"):
-        deadline_before = parse_date(params["deadline_before"])
-        if deadline_before:
-            queryset = queryset.filter(deadline__lte=deadline_before)
-
     today = date.today()
     batches: list[RecruitmentBatchVM] = []
+    available_audiences: set[str] = set()
     for batch in queryset:
-        if not _matches_deadline(batch.deadline, params.get("deadline_window", ""), today):
-            continue
         try:
             progress = batch.application_progress
         except ApplicationProgress.DoesNotExist:
@@ -189,10 +152,25 @@ def build_orm_dashboard(params, *, history: bool = False):
             continue
         projection = trusted_historical_projection(batch) if history else None
         if history:
-            trusted_ids = set(projection.position_ids) if projection else set()
-            positions = [item for item in batch.positions.all() if item.pk in trusted_ids]
+            if projection:
+                trusted_ids = set(projection.position_ids)
+                positions = [item for item in batch.positions.all() if item.pk in trusted_ids]
+            elif announcement_direction_projection_is_complete(batch, current_only=False):
+                positions = [
+                    item for item in batch.positions.all()
+                    if item.kind == item.Kind.DIRECTION
+                ]
+            else:
+                positions = []
         else:
             positions = [item for item in batch.positions.all() if item.is_current]
+        target_audience = canonical_audience(
+            batch.recruitment_type,
+            batch.target_audience,
+        )
+        available_audiences.add(target_audience)
+        if audience and target_audience != audience:
+            continue
         position_vms = [
             _position_vm(
                 position,
@@ -206,6 +184,36 @@ def build_orm_dashboard(params, *, history: bool = False):
         if not position_vms:
             continue
         position_vms.sort(key=lambda item: item.effective_updated_on, reverse=True)
+        announcement = batch.primary_announcement
+        batch_application_urls = tuple(
+            item.href
+            for item in batch.application_links.all()
+            if item.position_id is None
+            and item.is_current
+            and item.link_type in {
+                ApplicationLink.LinkType.APPLICATION,
+                ApplicationLink.LinkType.EMAIL,
+                ApplicationLink.LinkType.MINI_PROGRAM,
+            }
+            and item.href
+        )
+        batch_application_notes = tuple(
+            " ".join(
+                value
+                for value in (
+                    f"微信小程序：{item.miniprogram_name}",
+                    item.miniprogram_path,
+                    item.instructions,
+                )
+                if value
+            )
+            for item in batch.application_links.all()
+            if item.position_id is None
+            and item.is_current
+            and item.link_type == ApplicationLink.LinkType.MINI_PROGRAM
+            and item.miniprogram_name
+            and not item.href
+        )
         batches.append(RecruitmentBatchVM(
             id=batch.pk,
             company=batch.organization.name,
@@ -213,20 +221,30 @@ def build_orm_dashboard(params, *, history: bool = False):
             industry=batch.organization.industry,
             title=batch.title,
             recruitment_type=batch.get_recruitment_type_display(),
-            target_audience=canonical_audience(
-                batch.recruitment_type,
-                batch.target_audience,
-            ),
+            target_audience=target_audience,
             deadline=batch.deadline,
             status=batch.get_status_display(),
             official_page_url=batch.official_page_url,
             progress_value=progress_value,
             progress_label=progress.get_status_display() if progress else "未投递",
             positions=tuple(position_vms),
+            announcement_url=(announcement.url if announcement else batch.official_page_url),
+            announcement_label=(announcement.get_source_kind_display() if announcement else "旧批次页"),
+            announcement_instructions=(
+                f"微信小程序：{announcement.miniprogram_name} {announcement.miniprogram_path}".strip()
+                if announcement and not announcement.url else ""
+            ),
+            batch_application_urls=batch_application_urls,
+            batch_application_notes=batch_application_notes,
         ))
     batches.sort(key=lambda item: item.effective_updated_on, reverse=True)
     page = Paginator(batches, 20).get_page(params.get("page", 1))
-    return page, _summary(batches, today), available_city_choices(batches)
+    return (
+        page,
+        _summary(batches, today),
+        available_city_choices(batches),
+        tuple(sorted(available_audiences)),
+    )
 
 
 def mock_dashboard(params, *, history: bool = False):
@@ -275,6 +293,8 @@ def mock_dashboard(params, *, history: bool = False):
             status="已截止" if index == 6 else "招聘中", official_page_url=batch_url,
             progress_value="applied" if index == 2 else "not_applied",
             progress_label="已投递" if index == 2 else "未投递", positions=positions,
+            announcement_url=batch_url,
+            announcement_label="企业官网公告",
         ))
 
     visible = [item for item in batches if (item.status != "招聘中") == history]
@@ -298,11 +318,6 @@ def mock_dashboard(params, *, history: bool = False):
         if selected_recruitment_types and batch.recruitment_type not in selected_recruitment_types:
             continue
         if audience and audience != batch.target_audience:
-            continue
-        if not _matches_deadline(batch.deadline, params.get("deadline_window", ""), today):
-            continue
-        deadline_before = parse_date(params.get("deadline_before", ""))
-        if deadline_before and (batch.deadline is None or batch.deadline > deadline_before):
             continue
         positions = filter_position_vms(batch.positions, params)
         if positions and (not selected_progress or batch.progress_value in selected_progress):

@@ -4,10 +4,19 @@ import argparse
 import csv
 import json
 from pathlib import Path
+import sys
 from urllib.parse import urlparse
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from radar.services.project_partitions import (  # noqa: E402
+    PARTITIONED_COMPANIES,
+    partitioned_parser_config,
+)
+
 LEDGER = ROOT / "tools" / "stable-sources-phase-02-t3.json"
 
 HEADER = [
@@ -160,7 +169,7 @@ def _location_path(target: dict) -> str:
 
 def _title_path(target: dict) -> str:
     return _field_path(target, "title_path", "title_field") or {
-        "pinduoduo": "jobName",
+        "pinduoduo": "name",
         "li_auto": "title",
         "crrc": "postName",
         "vivo_autumn_campus": "JobAdName",
@@ -271,6 +280,12 @@ def build_rows() -> list[dict[str, str]]:
             parser_config = _embedded_config(key, company, target, audience)
         else:
             parser_config = _generic_config(key, company, target, audience)
+        if company in PARTITIONED_COMPANIES:
+            parser_config = partitioned_parser_config(
+                company,
+                adapter,
+                parser_config,
+            )
         evidence = (
             f"T3 stable source {key}; {source['evidence_file']}; "
             f"official page {target['official_page_url']}; "

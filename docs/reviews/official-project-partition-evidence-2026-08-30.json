@@ -1,0 +1,42 @@
+{
+  "schema_version": "1",
+  "observed_at": "2026-08-30T03:50:06+08:00",
+  "method": "read_only_official_api_fetch_then_scoped_database_update",
+  "network_writes": 0,
+  "sources": [
+    {
+      "company": "京东",
+      "source_id": 7,
+      "discriminator": "planId",
+      "partitions": {"56": 86, "57": 12, "58": 27},
+      "total": 125
+    },
+    {
+      "company": "大疆创新",
+      "source_id": 21,
+      "discriminator": "attribute_id",
+      "partitions": {"default": 138, "132985": 1},
+      "total": 139
+    },
+    {
+      "company": "美团",
+      "source_id": 5,
+      "discriminator": "jobSpecialCode",
+      "partitions": {"3": 102, "6": 262, "8": 18},
+      "total": 382
+    },
+    {
+      "company": "腾讯",
+      "source_id": 11,
+      "discriminator": "projectId",
+      "partitions": {"1": 115, "14": 295, "9": 30},
+      "total": 440
+    }
+  ],
+  "partition_batches_created": 11,
+  "partition_positions_created": 1086,
+  "publication_rejected": 0,
+  "formal_batches_after_update": 9,
+  "formal_positions_after_update": 4129,
+  "announcement_gate_enforced": true
+}

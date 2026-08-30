@@ -22,11 +22,16 @@ class T3Cycle03AdapterExtractionTests(SimpleTestCase):
     def canonical_page(self, key: str) -> tuple[SimpleNamespace, FetchedPage]:
         result = self.results[key]
         rows = [sample for page in result["pages"] for sample in page["samples"]]
+        if key == "pinduoduo":
+            rows = [
+                {**row, "name": f"真实职位-{row['id']}"}
+                for row in rows
+            ]
         definitions = {
             "pinduoduo": {
                 "list_path": "result.list",
                 "document": {"result": {"list": rows}},
-                "field_map": {"position_key": "id", "title": "jobName", "location": "workLocation"},
+                "field_map": {"position_key": "id", "title": "name", "location": "workLocation"},
                 "title": "拼多多校园招聘",
                 "official_page_url": "https://careers.pddglobalhr.com/campus/grad",
                 "target_audience": "管培生",

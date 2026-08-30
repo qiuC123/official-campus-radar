@@ -1,0 +1,6 @@
+{
+  "title": {"parsed_value": "京东 JDS-新星计划", "excerpt": "新星计划是……面向追求专业成长与价值成就的应届生项目。", "locator": "2027校园招聘/人才项目/新星计划"},
+  "recruitment_type": {"parsed_value": "special_program", "excerpt": "新星计划", "locator": "2027校园招聘/人才项目/新星计划/标题"},
+  "target_audience": {"parsed_value": "2027届校园招聘对象", "excerpt": "2027校园招聘火热进行中；新星计划……面向……应届生。", "locator": "页面主标题 + 人才项目/新星计划/项目说明"},
+  "availability": {"parsed_value": "active", "excerpt": "网申/内推 8月3日-11月30日", "locator": "人才项目/新星计划/招聘流程"}
+}

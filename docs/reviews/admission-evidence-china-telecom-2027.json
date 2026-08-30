@@ -1,0 +1,22 @@
+{
+  "title": {
+    "parsed_value": "中国电信集团有限公司2027年度校园招聘",
+    "excerpt": "展梦星辰 共赴未来——中国电信集团有限公司2027年度校园招聘公告",
+    "locator": "body/heading[展梦星辰 共赴未来]"
+  },
+  "recruitment_type": {
+    "parsed_value": "campus_recruitment",
+    "excerpt": "中国电信集团有限公司携下属分子公司和专业机构，正式启动2027年度校园招聘活动",
+    "locator": "body/paragraph[正式启动2027年度校园招聘活动]"
+  },
+  "target_audience": {
+    "parsed_value": "2027届本科生、硕士生及博士生；2026届未就业毕业生也可投递",
+    "excerpt": "本次招聘活动主要面向2027届国内外普通高等院校毕业的本科生、硕士生及博士生。2026届国内外普通高等院校毕业未就业的本科生、硕士生及博士生也可投递",
+    "locator": "body/section[招聘对象]"
+  },
+  "availability": {
+    "parsed_value": "active",
+    "excerpt": "2026年8月24日起请登录中国电信集团有限公司网站“招贤纳士”专栏查看招聘信息，并进行网上申请",
+    "locator": "body/section[招聘流程]/item[网上报名]"
+  }
+}

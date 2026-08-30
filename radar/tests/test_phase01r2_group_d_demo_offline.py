@@ -1,6 +1,5 @@
 from unittest.mock import patch
 
-from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.test import TestCase
 
@@ -26,10 +25,7 @@ class DemoOwnershipTests(TestCase):
 
         call_command("load_local_demo")
         demo_source = OfficialSource.objects.get(adapter_name="local_demo_disabled")
-        administrator = get_user_model().objects.create_superuser("owner", "owner@example.test", "test")
-        self.client.force_login(administrator)
-        response = self.client.post("/update-now/", follow=True)
-        self.assertEqual(response.status_code, 200)
+        run_update(trigger="manual", source_ids=[demo_source.pk])
         self.assertTrue(
             FetchRun.objects.filter(source=demo_source, status="not_modified").exists()
         )

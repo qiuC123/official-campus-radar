@@ -109,6 +109,10 @@ class MokaPublicApiAdapter(JsonApiSourceAdapter):
             "valid_values": {"is_valid": ["open"]},
             "request_delay_seconds": config.get("request_delay_seconds", 1),
         }
+        if config.get("batch_partitions"):
+            normalized_config["batch_partitions"] = copy.deepcopy(
+                config["batch_partitions"]
+            )
         return SimpleNamespace(
             parser_config=normalized_config,
             source_url=source.source_url,

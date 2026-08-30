@@ -1,0 +1,6 @@
+{
+  "title": {"parsed_value": "京东 新锐之星", "excerpt": "新锐之星旨在打造一支具备京东精神、扎根基层业务、敢于担当重任的新锐力量。", "locator": "2027校园招聘/人才项目/新锐之星"},
+  "recruitment_type": {"parsed_value": "special_program", "excerpt": "新锐之星", "locator": "人才项目/新锐之星/标题"},
+  "target_audience": {"parsed_value": "2027届校园招聘对象", "excerpt": "2027校园招聘火热进行中；新锐之星。", "locator": "页面主标题 + 人才项目/新锐之星"},
+  "availability": {"parsed_value": "active", "excerpt": "网申/内推 8月17日-11月30日", "locator": "人才项目/新锐之星/招聘流程"}
+}

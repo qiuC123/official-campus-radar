@@ -1,0 +1,22 @@
+{
+  "title": {
+    "parsed_value": "中国联通2027校园招聘",
+    "excerpt": "中国联合网络通信有限公司2027校园招聘",
+    "locator": "document/title"
+  },
+  "recruitment_type": {
+    "parsed_value": "campus_recruitment",
+    "excerpt": "校招公告 校园招聘 闪耀新苗 校招答疑",
+    "locator": "body/navigation[校园招聘]"
+  },
+  "target_audience": {
+    "parsed_value": "中国联通2027校园招聘毕业生（官网未细分毕业时间）",
+    "excerpt": "中国联合网络通信有限公司2027校园招聘；每位毕业生最多可投递2家招聘单位",
+    "locator": "document/title + body/paragraph[每位毕业生最多可投递]"
+  },
+  "availability": {
+    "parsed_value": "active",
+    "excerpt": "每位毕业生最多可投递2家招聘单位，每家单位最多可投递2个岗位",
+    "locator": "body/paragraph[每位毕业生最多可投递2家招聘单位]"
+  }
+}

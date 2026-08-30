@@ -1,10 +1,24 @@
 # Development state
 
-Last verified: 2026-08-27 Asia/Shanghai
+Last verified: 2026-08-30 Asia/Shanghai
 
-Phase and status: Phase 02 / H1、H2、G10、H3 已通过，T3、T4 和 T6 已完成。T6 Cycle 05 通过 ADR 0004 的中国联通单来源隔离浏览器发布 2704 个岗位；当前累计 25 个批次、7398 个当前岗位，25/25 来源通过。
+Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。ADR 0005 已取代“岗位接口直接驱动正式页”的旧规则；公告门控已开启，官网公告优先，只有官网没有合格公告时才交给 wxcli 补充微信证据。
 
-## Current result
+## Current result — 2026-08-30
+
+- 本地仍保留 25 家企业和 25 个已启用岗位来源，没有物理删除企业、批次或岗位。
+- 当前共有 36 个招聘批次：20 个 `admitted`、4 个 `superseded`、12 个 `excluded`、0 个 `pending`。正式页只显示 13 家企业的 20 个已准入批次和 5211 个当前岗位。
+- 京东、腾讯、美团和大疆创新的旧混合批次已被 11 个精确项目批次取代。旧批次保留历史数据，但采集器拒绝再次写入 `superseded` 身份；四个来源继续用于更新已准入的新批次。
+- 微信职责边界保持不变：wxcli 负责微信公众号发现和通用证据，招聘雷达负责解释企业、招聘批次、岗位和投递渠道。`import_wxcli_announcements` 现在会在启动 wxcli 前执行严格字段白名单、凭证扫描和 `mp.weixin.qq.com` URL 校验。
+- 官网 HTTP 核验不再自动跟随重定向；每一跳会先检查 HTTPS、已准入企业域名以及 DNS 是否只解析到公网地址，再发出下一次请求。隔离浏览器仍使用全新无痕 context，不读取个人 Cookie。
+- 公告门控仍为 fail-closed。门控开启动作新增追加式哈希审计事件，已开启的策略不能通过普通模型保存路径关闭。
+- 门控查询已改为批量加载证据并复用内存索引；本地 20 个正式批次实测首页约 24 次 SQL，单批次门控约 18 次 SQL。旧审查前的 270/267 次 SQL 和 2026-08-27 的 1.3 秒结论均不再作为当前基线。
+- `configure_recruitment_batch_partitions` 和 `correct_pinduoduo_title_mapping` 默认只预演，必须显式传入 `--apply` 才写库。`preview_announcement_migration` 默认只读，必须显式 `--record` 才保存用于门控确认的摘要。
+- 已增加 `/applications/`：只要用户曾保存过投递进度，即使对应批次以后被隐藏或取代，仍可查看和修改个人记录。
+- 当前迁移已应用至 `0024_superseded_batches_and_policy_events`。详细准入证据和剩余限制见 `docs/reviews/announcement-driven-adversarial-review.md`。
+- 2026-08-30 完整回归共 476 项测试通过；`manage.py check`、迁移检查和 `git diff --check` 均通过。正式首页、历史页和“我的进度”页均返回 HTTP 200。
+
+## Historical implementation record through 2026-08-27
 
 - 架构仍为 Django 5.2 + SQLite 服务端页面，没有引入 React/Vue。ADR 0004 已批准中国联通唯一的生产隔离浏览器例外；它不复用个人浏览器资料，也不扩展到其他来源。
 - 正式页面数据归一化 Cycle 01 已完成：公司类型显示中文；本期泛称“应届毕业生”的校招在页面归入“2027届”；地点摘要和 `city` 筛选改为省级口径，具体岗位仍保留来源城市。原始数据库证据没有被改写。
@@ -89,8 +103,8 @@ Phase and status: Phase 02 / H1、H2、G10、H3 已通过，T3、T4 和 T6 已�
 
 ## Explicitly not started
 
-除 ADR 0004 的中国联通单来源隔离浏览器外，不做其他生产浏览器采集。Windows 计划任务、微信模块和云部署均未开始。T6 已累计发布 25/25 家并通过。
+除 ADR 0004 的中国联通岗位采集和受控官网公告核验外，不扩大生产浏览器采集。Windows 计划任务、自动备份和云部署仍未开始；未经明确授权，不运行 `scripts/install_daily_task.ps1 -Apply`。微信公众号搜索仍由独立 WxCli 项目执行，招聘雷达没有接管微信搜索。
 
 ## Exact next task
 
-等待用户单独决定是否启动 T7 Windows 定时任务。未经明确授权，不运行 `scripts/install_daily_task.ps1 -Apply`。
+继续处理 12 个 `excluded` 企业的官网候选；只有官网语义审阅确认没有合格公告时，才接收 wxcli 生成的微信 Candidate Batch。任何新批次仍须完成主要公告四字段证据和岗位投影门控，不得因为来源接口存在而自动展示。

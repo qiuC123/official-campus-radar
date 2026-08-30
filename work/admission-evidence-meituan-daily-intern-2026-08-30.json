@@ -1,0 +1,6 @@
+{
+  "title": {"parsed_value": "美团日常实习招聘", "excerpt": "目前，校园招聘设有应届生校招、转正实习、日常实习等招聘项目。", "locator": "校园招聘/项目说明/日常实习"},
+  "recruitment_type": {"parsed_value": "internship", "excerpt": "日常实习", "locator": "校园招聘/招聘项目/日常实习"},
+  "target_audience": {"parsed_value": "在校生及实习生", "excerpt": "无论你在哪个年级、学什么专业，都有机会来美团学习实践。", "locator": "校园招聘/项目说明"},
+  "availability": {"parsed_value": "active", "excerpt": "目前，校园招聘设有……日常实习等招聘项目。", "locator": "校园招聘/项目说明/目前设有"}
+}

@@ -1,0 +1,6 @@
+{
+  "title": {"parsed_value": "腾讯青云计划（应届生）", "excerpt": "人才专项 青云计划-应届生", "locator": "首页/腾讯2027校园招聘/人才专项/青云计划-应届生"},
+  "recruitment_type": {"parsed_value": "special_program", "excerpt": "人才专项 青云计划-应届生", "locator": "人才专项/青云计划-应届生"},
+  "target_audience": {"parsed_value": "毕业时间为2026年1月至2027年12月", "excerpt": "2027应届生招聘 毕业时间：2026年1月1日-2027年12月31日；人才专项 青云计划-应届生。", "locator": "招聘项目/应届生招聘 + 人才专项/青云计划-应届生"},
+  "availability": {"parsed_value": "active", "excerpt": "人才专项 青云计划-应届生……立即投递", "locator": "人才专项/立即投递"}
+}

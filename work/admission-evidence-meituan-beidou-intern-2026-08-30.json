@@ -1,0 +1,6 @@
+{
+  "title": {"parsed_value": "美团北斗实习招聘", "excerpt": "北斗计划 面向全球招募精尖校园科技人才", "locator": "北斗计划/页面主标题"},
+  "recruitment_type": {"parsed_value": "internship", "excerpt": "应届职位 实习职位", "locator": "北斗计划/职位类型/实习职位"},
+  "target_audience": {"parsed_value": "北斗计划实习生招聘对象", "excerpt": "北斗计划……实习职位", "locator": "北斗计划/职位类型/实习职位"},
+  "availability": {"parsed_value": "active", "excerpt": "面向全球招募精尖校园科技人才……实习职位", "locator": "北斗计划/项目说明 + 实习职位入口"}
+}

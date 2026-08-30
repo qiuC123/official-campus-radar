@@ -11,7 +11,7 @@ const selectedFilters = { companyType: [], recruitmentType: [], progress: [], lo
 const batches = [
   {
     id: 1, company: "星河科技", companyType: "民企", industry: "互联网/科技", recruitmentType: "秋招", audience: "2027届",
-    title: "星河科技 2027 届校园招聘", updated: "2026-08-26", deadline: "2026-09-01", official: "https://example.invalid/galaxy", status: "active",
+    title: "星河科技 2027 届校园招聘", updated: "2026-08-26", deadline: "2026-09-01", official: "https://example.invalid/galaxy", application: "https://apply.example.invalid/galaxy", status: "active",
     positions: [
       ["后端开发工程师", ["上海", "浙江"], "2026-08-26"], ["算法工程师", ["北京"], "2026-08-25"],
       ["产品经理", ["广东"], "2026-08-24"], ["数据分析师", ["上海"], "2026-08-23"],
@@ -21,27 +21,27 @@ const batches = [
   },
   {
     id: 2, company: "远航能源", companyType: "央国企", industry: "能源/电力", recruitmentType: "秋招", audience: "2026届",
-    title: "远航能源集团秋季校园招聘", updated: "2026-08-24", deadline: "", official: "https://example.invalid/energy", status: "active",
+    title: "远航能源集团秋季校园招聘", updated: "2026-08-24", deadline: "", official: "https://example.invalid/energy", application: null, status: "active",
     positions: [["电气工程师", ["湖北", "全国"], "2026-08-24"], ["财务管理岗", ["北京"], "2026-08-20"]],
   },
   {
     id: 3, company: "云帆智能", companyType: "外资", industry: "互联网/科技", recruitmentType: "实习", audience: "实习生",
-    title: "云帆智能长期实习生招聘", updated: "2026-08-23", deadline: "2026-10-31", official: "https://example.invalid/cloud", status: "active",
+    title: "云帆智能长期实习生招聘", updated: "2026-08-23", deadline: "2026-10-31", official: "https://example.invalid/cloud", application: "mailto:campus@example.invalid", status: "active",
     positions: [["前端开发实习生", ["远程", "浙江"], "2026-08-23"], ["交互设计实习生", ["远程"], "2026-08-21"]],
   },
   {
     id: 4, company: "青峦银行", companyType: "银行", industry: "金融", recruitmentType: "秋招", audience: "2025届",
-    title: "青峦银行管理培训生项目", updated: "2026-08-20", deadline: "2026-09-20", official: "https://example.invalid/bank", status: "active",
+    title: "青峦银行管理培训生项目", updated: "2026-08-20", deadline: "2026-09-20", official: "https://example.invalid/bank", application: "https://apply.example.invalid/bank", status: "active",
     positions: [["金融科技管培生", ["北京", "上海", "广东"], "2026-08-20"], ["风险管理岗", ["北京"], "2026-08-19"]],
   },
   {
     id: 5, company: "矩阵机器人", companyType: "中外合资", industry: "制造业", recruitmentType: "秋招提前批", audience: "2028届",
-    title: "矩阵机器人全球校园招聘", updated: "2026-08-18", deadline: "2026-11-30", official: "https://example.invalid/robot", status: "active",
+    title: "矩阵机器人全球校园招聘", updated: "2026-08-18", deadline: "2026-11-30", official: "https://example.invalid/robot", application: "https://apply.example.invalid/robot", status: "active",
     positions: [["机器人控制算法", ["广东"], "2026-08-18"], ["机械设计", ["上海"], "2026-08-17"]],
   },
   {
     id: 6, company: "海岳通信", companyType: "民企", industry: "通信", recruitmentType: "春招补录", audience: "2024届",
-    title: "海岳通信春季补录", updated: "2026-05-12", deadline: "2026-06-30", official: "https://example.invalid/telecom", status: "history",
+    title: "海岳通信春季补录", updated: "2026-05-12", deadline: "2026-06-30", official: "https://example.invalid/telecom", application: null, status: "history",
     positions: [["网络研发工程师", ["四川"], "2026-05-12"], ["无线通信工程师", ["湖北"], "2026-05-11"]],
   },
 ];
@@ -142,11 +142,6 @@ function effectivePositions(batch, form) {
   });
 }
 
-function daysUntil(deadline) {
-  if (!deadline) return null;
-  return Math.round((new Date(`${deadline}T00:00:00`) - new Date(`${prototypeToday}T00:00:00`)) / 86400000);
-}
-
 function filterBatches() {
   const form = document.querySelector("#filter-form");
   const company = form.company.value.trim().toLowerCase();
@@ -177,7 +172,8 @@ function rowMarkup(batch) {
   const allLocations = [...new Set(positions.flatMap(([, locations]) => locations))];
   const progress = batchProgress(batch);
   const options = statuses.map(status => `<option ${status === progress ? "selected" : ""}>${status}</option>`).join("");
-  const positionDetails = positions.map(([title, locations, updated]) => `<li><strong>${title}</strong><span>${locations.join("、")} · 更新 ${updated}</span></li>`).join("");
+  const tooltipPositions = positions.slice(0, 30).map(([title]) => title).join("、");
+  const tooltipRemainder = positions.length > 30 ? `<br>另有 ${positions.length - 30} 个岗位未在提示中列出` : "";
   return `<tr data-batch-id="${batch.id}">
     <td class="company-cell"><strong>${batch.company}</strong><small title="${batch.title}">${batch.title}</small></td>
     <td><span class="badge company-${typeClass(batch.companyType)}">${batch.companyType}</span></td>
@@ -185,12 +181,12 @@ function rowMarkup(batch) {
     <td><span class="badge recruit-badge">${batch.recruitmentType}</span></td>
     <td><span class="badge audience-badge">${batch.audience}</span></td>
     <td class="locations-cell">${allLocations.join("、")}</td>
-    <td><button type="button" class="positions-summary" aria-expanded="false" title="点击查看全部岗位">${positionText}</button></td>
+    <td><div class="positions-preview" tabindex="0" aria-label="代表岗位：${positionText}"><span class="positions-summary">${positionText}</span><span class="positions-tooltip" role="tooltip">${tooltipPositions}${tooltipRemainder}</span></div></td>
     <td><select class="batch-progress" aria-label="${batch.company}投递进度">${options}</select></td>
     <td class="date-cell">${batch.updated}</td>
-    <td><a class="action-link apply" href="${batch.official}" onclick="return false">投递</a></td>
-    <td><a class="action-link notice" href="${batch.official}" onclick="return false">官方页</a></td>
-  </tr><tr class="positions-detail-row" data-detail-for="${batch.id}" hidden><td colspan="11"><div class="positions-detail"><strong>全部岗位</strong><ul>${positionDetails}</ul></div></td></tr>`;
+    <td>${batch.application ? `<a class="action-link apply" href="${batch.application}" onclick="return false">投递</a>` : '<span class="action-link unavailable" title="没有可核验的投递入口">投递待确认</span>'}</td>
+    <td><a class="action-link notice" href="${batch.official}" onclick="return false" title="主要招聘公告">公告</a></td>
+  </tr>`;
 }
 
 function tableMarkup() {
@@ -198,7 +194,7 @@ function tableMarkup() {
   return `<table class="recruitment-table">
     <thead><tr>
       <th>公司名称</th><th>公司类型</th><th>所属行业</th><th>招聘类型</th><th>招聘对象</th><th>工作地点</th>
-      <th>岗位 <small>（点击查看全部）</small></th><th>投递进度</th><th>更新时间</th><th>相关链接</th><th>批次官网</th>
+      <th>岗位 <small>（悬停查看）</small></th><th>投递进度</th><th>更新时间</th><th>相关链接</th><th>招聘公告</th>
     </tr></thead>
     <tbody>${filteredBatches.map(rowMarkup).join("")}</tbody>
   </table>`;
@@ -206,10 +202,7 @@ function tableMarkup() {
 
 function updateSummary() {
   const todayCount = filteredBatches.filter(batch => batch.updated === prototypeToday).length;
-  const recentCount = filteredBatches.filter(batch => batch.updated >= "2026-08-24").length;
-  const dueInOneDay = filteredBatches.filter(batch => { const days = daysUntil(batch.deadline); return days !== null && days >= 0 && days <= 1; }).length;
-  const dueInThreeDays = filteredBatches.filter(batch => { const days = daysUntil(batch.deadline); return days !== null && days >= 0 && days <= 3; }).length;
-  document.querySelector("#filter-summary").textContent = `今日：${todayCount}家｜近三天：${recentCount}家｜1天内截止：${dueInOneDay}家｜3天内截止：${dueInThreeDays}家`;
+  document.querySelector("#filter-summary").textContent = `今日更新：${todayCount}家`;
 }
 
 function render() {
@@ -256,13 +249,4 @@ document.querySelector("#batch-list").addEventListener("change", event => {
   toast.classList.add("show");
   setTimeout(() => toast.classList.remove("show"), 1500);
 });
-document.querySelector("#batch-list").addEventListener("click", event => {
-  const trigger = event.target.closest(".positions-summary");
-  if (!trigger) return;
-  const row = trigger.closest("tr");
-  const details = row.nextElementSibling;
-  details.hidden = !details.hidden;
-  trigger.setAttribute("aria-expanded", String(!details.hidden));
-});
-
 filterBatches();

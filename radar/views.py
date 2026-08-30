@@ -1,9 +1,8 @@
 from django.conf import settings
-from django.contrib import messages
-from django.contrib.admin.views.decorators import staff_member_required
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
 from radar.models import ApplicationProgress, Organization, RecruitmentBatch
@@ -14,10 +13,11 @@ from radar.services.dashboard_data import (
     mock_dashboard,
 )
 from radar.services.evidence import trusted_historical_projection
-from radar.services.update_runner import run_update
+from radar.services.announcements import announcement_direction_projection_is_complete
 from radar.services.update_status import latest_source_failures, latest_successful_update, scheduled_run_is_missing
 from radar.viewmodels import (
     AUDIENCE_CHOICES,
+    MAX_SELECTED_PROVINCES,
     PREVIEW_COMPANY_TYPE_CHOICES,
     PREVIEW_RECRUITMENT_TYPE_CHOICES,
     PROVINCE_CHOICES,
@@ -37,13 +37,16 @@ def _filter_context(request: HttpRequest, *, preview: bool) -> dict:
         "audience_choices": AUDIENCE_CHOICES,
         "selected_company_types": request.GET.getlist("company_type"),
         "selected_recruitment_types": request.GET.getlist("recruitment_type"),
-        "selected_cities": request.GET.getlist("city"),
+        "selected_cities": request.GET.getlist("city")[:MAX_SELECTED_PROVINCES],
         "selected_progress": request.GET.getlist("progress"),
         "selected_audience": request.GET.get("audience", request.GET.get("target_audience", "")),
     }
 
 def _render_dashboard(request: HttpRequest, *, history: bool = False) -> HttpResponse:
-    page, summary, city_choices = build_orm_dashboard(request.GET, history=history)
+    page, summary, city_choices, available_audiences = build_orm_dashboard(
+        request.GET,
+        history=history,
+    )
     preserved_query = request.GET.copy()
     preserved_query.pop("page", None)
     context = {
@@ -53,7 +56,10 @@ def _render_dashboard(request: HttpRequest, *, history: bool = False) -> HttpRes
         "history": history,
         "is_preview": False,
         "progress_choices": ApplicationProgress.Status.choices,
-        "city_choices": tuple(dict.fromkeys((*city_choices, *request.GET.getlist("city")))),
+        "city_choices": tuple(dict.fromkeys((
+            *city_choices,
+            *request.GET.getlist("city")[:MAX_SELECTED_PROVINCES],
+        ))),
         "scheduled_run_missing": scheduled_run_is_missing(timezone.now()),
         "last_successful_update": latest_successful_update(),
         "source_failures": latest_source_failures(),
@@ -62,15 +68,42 @@ def _render_dashboard(request: HttpRequest, *, history: bool = False) -> HttpRes
         "show_operations": request.user.is_staff,
     }
     context.update(_filter_context(request, preview=False))
+    standard_audiences = [value for value, _label in AUDIENCE_CHOICES]
+    selected_audience = context["selected_audience"]
+    extra_audiences = sorted(
+        (
+            set(available_audiences)
+            | ({selected_audience} if selected_audience else set())
+        )
+        - set(standard_audiences)
+    )
+    context["audience_choices"] = tuple(
+        (value, value) for value in (*standard_audiences, *extra_audiences)
+    )
     return render(request, "radar/phase02_dashboard.html", context)
 
 
+@ensure_csrf_cookie
 def dashboard(request: HttpRequest) -> HttpResponse:
     return _render_dashboard(request)
 
 
+@ensure_csrf_cookie
 def history(request: HttpRequest) -> HttpResponse:
     return _render_dashboard(request, history=True)
+
+
+@ensure_csrf_cookie
+def application_progress_list(request: HttpRequest) -> HttpResponse:
+    progress_rows = list(
+        ApplicationProgress.objects.select_related("batch__organization").order_by(
+            "batch__organization__name", "batch__title"
+        )
+    )
+    return render(request, "radar/application_progress.html", {
+        "progress_rows": progress_rows,
+        "progress_choices": ApplicationProgress.Status.choices,
+    })
 
 
 def phase02_preview(request: HttpRequest) -> HttpResponse:
@@ -99,14 +132,19 @@ def batch_positions(request: HttpRequest, batch_id: int) -> HttpResponse:
     batch = get_object_or_404(RecruitmentBatch, pk=batch_id)
     projection = None
     if batch.status == RecruitmentBatch.Status.ACTIVE:
-        batch = get_object_or_404(RecruitmentBatch.objects.formal(), pk=batch_id)
+        batch = get_object_or_404(
+            RecruitmentBatch.objects.filter(pk=batch_id).formal()
+        )
         positions = batch.positions.filter(is_current=True)
     else:
         batch = get_object_or_404(RecruitmentBatch.objects.historical(), pk=batch_id)
         projection = trusted_historical_projection(batch)
-        if projection is None:
+        if projection is not None:
+            positions = batch.positions.filter(pk__in=projection.position_ids)
+        elif announcement_direction_projection_is_complete(batch, current_only=False):
+            positions = batch.positions.filter(kind="direction")
+        else:
             raise Http404
-        positions = batch.positions.filter(pk__in=projection.position_ids)
     positions = positions.prefetch_related("application_links")
     position_vms = [
             _position_vm(
@@ -128,12 +166,13 @@ def batch_positions(request: HttpRequest, batch_id: int) -> HttpResponse:
 @require_POST
 def update_progress(request: HttpRequest, batch_id: int) -> JsonResponse:
     batch = get_object_or_404(RecruitmentBatch, pk=batch_id)
+    existing_progress = ApplicationProgress.objects.filter(batch=batch).exists()
     if batch.status == RecruitmentBatch.Status.ACTIVE:
-        visible = RecruitmentBatch.objects.formal().filter(pk=batch_id).exists()
+        visible = RecruitmentBatch.objects.filter(pk=batch_id).formal().exists()
     else:
         historical_batch = RecruitmentBatch.objects.historical().filter(pk=batch_id).first()
         visible = historical_batch is not None and trusted_historical_projection(historical_batch) is not None
-    if not visible:
+    if not visible and not existing_progress:
         raise Http404
     status = request.POST.get("status", "")
     valid = dict(ApplicationProgress.Status.choices)
@@ -143,18 +182,3 @@ def update_progress(request: HttpRequest, batch_id: int) -> JsonResponse:
         batch=batch, defaults={"status": status}
     )
     return JsonResponse({"ok": True, "status": progress.status, "label": progress.get_status_display()})
-
-
-@require_POST
-@staff_member_required
-def update_now(request: HttpRequest) -> HttpResponse:
-    try:
-        summary = run_update(trigger="manual")
-    except Exception:
-        messages.error(request, "手动更新异常，未能确认更新结果。")
-        return redirect("dashboard")
-    if summary.status == "failed":
-        messages.error(request, "手动更新未执行：没有可成功完成的已启用核验来源。")
-    else:
-        messages.info(request, f"更新完成：检查 {summary.sources_checked} 个来源，新增 {summary.batches_created} 条。")
-    return redirect("dashboard")

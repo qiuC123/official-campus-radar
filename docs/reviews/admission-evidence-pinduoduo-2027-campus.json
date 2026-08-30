@@ -1,0 +1,22 @@
+{
+  "title": {
+    "parsed_value": "拼多多集团-PDD 2027届校园招聘",
+    "excerpt": "拼多多集团-PDD ｜ 校园招聘 2027届校园招聘",
+    "locator": "body/section[校招项目]/item[2027届校园招聘]"
+  },
+  "recruitment_type": {
+    "parsed_value": "campus_recruitment",
+    "excerpt": "校招项目 应届生招聘 2027届校园招聘",
+    "locator": "body/section[校招项目]/item[应届生招聘]"
+  },
+  "target_audience": {
+    "parsed_value": "2026年9月至2027年8月毕业的2027届应届生",
+    "excerpt": "2027届校园招聘 毕业时间：2026年9月-2027年8月",
+    "locator": "body/section[校招项目]/item[2027届校园招聘]/graduation-window"
+  },
+  "availability": {
+    "parsed_value": "active",
+    "excerpt": "2027届校园招聘 毕业时间：2026年9月-2027年8月 立即投递",
+    "locator": "body/section[校招项目]/item[2027届校园招聘]/action[立即投递]"
+  }
+}

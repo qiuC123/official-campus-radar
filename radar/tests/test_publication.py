@@ -41,6 +41,23 @@ class PublicationTests(TestCase):
         progress.refresh_from_db()
         self.assertEqual(progress.status, "interviewed")
 
+    def test_superseded_batch_identity_is_never_reactivated_by_collection(self) -> None:
+        created = publish_candidate(self.source, self.candidate(), self.version)
+        batch = RecruitmentBatch.objects.get(pk=created.batch_id)
+        batch.announcement_admission = RecruitmentBatch.AnnouncementAdmission.SUPERSEDED
+        batch.save(update_fields=["announcement_admission"])
+
+        result = publish_candidate(
+            self.source,
+            self.candidate(title="不应覆盖旧混合批次"),
+            self.version,
+        )
+
+        self.assertEqual(result.action, "rejected")
+        self.assertIn("superseded_batch", result.reasons)
+        batch.refresh_from_db()
+        self.assertEqual(batch.title, "2027 校园招聘")
+
     def test_declared_campus_type_wins_over_negative_words_in_position_title(self) -> None:
         self.source.adapter_name = "json_api"
         self.source.save(update_fields=["adapter_name"])

@@ -99,29 +99,7 @@ document.addEventListener('click', async event => {
   if (previewLink) {
     event.preventDefault();
     toast('这是模拟入口，预览页不会打开企业网站');
-    return;
   }
-  const trigger = event.target.closest('.positions-summary');
-  if (!trigger) return;
-  const row = trigger.closest('tr');
-  const details = row.nextElementSibling;
-  const list = details.querySelector('ul');
-  if (!window.PHASE02_PREVIEW && list.dataset.loaded === 'false') {
-    trigger.disabled = true;
-    try {
-      const response = await fetch(trigger.dataset.expandUrl);
-      if (!response.ok) throw new Error();
-      list.innerHTML = await response.text();
-      list.dataset.loaded = 'true';
-    } catch (error) {
-      toast('岗位加载失败，请稍后重试。');
-      trigger.disabled = false;
-      return;
-    }
-    trigger.disabled = false;
-  }
-  details.hidden = !details.hidden;
-  trigger.setAttribute('aria-expanded', String(!details.hidden));
 });
 
 document.addEventListener('change', async event => {

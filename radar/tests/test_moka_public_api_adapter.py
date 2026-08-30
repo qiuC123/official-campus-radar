@@ -169,3 +169,55 @@ class MokaPublicApiFetchAndExtractionTests(SimpleTestCase):
             EXPLICIT_MISSING,
         )
         self.assertTrue(candidate.positions_complete)
+
+    @patch("radar.collectors.json_api.requests.Session")
+    def test_batch_partitions_pass_through_moka_normalization(
+        self, session_type: Mock
+    ) -> None:
+        regular = job("regular")
+        special = job("special")
+        special["attribute_id"] = 132985
+        session_type.return_value.request.return_value = response(
+            {"total": 2, "jobs": [regular, special]}
+        )
+        config = copy.deepcopy(MOKA_CONFIG)
+        config["batch_partitions"] = [
+            {
+                "batch": {
+                    **copy.deepcopy(MOKA_CONFIG["batch"]),
+                    "identity_key": "dji-campus-2027-regular",
+                    "title": "大疆 2027 拓疆者计划",
+                    "official_page_url": (
+                        "https://apply.careers.dji.com/"
+                        "campus-recruitment/dji/143359?locale=zh-CN&plan=regular"
+                    ),
+                },
+                "row_filters": [
+                    {"path": "attribute_id", "not_equals_any": [132985]}
+                ],
+            },
+            {
+                "batch": {
+                    **copy.deepcopy(MOKA_CONFIG["batch"]),
+                    "identity_key": "dji-campus-2027-digital",
+                    "title": "大疆数字管理构建者计划",
+                    "official_page_url": (
+                        "https://apply.careers.dji.com/"
+                        "campus-recruitment/dji/143359?locale=zh-CN&plan=digital"
+                    ),
+                },
+                "row_filters": [
+                    {"path": "attribute_id", "equals_any": [132985]}
+                ],
+            },
+        ]
+        source = make_source(config)
+        adapter = MokaPublicApiAdapter()
+
+        candidates = adapter.extract(source, adapter.fetch(source))
+
+        self.assertEqual(
+            [[position.position_key for position in candidate.positions]
+             for candidate in candidates],
+            [["regular"], ["special"]],
+        )

@@ -166,6 +166,9 @@ class JsonApiSourceAdapter:
             "pagination_total_kind": total_kind,
             "pagination_mode": pagination_mode,
             "duplicate_rows_removed": duplicate_rows_removed,
+            "batch_partitions": copy.deepcopy(
+                config.get("batch_partitions", [])
+            ),
         }
         body = _canonical_json(aggregate_document)
         return FetchedPage(
@@ -306,7 +309,12 @@ class JsonApiSourceAdapter:
                 raise ValueError("JSON API row filter path is required")
             operators = [
                 name
-                for name in ("equals_any", "contains_any")
+                for name in (
+                    "equals_any",
+                    "contains_any",
+                    "not_equals_any",
+                    "not_contains_any",
+                )
                 if name in row_filter
             ]
             if len(operators) != 1:
@@ -341,6 +349,100 @@ class JsonApiSourceAdapter:
             raise ValueError(
                 "JSON API batch.official_page_url must use HTTPS on the source host"
             )
+
+        batch_partitions = config.get("batch_partitions", [])
+        if not isinstance(batch_partitions, list):
+            raise ValueError("JSON API batch_partitions must be a list")
+        if len(batch_partitions) > 20:
+            raise ValueError("JSON API batch_partitions must contain at most 20 entries")
+        partition_identities: set[str] = set()
+        for partition in batch_partitions:
+            if not isinstance(partition, dict) or set(partition) != {"batch", "row_filters"}:
+                raise ValueError(
+                    "JSON API batch partition requires exactly batch and row_filters"
+                )
+            partition_batch = partition["batch"]
+            partition_filters = partition["row_filters"]
+            if not isinstance(partition_batch, dict):
+                raise ValueError("JSON API batch partition batch must be an object")
+            for name in (
+                "identity_key",
+                "title",
+                "official_page_url",
+                "recruitment_type",
+                "target_audience",
+            ):
+                if not str(partition_batch.get(name, "")).strip():
+                    raise ValueError(
+                        f"JSON API batch partition batch.{name} is required"
+                    )
+            identity = str(partition_batch["identity_key"]).strip()
+            if identity in partition_identities:
+                raise ValueError("JSON API batch partition identities must be unique")
+            partition_identities.add(identity)
+            partition_url = urlparse(
+                str(partition_batch["official_page_url"]).strip()
+            )
+            if (
+                partition_url.scheme != "https"
+                or not partition_url.hostname
+                or partition_url.hostname.lower()
+                != (source_url.hostname or "").lower()
+            ):
+                raise ValueError(
+                    "JSON API partition official_page_url must use HTTPS on the source host"
+                )
+            for name in ("published_on", "deadline"):
+                has_fixed_provenance = name in partition_batch
+                fixed_value = str(partition_batch.get(name, "")).strip()
+                if not (
+                    has_fixed_provenance
+                    or str(field_map.get(name, "")).strip()
+                ):
+                    raise ValueError(
+                        "JSON API batch partition "
+                        f"{name} requires a fixed batch value or field path"
+                    )
+                if fixed_value:
+                    try:
+                        date.fromisoformat(fixed_value)
+                    except ValueError as error:
+                        raise ValueError(
+                            "JSON API batch partition "
+                            f"batch.{name} must be an ISO date"
+                        ) from error
+            if not isinstance(partition_filters, list) or not partition_filters:
+                raise ValueError(
+                    "JSON API batch partition row_filters must be a non-empty list"
+                )
+            for row_filter in partition_filters:
+                if not isinstance(row_filter, dict):
+                    raise ValueError(
+                        "JSON API batch partition row filters must be objects"
+                    )
+                if not str(row_filter.get("path", "")).strip():
+                    raise ValueError(
+                        "JSON API batch partition row filter path is required"
+                    )
+                operators = [
+                    name
+                    for name in (
+                        "equals_any",
+                        "contains_any",
+                        "not_equals_any",
+                        "not_contains_any",
+                    )
+                    if name in row_filter
+                ]
+                if len(operators) != 1:
+                    raise ValueError(
+                        "JSON API batch partition row filter requires exactly one operator"
+                    )
+                values = row_filter[operators[0]]
+                if not isinstance(values, list) or not values:
+                    raise ValueError(
+                        "JSON API batch partition row filter values must be non-empty"
+                    )
 
         for name in ("published_on", "deadline"):
             has_fixed_provenance = name in batch
@@ -683,6 +785,62 @@ class JsonApiSourceAdapter:
                 strip=True,
             )
 
+    @classmethod
+    def _row_is_valid(
+        cls,
+        row: dict,
+        field_map: dict,
+        valid_values: dict,
+        row_filters: list,
+    ) -> bool:
+        def equals_any(raw_value, allowed_values) -> bool:
+            for allowed in allowed_values:
+                if raw_value == allowed:
+                    return True
+                if isinstance(raw_value, (str, int, float, bool)) and isinstance(
+                    allowed, (str, int, float, bool)
+                ) and str(raw_value) == str(allowed):
+                    return True
+            return False
+
+        for field_name, allowed_values in valid_values.items():
+            field_path = str(field_map.get(field_name, "")).strip()
+            if (
+                not field_path
+                or not isinstance(allowed_values, list)
+                or _field_value(row, field_path) not in allowed_values
+            ):
+                return False
+        for row_filter in row_filters:
+            if not isinstance(row_filter, dict):
+                return False
+            raw_value = _field_value(
+                row,
+                str(row_filter.get("path", "")).strip(),
+                "",
+            )
+            if "equals_any" in row_filter:
+                matched = equals_any(raw_value, row_filter["equals_any"])
+            elif "contains_any" in row_filter:
+                text_value = cls._raw_text(raw_value)
+                matched = any(
+                    str(fragment) in text_value
+                    for fragment in row_filter["contains_any"]
+                )
+            elif "not_equals_any" in row_filter:
+                matched = not equals_any(raw_value, row_filter["not_equals_any"])
+            elif "not_contains_any" in row_filter:
+                text_value = cls._raw_text(raw_value)
+                matched = all(
+                    str(fragment) not in text_value
+                    for fragment in row_filter["not_contains_any"]
+                )
+            else:
+                return False
+            if not matched:
+                return False
+        return True
+
     def extract(
         self, source: OfficialSource, page: FetchedPage
     ) -> list[RecruitmentBatchCandidate]:
@@ -718,6 +876,72 @@ class JsonApiSourceAdapter:
         if not isinstance(rows, list):
             raise ValueError("JSON API canonical list_path must resolve to a list")
 
+        batch_partitions = metadata.get("batch_partitions", [])
+        if batch_partitions:
+            if not isinstance(batch_partitions, list):
+                raise ValueError("JSON API canonical batch partitions must be a list")
+            position_key_path = str(field_map["position_key"]).strip()
+            expected_keys = {
+                self._raw_text(
+                    _field_value(row, position_key_path, "")
+                ).strip()
+                for row in rows
+                if isinstance(row, dict)
+                and self._row_is_valid(
+                    row,
+                    field_map,
+                    valid_values,
+                    row_filters,
+                )
+                and self._raw_text(
+                    _field_value(row, position_key_path, "")
+                ).strip()
+            }
+            partition_candidates: list[RecruitmentBatchCandidate] = []
+            observed_keys: set[str] = set()
+            for partition in batch_partitions:
+                partition_document = copy.deepcopy(document)
+                partition_metadata = partition_document["_radar"]
+                partition_metadata["batch"] = copy.deepcopy(partition["batch"])
+                partition_metadata["row_filters"] = [
+                    *copy.deepcopy(row_filters),
+                    *copy.deepcopy(partition["row_filters"]),
+                ]
+                partition_metadata["batch_partitions"] = []
+                partition_body = _canonical_json(partition_document)
+                partition_page = FetchedPage(
+                    canonical_url=page.canonical_url,
+                    body=partition_body,
+                    content_hash=hashlib.sha256(
+                        partition_body.encode("utf-8")
+                    ).hexdigest(),
+                    http_status=page.http_status,
+                    etag=page.etag,
+                )
+                candidates = self.extract(source, partition_page)
+                if len(candidates) != 1:
+                    raise ValueError(
+                        "JSON API batch partition must produce exactly one batch"
+                    )
+                candidate = candidates[0]
+                candidate_keys = {
+                    position.position_key for position in candidate.positions
+                }
+                if observed_keys & candidate_keys:
+                    raise ValueError(
+                        "JSON API batch partitions overlap on position keys"
+                    )
+                observed_keys.update(candidate_keys)
+                partition_candidates.append(candidate)
+            if observed_keys != expected_keys:
+                missing = len(expected_keys - observed_keys)
+                unexpected = len(observed_keys - expected_keys)
+                raise ValueError(
+                    "JSON API batch partitions must cover every retained position "
+                    f"exactly once (missing={missing}, unexpected={unexpected})"
+                )
+            return partition_candidates
+
         positions: list[PositionCandidate] = []
         retained_rows: list[tuple[int, dict]] = []
         filtered_invalid = 0
@@ -725,36 +949,12 @@ class JsonApiSourceAdapter:
         for index, row in enumerate(rows):
             if not isinstance(row, dict):
                 continue
-            valid = True
-            for field_name, allowed_values in valid_values.items():
-                field_path = str(field_map.get(field_name, "")).strip()
-                if not field_path or not isinstance(allowed_values, list):
-                    valid = False
-                    break
-                if _field_value(row, field_path) not in allowed_values:
-                    valid = False
-                    break
-            for row_filter in row_filters:
-                if not valid or not isinstance(row_filter, dict):
-                    valid = False
-                    break
-                raw_value = _field_value(
-                    row,
-                    str(row_filter.get("path", "")).strip(),
-                    "",
-                )
-                if "equals_any" in row_filter:
-                    valid = raw_value in row_filter["equals_any"]
-                elif "contains_any" in row_filter:
-                    text_value = self._raw_text(raw_value)
-                    valid = any(
-                        str(fragment) in text_value
-                        for fragment in row_filter["contains_any"]
-                    )
-                else:
-                    valid = False
-                if not valid:
-                    break
+            valid = self._row_is_valid(
+                row,
+                field_map,
+                valid_values,
+                row_filters,
+            )
             if not valid:
                 filtered_invalid += 1
                 continue

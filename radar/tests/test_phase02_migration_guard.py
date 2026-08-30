@@ -95,6 +95,7 @@ class Phase02MigrationGuardTests(SimpleTestCase):
 class Phase02MigrationDataTests(TransactionTestCase):
     migrate_from = ("radar", "0010_officialsource_api_source_type")
     migrate_to = ("radar", "0011_recruitment_batches_and_position_progress")
+    current_target = ("radar", "0022_recruitmentannouncement_verification_method")
 
     def _migrate(self, target):
         executor = MigrationExecutor(connection)
@@ -207,7 +208,7 @@ class Phase02MigrationDataTests(TransactionTestCase):
             )
 
     def tearDown(self):
-        self._migrate(self.migrate_to)
+        self._migrate(self.current_target)
         super().tearDown()
 
     def test_forward_and_reverse_keep_json_config_and_evidence_usable(self):
@@ -224,6 +225,8 @@ class Phase02MigrationDataTests(TransactionTestCase):
         migrated_position = new_apps.get_model("radar", "RecruitmentPosition").objects.get()
         self.assertEqual(migrated_position.first_seen_at, self.batch_first_seen_at)
         self.assertEqual(migrated_position.content_changed_at, self.batch_first_seen_at)
+
+        self._migrate(self.current_target)
 
         from radar.models import RecruitmentBatch
         from radar.services.evidence import batch_projection_has_valid_evidence

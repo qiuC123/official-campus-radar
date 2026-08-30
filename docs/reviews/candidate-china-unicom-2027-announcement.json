@@ -1,0 +1,19 @@
+{
+  "schema_version": "1",
+  "query": "中国联合网络通信集团有限公司 2027 校园招聘 官方公告",
+  "source": {
+    "orchestrator": "human_review",
+    "providers": [
+      "official_navigation"
+    ]
+  },
+  "candidates": [
+    {
+      "url": "https://zglt.zhaopin.com/home/index.html",
+      "title_hint": "中国联合网络通信有限公司2027校园招聘",
+      "provider": "official_navigation",
+      "rank": 1,
+      "result_id": "china-unicom-2027-home"
+    }
+  ]
+}

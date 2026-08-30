@@ -1,0 +1,50 @@
+{
+  "cycle": "Phase 02 / Pinduoduo title mapping correction",
+  "as_of": "2026-08-30",
+  "mode": "read-only official API sample and offline parser replay",
+  "network_writes": 0,
+  "results": [
+    {
+      "key": "pinduoduo_title_mapping_correction",
+      "company": "拼多多",
+      "passed": true,
+      "complete": true,
+      "scope_evidence": "All 13 current official API rows reported graduationYear=2027 and recruitTypeName=管培生; sampled rows prove name is the position title while jobName is only the category.",
+      "missing_required_fields": [],
+      "pages": [
+        {
+          "page": 1,
+          "samples": [
+            {
+              "id": "d7b39bad-01cd-4734-b284-65dbc24eeb99",
+              "name": "商家运营（多语种优势-上海）",
+              "jobName": "语言",
+              "workLocation": "上海",
+              "releaseTime": 1783316661000,
+              "recruitTypeName": "管培生",
+              "graduationYear": "2027"
+            },
+            {
+              "id": "f40e809d-f585-43d6-a43c-7f0c76c92ed9",
+              "name": "法务助理（上海）",
+              "jobName": "职能",
+              "workLocation": "上海",
+              "releaseTime": 1783255809000,
+              "recruitTypeName": "管培生",
+              "graduationYear": "2027"
+            },
+            {
+              "id": "54ad4666-f80b-47be-840b-5a99cf04a3d7",
+              "name": "HR管培生（广东省）",
+              "jobName": "职能",
+              "workLocation": "广东省",
+              "releaseTime": 1785218152000,
+              "recruitTypeName": "管培生",
+              "graduationYear": "2027"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

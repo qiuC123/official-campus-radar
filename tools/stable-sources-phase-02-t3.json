@@ -4,7 +4,7 @@
   "minimum_required": 25,
   "stable_count": 25,
   "sources": [
-    {"key": "P11", "company": "拼多多", "company_type": "民企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-03.json", "evidence_result_key": "pinduoduo"},
+    {"key": "P11", "company": "拼多多", "company_type": "民企", "evidence_file": "work/phase-02-pinduoduo-title-mapping-correction.json", "evidence_result_key": "pinduoduo_title_mapping_correction"},
     {"key": "P20", "company": "理想汽车", "company_type": "民企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-03.json", "evidence_result_key": "li_auto"},
     {"key": "S08", "company": "中国中车集团有限公司", "company_type": "央国企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-03.json", "evidence_result_key": "crrc"},
     {"key": "P13", "company": "vivo", "company_type": "民企", "evidence_file": "work/phase-02-t3-api-acceptance-cycle-06-beisen.json", "evidence_result_key": "vivo_autumn_campus"},

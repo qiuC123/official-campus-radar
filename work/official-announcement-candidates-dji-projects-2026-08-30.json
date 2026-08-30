@@ -1,0 +1,21 @@
+{
+  "schema_version": "1",
+  "query": "site:careers.dji.com 大疆 2027 拓疆者 数字管理构建者计划",
+  "source": {"orchestrator": "agent_reach", "providers": ["exa"]},
+  "candidates": [
+    {
+      "url": "https://careers.dji.com/zh-CN/campus/recruitment",
+      "title_hint": "大疆 2027 拓疆者校园招聘",
+      "provider": "exa",
+      "rank": 1,
+      "result_id": "dji-recruitment"
+    },
+    {
+      "url": "https://careers.dji.com/zh-CN/campus/digital-recruitment",
+      "title_hint": "大疆数字管理构建者计划",
+      "provider": "exa",
+      "rank": 2,
+      "result_id": "dji-digital-recruitment"
+    }
+  ]
+}

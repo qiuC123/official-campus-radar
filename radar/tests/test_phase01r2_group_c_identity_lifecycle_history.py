@@ -1,6 +1,5 @@
 from dataclasses import replace
 
-from django.db import IntegrityError, transaction
 from django.test import TestCase
 
 from radar.collectors.base import PositionCandidate
@@ -124,21 +123,21 @@ class IdentityAndLifecycleTests(TestCase):
         self.assertEqual(result.batch_id, created.batch_id)
         self.assertEqual(RecruitmentBatch.objects.get().identity_key, "batch-2027")
 
-    def test_database_rejects_duplicate_source_and_canonical_notice_url(self) -> None:
+    def test_database_allows_distinct_batches_to_share_a_portal_url(self) -> None:
         first = publish_candidates(
             self.source,
             [complete_candidate(self.source, identity_key="batch-a")],
             self.version(),
         )[0]
         original = RecruitmentBatch.objects.get(pk=first.batch_id)
-        with self.assertRaises(IntegrityError), transaction.atomic():
-            RecruitmentBatch.objects.create(
-                organization=self.source.organization,
-                source=self.source,
-                identity_key="batch-b",
-                title="Duplicate URL",
-                official_page_url=original.official_page_url,
-            )
+        RecruitmentBatch.objects.create(
+            organization=self.source.organization,
+            source=self.source,
+            identity_key="batch-b",
+            title="Second project on shared portal",
+            official_page_url=original.official_page_url,
+        )
+        self.assertEqual(RecruitmentBatch.objects.count(), 2)
 
 
 class TrustedHistoryQueryTests(TestCase):

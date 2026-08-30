@@ -521,6 +521,43 @@ class JsonApiConfigurationTests(SimpleTestCase):
                         make_source(config)
                     )
 
+    def test_batch_partitions_require_unique_complete_trusted_metadata(self) -> None:
+        partition = {
+            "batch": {
+                **copy.deepcopy(BASE_CONFIG["batch"]),
+                "identity_key": "example-plan-a",
+                "title": "Example A 计划",
+                "official_page_url": "https://careers.example.test/campus?plan=a",
+            },
+            "row_filters": [{"path": "Plan", "equals_any": ["a"]}],
+        }
+        valid = copy.deepcopy(BASE_CONFIG)
+        valid["batch_partitions"] = [partition]
+        self.assertIsNone(
+            JsonApiSourceAdapter.validate_source_config(make_source(valid))
+        )
+
+        cases = []
+        duplicate = copy.deepcopy(valid)
+        duplicate["batch_partitions"].append(copy.deepcopy(partition))
+        cases.append((duplicate, "identities"))
+        untrusted = copy.deepcopy(valid)
+        untrusted["batch_partitions"][0]["batch"]["official_page_url"] = (
+            "https://jobs.example.test/campus"
+        )
+        cases.append((untrusted, "official_page_url"))
+        missing_date_provenance = copy.deepcopy(valid)
+        missing_date_provenance["batch_partitions"][0]["batch"].pop("deadline")
+        missing_date_provenance["field_map"].pop("deadline", None)
+        cases.append((missing_date_provenance, "deadline"))
+        bad_filter = copy.deepcopy(valid)
+        bad_filter["batch_partitions"][0]["row_filters"][0]["contains_any"] = ["a"]
+        cases.append((bad_filter, "exactly one"))
+        for config, message in cases:
+            with self.subTest(message=message):
+                with self.assertRaisesRegex(ValueError, message):
+                    JsonApiSourceAdapter.validate_source_config(make_source(config))
+
 
 def json_response(payload: dict, *, status_code: int = 200) -> Mock:
     response = Mock()
@@ -1111,6 +1148,112 @@ class JsonApiExtractionTests(SimpleTestCase):
             ["2034975730101809152", "2034975730101809153"],
         )
 
+    @staticmethod
+    def partition_config() -> dict:
+        config = copy.deepcopy(BASE_CONFIG)
+        config["batch_partitions"] = [
+            {
+                "batch": {
+                    **copy.deepcopy(BASE_CONFIG["batch"]),
+                    "identity_key": "example-plan-a",
+                    "title": "Example A 计划",
+                    "recruitment_type": "special_program",
+                },
+                "row_filters": [{"path": "Plan", "equals_any": ["a"]}],
+            },
+            {
+                "batch": {
+                    **copy.deepcopy(BASE_CONFIG["batch"]),
+                    "identity_key": "example-other-plans",
+                    "title": "Example 其他计划",
+                },
+                "row_filters": [{"path": "Plan", "not_equals_any": ["a"]}],
+            },
+        ]
+        return config
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_batch_partitions_are_mutually_exclusive_and_exhaustive(
+        self, request: Mock
+    ) -> None:
+        payload = load_json_fixture("json_api_page.json")
+        payload["Data"]["Posts"][0]["Plan"] = "a"
+        payload["Data"]["Posts"][1]["Plan"] = "b"
+        request.return_value = json_response(payload)
+        config = self.partition_config()
+        source = make_source(config)
+        adapter = JsonApiSourceAdapter()
+
+        candidates = adapter.extract(source, adapter.fetch(source))
+
+        self.assertEqual(
+            [candidate.identity_key for candidate in candidates],
+            ["example-plan-a", "example-other-plans"],
+        )
+        self.assertEqual(
+            [[position.position_key for position in candidate.positions]
+             for candidate in candidates],
+            [["2034975730101809152"], ["2034975730101809153"]],
+        )
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_batch_partitions_reject_overlap(self, request: Mock) -> None:
+        payload = load_json_fixture("json_api_page.json")
+        for row in payload["Data"]["Posts"]:
+            row["Plan"] = "a"
+        request.return_value = json_response(payload)
+        config = self.partition_config()
+        config["batch_partitions"][1]["row_filters"] = [
+            {"path": "Plan", "contains_any": ["a"]}
+        ]
+        source = make_source(config)
+        adapter = JsonApiSourceAdapter()
+
+        with self.assertRaisesRegex(ValueError, "overlap"):
+            adapter.extract(source, adapter.fetch(source))
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_batch_partitions_reject_uncovered_rows(self, request: Mock) -> None:
+        payload = load_json_fixture("json_api_page.json")
+        payload["Data"]["Posts"][0]["Plan"] = "a"
+        payload["Data"]["Posts"][1]["Plan"] = "c"
+        request.return_value = json_response(payload)
+        config = self.partition_config()
+        config["batch_partitions"][1]["row_filters"] = [
+            {"path": "Plan", "equals_any": ["b"]}
+        ]
+        source = make_source(config)
+        adapter = JsonApiSourceAdapter()
+
+        with self.assertRaisesRegex(ValueError, "cover every retained position"):
+            adapter.extract(source, adapter.fetch(source))
+
+    @patch("radar.collectors.json_api.requests.Session.request")
+    def test_partition_equality_tolerates_numeric_string_type_drift(
+        self, request: Mock
+    ) -> None:
+        payload = load_json_fixture("json_api_page.json")
+        payload["Data"]["Posts"][0]["Plan"] = "1"
+        payload["Data"]["Posts"][1]["Plan"] = 2
+        request.return_value = json_response(payload)
+        config = self.partition_config()
+        config["batch_partitions"][0]["row_filters"] = [
+            {"path": "Plan", "equals_any": [1]}
+        ]
+        config["batch_partitions"][1]["row_filters"] = [
+            {"path": "Plan", "not_equals_any": ["1"]}
+        ]
+        source = make_source(config)
+        adapter = JsonApiSourceAdapter()
+
+        candidates = adapter.extract(source, adapter.fetch(source))
+
+        self.assertEqual(
+            [[position.position_key for position in candidate.positions]
+             for candidate in candidates],
+            [["2034975730101809152"], ["2034975730101809153"]],
+        )
+
     def test_extract_audits_skipped_and_filtered_position_counts(self) -> None:
         candidate = self.extract()[0]
 
@@ -1496,6 +1639,52 @@ class JsonApiPublicationIntegrationTests(TestCase):
             ).exists()
         )
         self.assertContains(self.client.get("/"), position.title)
+
+    def test_partitioned_projects_can_share_one_real_portal_url(self) -> None:
+        config = JsonApiExtractionTests.partition_config()
+        self.source.parser_config = config
+        self.source.save(update_fields=["parser_config"])
+        payload = copy.deepcopy(self.payload)
+        payload["Data"]["Posts"][0]["Plan"] = "a"
+        payload["Data"]["Posts"][1]["Plan"] = "b"
+        adapter = JsonApiSourceAdapter()
+        with patch(
+            "radar.collectors.json_api.requests.Session.request",
+            return_value=json_response(payload),
+        ):
+            page = adapter.fetch(self.source)
+        version = SourceVersion.objects.create(
+            source=self.source,
+            canonical_url=page.canonical_url,
+            content_hash=page.content_hash,
+        )
+
+        results = publish_candidates(
+            self.source,
+            adapter.extract(self.source, page),
+            version,
+        )
+
+        self.assertEqual([result.action for result in results], ["created", "created"])
+        self.assertEqual(
+            list(
+                RecruitmentBatch.objects.order_by("identity_key").values_list(
+                    "identity_key", "official_page_url", "recruitment_type"
+                )
+            ),
+            [
+                (
+                    "example-other-plans",
+                    "https://careers.example.test/campus",
+                    "campus_recruitment",
+                ),
+                (
+                    "example-plan-a",
+                    "https://careers.example.test/campus",
+                    "special_program",
+                ),
+            ],
+        )
 
     def test_html_raw_text_evidence_is_persisted_with_a_plain_excerpt(
         self,

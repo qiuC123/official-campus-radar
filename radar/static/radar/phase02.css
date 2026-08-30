@@ -66,7 +66,7 @@ input, select { width: 100%; padding: 11px 12px; border: 1px solid #cbd5e1; bord
 .recruitment-table th small { color: var(--brand); font-size: 10px; }
 .recruitment-table td { padding: 14px 10px; border-bottom: 1px solid #e9eef4; color: #314057; font-size: 13px; vertical-align: middle; }
 .recruitment-table tbody tr:last-child td { border-bottom: 0; }
-.recruitment-table tbody tr:not(.positions-detail-row):hover { background: #fbfdff; }
+.recruitment-table tbody tr:hover { background: #fbfdff; }
 .recruitment-table th:nth-child(1) { width: 130px; } .recruitment-table th:nth-child(2) { width: 82px; }
 .recruitment-table th:nth-child(3) { width: 105px; } .recruitment-table th:nth-child(4) { width: 88px; }
 .recruitment-table th:nth-child(5) { width: 84px; } .recruitment-table th:nth-child(6) { width: 160px; }
@@ -84,18 +84,17 @@ input, select { width: 100%; padding: 11px 12px; border: 1px solid #cbd5e1; bord
 .recruit-badge { color: #d56700; background: #fff1df; }
 .audience-badge { color: #08785b; background: #e4f8f1; }
 .locations-cell { line-height: 1.8; }
-.positions-summary { width: 100%; max-height: 104px; overflow: hidden; padding: 9px 10px; color: var(--brand); background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: var(--radius-control); font-size: 12px; line-height: 1.8; text-align: left; }
-.positions-summary[aria-expanded="true"] { color: #fff; background: var(--brand); }
-.positions-detail-row td { padding: 0 18px 18px; background: #f8fbff; }
-.positions-detail { padding: 14px 18px; border: 1px solid #cfe0fb; border-radius: var(--radius-control); background: #fff; }
-.positions-detail ul { display: grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap: 10px 18px; margin: 10px 0 0; padding: 0; list-style: none; }
-.positions-detail li { display: flex; flex-direction: column; gap: 3px; padding: 9px 10px; background: #f5f8fc; border-radius: var(--radius-control); }
-.positions-detail li span { color: var(--muted); font-size: 12px; }
+.positions-preview { position: relative; outline: none; }
+.positions-summary { display: -webkit-box; width: 100%; max-height: calc(3.6em + 20px); overflow: hidden; padding: 9px 10px; color: var(--brand); background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: var(--radius-control); font-size: 12px; line-height: 1.8; text-align: left; cursor: help; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.positions-tooltip { display: none; position: absolute; z-index: 40; left: 50%; bottom: calc(100% + 8px); width: min(520px, 70vw); max-height: 240px; overflow-y: auto; transform: translateX(-50%); padding: 12px 14px; color: #fff; background: #28303b; border-radius: var(--radius-control); box-shadow: 0 12px 30px rgba(15, 23, 42, .28); font-size: 12px; line-height: 1.7; }
+.positions-preview:hover .positions-tooltip, .positions-preview:focus-visible .positions-tooltip { display: block; }
 .batch-progress { min-width: 105px; margin: 0; padding: 8px 9px; }
 .date-cell { color: #254a82; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .action-link { display: inline-block; padding: 8px 12px; border-radius: var(--radius-control); font-weight: 700; text-decoration: none; white-space: nowrap; }
+.action-link.unavailable { color: #64748b; background: #eef2f7; cursor: help; }
 .action-link.apply { color: #fff; background: var(--brand); border: 1px solid var(--brand); }
 .action-link.apply:hover { background: var(--brand-dark); border-color: var(--brand-dark); }
+.action-link.instructions { cursor: help; }
 .action-link.notice { color: var(--brand); background: #fff; border: 1px solid var(--brand-line); }
 .action-link.notice:hover { color: var(--brand-dark); background: var(--brand-soft); }
 .empty { padding: 60px 20px; color: var(--muted); text-align: center; background: var(--paper); border: 1px dashed #cbd5e1; border-radius: var(--radius-large); }
@@ -109,5 +108,5 @@ input, select { width: 100%; padding: 11px 12px; border: 1px solid #cbd5e1; bord
 }
 @media (max-width: 640px) {
   .compact-filters form { grid-template-columns: 1fr; } .prototype-note, .health-panel { align-items: flex-start; flex-direction: column; }
-  .positions-detail ul { grid-template-columns: 1fr; } .wide { grid-column: 1; } .province-menu { width: min(420px, calc(100vw - 48px)); }
+  .wide { grid-column: 1; } .province-menu { width: min(420px, calc(100vw - 48px)); }
 }

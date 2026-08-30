@@ -1,0 +1,22 @@
+{
+  "title": {
+    "parsed_value": "宁德时代2027届全球校园招聘",
+    "excerpt": "2027届全球校园招聘",
+    "locator": "body/section[校园招聘]/item[2027届全球校园招聘]"
+  },
+  "recruitment_type": {
+    "parsed_value": "campus_recruitment",
+    "excerpt": "校园招聘 2027届全球校园招聘",
+    "locator": "body/section[校园招聘]"
+  },
+  "target_audience": {
+    "parsed_value": "2027届毕业生",
+    "excerpt": "2027届全球校园招聘",
+    "locator": "body/section[校园招聘]/item[2027届全球校园招聘]"
+  },
+  "availability": {
+    "parsed_value": "active",
+    "excerpt": "2027届全球校园招聘；官方校园招聘站当前岗位状态为 open",
+    "locator": "body/section[校园招聘]/item[2027届全球校园招聘] + api/jobs[*]/status[open]"
+  }
+}

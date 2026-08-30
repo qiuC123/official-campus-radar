@@ -1,0 +1,43 @@
+{% load static %}<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>我的投递进度</title>
+  <link rel="stylesheet" href="{% static 'radar/phase02.css' %}">
+</head>
+<body>
+<main class="shell">
+  <header class="hero">
+    <div>
+      <p class="eyebrow">MY APPLICATIONS</p>
+      <h1>我的投递进度</h1>
+      <p class="subtitle">即使招聘批次以后被隐藏或取代，已经保存的个人进度仍可在这里查看和修改。</p>
+    </div>
+    <nav aria-label="页面视图"><a class="nav-button" href="/">返回招聘页</a></nav>
+  </header>
+  {% if progress_rows %}
+  <section class="table-wrap" aria-label="投递进度记录">
+    <table>
+      <thead><tr><th>公司</th><th>招聘批次</th><th>批次状态</th><th>投递进度</th></tr></thead>
+      <tbody>
+      {% for progress in progress_rows %}
+        <tr>
+          <td>{{ progress.batch.organization.name }}</td>
+          <td>{{ progress.batch.title }}</td>
+          <td>{{ progress.batch.get_announcement_admission_display }}</td>
+          <td><select class="batch-progress" aria-label="{{ progress.batch.title }}投递进度" data-current-value="{{ progress.status }}" data-save-url="{% url 'update_progress' progress.batch_id %}">{% for value,label in progress_choices %}<option value="{{ value }}" {% if value == progress.status %}selected{% endif %}>{% if label == '已挂' %}未通过{% else %}{{ label }}{% endif %}</option>{% endfor %}</select></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% else %}
+  <section class="empty"><h2>还没有投递进度</h2><p>在招聘页面选择一次投递状态后，记录会出现在这里。</p></section>
+  {% endif %}
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>window.PHASE02_PREVIEW=false;</script>
+<script src="{% static 'radar/phase02.js' %}"></script>
+</body>
+</html>

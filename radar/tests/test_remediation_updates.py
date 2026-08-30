@@ -68,9 +68,8 @@ class UpdateStatusRemediationTests(TestCase):
         UpdateRun.objects.create(trigger="scheduled", scheduled_for_date=date(2026, 8, 16), status="success")
         self.assertTrue(scheduled_run_is_missing(now))
 
-    def test_manual_update_with_no_sources_does_not_claim_completion(self) -> None:
+    def test_immediate_update_web_endpoint_is_deferred(self) -> None:
         administrator = get_user_model().objects.create_superuser("owner", "owner@example.test", "test")
         self.client.force_login(administrator)
-        response = self.client.post("/update-now/", follow=True)
-        self.assertContains(response, "未执行")
-        self.assertNotContains(response, "手动更新完成")
+        response = self.client.post("/update-now/")
+        self.assertEqual(response.status_code, 404)

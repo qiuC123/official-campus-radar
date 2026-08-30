@@ -1,0 +1,22 @@
+{
+  "title": {
+    "parsed_value": "比亚迪2027届应届生校园招聘",
+    "excerpt": "应届生；官方岗位接口 batch=2027",
+    "locator": "body/navigation[应届生] + api/queryPositionList/rows[*]/batch[2027]"
+  },
+  "recruitment_type": {
+    "parsed_value": "campus_recruitment",
+    "excerpt": "应届生 校招流程 简历网申",
+    "locator": "body/navigation[应届生] + body/section[校招流程]"
+  },
+  "target_audience": {
+    "parsed_value": "2027届应届生",
+    "excerpt": "应届生；官方岗位接口所有当前记录均为 batch=2027、campusNature=008501",
+    "locator": "body/navigation[应届生] + api/queryPositionList/rows[*]/batch[2027]/campusNature[008501]"
+  },
+  "availability": {
+    "parsed_value": "active",
+    "excerpt": "校招流程 简历网申；官方岗位接口当前返回可申请岗位",
+    "locator": "body/section[校招流程]/item[简历网申] + api/queryPositionList/rows[*]"
+  }
+}

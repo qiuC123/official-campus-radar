@@ -1,5 +1,7 @@
 # Phase 02 前端优先执行清单
 
+> 历史说明：本文保留 Phase 02 的执行记录，但“岗位接口独立驱动正式页面”和“T8 微信延期”的架构结论已由 [ADR 0005](../adr/0005-official-announcement-driven-recruitment.md) 取代。当前迁移状态和风险以 [公告驱动对抗审查](../reviews/announcement-driven-adversarial-review.md) 为准；不要把本文的历史通过状态当成公告门控已经开启。
+
 更新：2026-08-27
 
 目标：先完成需求、原型、前端和数据分离，再按 H3 边界执行企业探测和来源准入；来源必须经过候选、核验、启用三段状态，不能直接上线。

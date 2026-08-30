@@ -39,14 +39,14 @@ class AuditAdminAndColumnTests(TestCase):
             response = self.client.get("/preview/phase-02/")
         columns = (
             "公司名称", "公司类型", "所属行业", "招聘类型", "招聘对象", "工作地点",
-            "岗位", "投递进度", "更新时间", "相关链接", "批次官网",
+            "岗位", "投递进度", "更新时间", "相关链接", "招聘公告",
         )
         self.assertNotContains(response, 'data-column=')
         for column in columns:
             self.assertContains(response, f'<th>{column}', count=1)
         self.assertNotContains(response, "投递截止")
         self.assertNotContains(response, 'aria-label="截止时间"')
-        self.assertContains(response, 'colspan="11"')
+        self.assertNotContains(response, 'class="positions-detail-row"')
 
     def test_filter_script_enforces_the_five_province_limit(self) -> None:
         script = (Path(__file__).resolve().parents[1] / "static" / "radar" / "phase02.js").read_text(encoding="utf-8")

@@ -89,7 +89,7 @@ class Phase02FrontendFirstTests(TestCase):
             "地点1、地点2、地点3、地点4、地点5、地点6，另有 2 个地点",
         )
 
-    def test_real_dashboard_uses_chinese_company_type_and_current_graduate_year(self):
+    def test_real_dashboard_uses_chinese_company_type_without_inferred_graduate_year(self):
         self.source.organization.company_type = Organization.CompanyType.PRIVATE
         self.source.organization.save(update_fields=["company_type"])
         candidate = complete_candidate(self.source, identity_key="generic-audience")
@@ -105,11 +105,12 @@ class Phase02FrontendFirstTests(TestCase):
         )
         publish_candidates(self.source, [candidate], self.version())
 
-        response = self.client.get("/?audience=2027届")
+        response = self.client.get("/?audience=应届毕业生（届次未说明）")
 
         self.assertContains(response, self.source.organization.name)
         self.assertContains(response, "民企")
-        self.assertContains(response, "2027届")
+        self.assertContains(response, "应届毕业生（届次未说明）")
+        self.assertNotContains(response, ">2027届</span>")
         self.assertNotContains(response, ">private<")
 
     def test_province_filter_matches_cities_and_summary_uses_provinces(self):
@@ -234,12 +235,11 @@ class Phase02FrontendFirstTests(TestCase):
         self.assertEqual(locations, [["火星基地"], ["全国", "远程"]])
         self.assertContains(self.client.get("/", {"city": ["北京", "上海"]}), "远程岗位")
 
-    def test_missing_application_link_falls_back_honestly(self):
+    def test_missing_application_link_never_reuses_announcement(self):
         batch = publish_formal_notice(self.source, identity_key="no-link")
         response = self.client.get("/")
-        self.assertContains(response, "批次官网")
-        self.assertContains(response, "官网没有岗位直投链接")
-        self.assertContains(response, f'href="{batch.official_page_url}"')
+        self.assertContains(response, "投递待确认")
+        self.assertContains(response, f'href="{batch.official_page_url}"', count=1)
 
     def test_unknown_deadline_is_formal_and_not_counted_as_due_soon(self):
         candidate = complete_candidate(self.source, identity_key="unknown-deadline")
@@ -277,7 +277,7 @@ class Phase02FrontendFirstTests(TestCase):
         RecruitmentBatch.objects.filter(pk=batch.pk).update(organization=other)
         self.assertNotContains(self.client.get("/"), batch.official_page_url)
 
-    def test_application_link_with_wrong_batch_falls_back_to_batch_page(self):
+    def test_application_link_with_wrong_batch_does_not_reuse_batch_page(self):
         application_url = "https://phase02.test/apply/linked"
         candidate = complete_candidate(
             self.source,
@@ -295,7 +295,7 @@ class Phase02FrontendFirstTests(TestCase):
         response = self.client.get("/")
         self.assertContains(response, batch.official_page_url)
         self.assertNotContains(response, application_url)
-        self.assertContains(response, "批次官网")
+        self.assertContains(response, "投递待确认")
 
     def test_tampered_external_host_approval_hides_formal_link_and_batch(self):
         organization = Organization.objects.create(
@@ -449,13 +449,16 @@ class Phase02FrontendFirstTests(TestCase):
         first_position = first_batch.positions.get(position_key="position-1")
         newer_position = first_batch.positions.get(position_key="newer-position")
         RecruitmentPosition.objects.filter(pk=first_position.pk).update(
-            content_changed_at=datetime(2026, 8, 24, 8, tzinfo=datetime_timezone.utc)
+            content_changed_at=datetime(2026, 8, 24, 8, tzinfo=datetime_timezone.utc),
+            first_seen_at=datetime(2026, 8, 24, 8, tzinfo=datetime_timezone.utc),
         )
         RecruitmentPosition.objects.filter(pk=newer_position.pk).update(
-            content_changed_at=datetime(2026, 8, 28, 8, tzinfo=datetime_timezone.utc)
+            content_changed_at=datetime(2026, 8, 28, 8, tzinfo=datetime_timezone.utc),
+            first_seen_at=datetime(2026, 8, 28, 8, tzinfo=datetime_timezone.utc),
         )
         RecruitmentPosition.objects.filter(batch=other).update(
-            content_changed_at=datetime(2026, 8, 26, 8, tzinfo=datetime_timezone.utc)
+            content_changed_at=datetime(2026, 8, 26, 8, tzinfo=datetime_timezone.utc),
+            first_seen_at=datetime(2026, 8, 26, 8, tzinfo=datetime_timezone.utc),
         )
 
         response = self.client.get("/")

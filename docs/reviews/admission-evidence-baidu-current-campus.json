@@ -1,0 +1,22 @@
+{
+  "title": {
+    "parsed_value": "百度校园招聘",
+    "excerpt": "百度校园招聘",
+    "locator": "document/title"
+  },
+  "recruitment_type": {
+    "parsed_value": "campus_recruitment",
+    "excerpt": "校招项目 校园招聘",
+    "locator": "body/section[校招项目]/item[校园招聘]"
+  },
+  "target_audience": {
+    "parsed_value": "2026年9月至2027年8月毕业的在校生",
+    "excerpt": "本次招聘面向2026年9月至2027年8月毕业的在校生",
+    "locator": "body/section[校招项目]/item[校园招聘]/audience"
+  },
+  "availability": {
+    "parsed_value": "active",
+    "excerpt": "校园招聘 立即投递",
+    "locator": "body/section[校招项目]/item[校园招聘]/action[立即投递]"
+  }
+}

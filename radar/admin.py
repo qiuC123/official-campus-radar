@@ -1,10 +1,13 @@
 from django.contrib import admin
 
-from .models import (ApprovedApplicationHost, ApplicationLink,
+from .models import (AnnouncementDiscoveryCandidate, AnnouncementFieldEvidence,
+                     ApprovedApplicationHost, ApplicationLink,
                      ApplicationProgress, Evidence, FetchRun, RecruitmentPosition,
                      OfficialSource, Organization, OrganizationAlias,
-                     PublicationEvent, RecruitmentBatch,
-                     SourceAdmissionEvent, SourceVersion, UpdateRun)
+                     PublicationEvent, RecruitmentAnnouncement, RecruitmentBatch,
+                     RecruitmentPolicy, RecruitmentPolicyEvent,
+                     SourceAdmissionEvent, SourceVersion,
+                     UpdateRun, WeChatAccountIdentity)
 
 
 class AuditReadOnlyAdmin(admin.ModelAdmin):
@@ -38,3 +41,26 @@ admin.site.register(PublicationEvent, AuditReadOnlyAdmin)
 admin.site.register(SourceAdmissionEvent, AuditReadOnlyAdmin)
 admin.site.register(ApprovedApplicationHost, AuditReadOnlyAdmin)
 admin.site.register(OrganizationAlias, AuditReadOnlyAdmin)
+admin.site.register(RecruitmentAnnouncement, AuditReadOnlyAdmin)
+admin.site.register(AnnouncementFieldEvidence, AuditReadOnlyAdmin)
+admin.site.register(RecruitmentPolicy, AuditReadOnlyAdmin)
+admin.site.register(RecruitmentPolicyEvent, AuditReadOnlyAdmin)
+admin.site.register(WeChatAccountIdentity)
+
+
+@admin.register(AnnouncementDiscoveryCandidate)
+class AnnouncementDiscoveryCandidateAdmin(admin.ModelAdmin):
+    list_display = ("organization", "title_hint", "source_kind", "provider", "state", "discovered_at")
+    list_filter = ("source_kind", "provider", "state")
+    search_fields = ("organization__name", "title_hint", "url")
+    readonly_fields = (
+        "organization",
+        "source_kind",
+        "url",
+        "title_hint",
+        "provider",
+        "provider_result_id",
+        "error_code",
+        "announcement",
+        "discovered_at",
+    )
