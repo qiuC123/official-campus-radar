@@ -14,21 +14,21 @@ PREVIEW_COMPANY_TYPE_CHOICES = (
     ("social_organization", "社会机构"),
 )
 
-PREVIEW_RECRUITMENT_TYPE_CHOICES = (
+RECRUITMENT_TYPE_CHOICES = (
     ("spring", "春招"),
     ("spring_supplement", "春招补录"),
+    ("summer", "夏招"),
+    ("autumn_early", "秋招提前批"),
     ("autumn", "秋招"),
     ("autumn_supplement", "秋招补录"),
-    ("autumn_early", "秋招提前批"),
-    ("campus_recruitment", "校园招聘"),
     ("internship", "实习"),
-    ("special_program", "专项计划"),
-    ("other", "其他"),
+    ("unknown", "待确认"),
 )
+PREVIEW_RECRUITMENT_TYPE_CHOICES = RECRUITMENT_TYPE_CHOICES
 
 AUDIENCE_CHOICES = tuple((value, value) for value in (
-    "2024届", "2025届", "2026届", "2027届", "2028届",
-    "应届毕业生（届次未说明）", "应届毕业生/实习生（届次未说明）", "实习生",
+    "2024届", "2025届", "2026届", "2027届", "2028届", "2029届",
+    "在校生", "届次未说明",
 ))
 
 PROVINCE_CHOICES = PROVINCE_NAMES
@@ -68,18 +68,19 @@ class RecruitmentBatchVM:
     announcement_instructions: str = ""
     batch_application_urls: tuple[str, ...] = ()
     batch_application_notes: tuple[str, ...] = ()
+    target_audience_source: str = ""
 
     @property
     def preview_positions(self):
-        return self.positions[:5]
+        return self.positions[:2]
 
     @property
     def remaining_count(self) -> int:
-        return max(0, len(self.positions) - 5)
+        return max(0, len(self.positions) - 2)
 
     @property
     def remaining_positions(self):
-        return self.positions[5:]
+        return self.positions[2:]
 
     @property
     def hover_positions(self):
@@ -99,6 +100,10 @@ class RecruitmentBatchVM:
         return text
 
     @property
+    def audience_labels(self) -> tuple[str, ...]:
+        return tuple(item for item in self.target_audience.split("、") if item)
+
+    @property
     def location_summary(self) -> str:
         raw_locations = tuple(dict.fromkeys(
             location for position in self.positions for location in position.locations
@@ -113,15 +118,22 @@ class RecruitmentBatchVM:
 
     @property
     def primary_application_url(self) -> str | None:
+        explicit_batch_url = next(iter(self.batch_application_urls), None)
+        if explicit_batch_url:
+            return explicit_batch_url
         direct = next(
             (position.application_url for position in self.positions if not position.uses_batch_page),
             None,
         )
-        return direct or next(iter(self.batch_application_urls), None)
+        if direct:
+            return direct
+        if self.batch_application_notes:
+            return None
+        return self.official_page_url or None
 
     @property
     def primary_application_uses_batch_page(self) -> bool:
-        return self.primary_application_url is None
+        return self.primary_application_url == self.official_page_url
 
     @property
     def primary_application_note(self) -> str:

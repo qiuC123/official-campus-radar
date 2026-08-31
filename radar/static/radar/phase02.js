@@ -46,6 +46,16 @@ function closeMenu(container, restore = false) {
   container.querySelector('.multi-trigger').setAttribute('aria-expanded', 'false');
 }
 
+function placePositionTooltip(preview) {
+  const shell = preview.closest('.table-shell');
+  if (!shell) return;
+  const previewRect = preview.getBoundingClientRect();
+  const shellRect = shell.getBoundingClientRect();
+  const spaceAbove = previewRect.top - shellRect.top;
+  const spaceBelow = shellRect.bottom - previewRect.bottom;
+  preview.classList.toggle('tooltip-above', spaceBelow < 248 && spaceAbove >= 248);
+}
+
 document.querySelectorAll('.multi-filter').forEach(container => {
   updateTrigger(container);
   syncLimitState(container);
@@ -92,6 +102,33 @@ document.addEventListener('click', event => {
   document.querySelectorAll('.multi-filter').forEach(container => {
     if (!container.querySelector('.multi-menu').hidden) closeMenu(container, true);
   });
+});
+
+document.addEventListener('pointerover', event => {
+  const preview = event.target.closest('.positions-preview');
+  if (preview) placePositionTooltip(preview);
+});
+
+document.addEventListener('click', event => {
+  const preview = event.target.closest('.positions-preview');
+  const opening = preview && !preview.classList.contains('tooltip-open');
+  document.querySelectorAll('.positions-preview.tooltip-open').forEach(item => {
+    item.classList.remove('tooltip-open');
+  });
+  if (opening) {
+    placePositionTooltip(preview);
+    preview.classList.add('tooltip-open');
+  }
+});
+
+document.addEventListener('focusin', event => {
+  const preview = event.target.closest('.positions-preview');
+  if (preview) placePositionTooltip(preview);
+});
+
+document.addEventListener('focusout', event => {
+  const preview = event.target.closest('.positions-preview');
+  if (preview) preview.classList.remove('tooltip-open');
 });
 
 document.addEventListener('click', async event => {

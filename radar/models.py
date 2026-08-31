@@ -718,6 +718,7 @@ class RecruitmentBatch(models.Model):
     class RecruitmentType(models.TextChoices):
         SPRING = "spring", "春招"
         SPRING_SUPPLEMENT = "spring_supplement", "春招补录"
+        SUMMER = "summer", "夏招"
         AUTUMN = "autumn", "秋招"
         AUTUMN_SUPPLEMENT = "autumn_supplement", "秋招补录"
         AUTUMN_EARLY = "autumn_early", "秋招提前批"

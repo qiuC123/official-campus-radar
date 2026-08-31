@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>校招岗位工作台</title>
-  <link rel="stylesheet" href="{% static 'radar/phase02.css' %}">
+  <link rel="stylesheet" href="{% static 'radar/phase02.css' %}?v=20260831-4">
 </head>
 <body>
 <main class="shell">
@@ -111,9 +111,9 @@
           <td><span class="badge company-{{ batch.company_badge_class }}">{{ batch.company_type }}</span></td>
           <td>{{ batch.industry }}</td>
           <td><span class="badge recruit-badge">{{ batch.recruitment_type }}</span></td>
-          <td><span class="badge audience-badge">{{ batch.target_audience }}</span></td>
+          <td><span class="audience-tags" title="官方招聘对象：{{ batch.target_audience_source|default:batch.target_audience }}">{% for label in batch.audience_labels %}<span class="badge audience-badge">{{ label }}</span>{% endfor %}</span></td>
           <td class="locations-cell">{{ batch.location_summary }}</td>
-          <td><div class="positions-preview" tabindex="0" aria-label="代表岗位：{{ batch.position_summary }}"><span class="positions-summary">{{ batch.position_summary }}</span><span class="positions-tooltip" role="tooltip">{% for position in batch.hover_positions %}{{ position.title }}{% if not forloop.last %}、{% endif %}{% endfor %}{% if batch.hover_remaining_count %}<br>另有 {{ batch.hover_remaining_count }} 个岗位未在提示中列出{% endif %}</span></div></td>
+          <td><div class="positions-preview" tabindex="0" aria-label="代表岗位：{{ batch.position_summary }}"><span class="positions-summary">{% for position in batch.preview_positions %}<span class="positions-summary-line">{{ position.title }}{% if forloop.last and batch.remaining_count %}<small>，另有 {{ batch.remaining_count }} 个岗位</small>{% endif %}</span>{% endfor %}</span><span class="positions-tooltip" role="tooltip">{% for position in batch.hover_positions %}{{ position.title }}{% if not forloop.last %}、{% endif %}{% endfor %}{% if batch.hover_remaining_count %}<br>另有 {{ batch.hover_remaining_count }} 个岗位未在提示中列出{% endif %}</span></div></td>
           <td><select class="batch-progress" aria-label="{{ batch.title }}投递进度" data-current-value="{{ batch.progress_value }}" data-save-url="{% if not is_preview %}{% url 'update_progress' batch.id %}{% endif %}">{% for value,label in progress_choices %}<option value="{{ value }}" {% if value == batch.progress_value %}selected{% endif %}>{% if label == '已挂' %}未通过{% else %}{{ label }}{% endif %}</option>{% endfor %}</select></td>
           <td class="date-cell">{{ batch.effective_updated_on|date:'Y-m-d' }}</td>
           <td>{% if batch.primary_application_url %}<a class="action-link apply{% if is_preview %} preview-external{% endif %}" href="{% if is_preview %}#{% else %}{{ batch.primary_application_url }}{% endif %}" {% if not is_preview %}target="_blank" rel="noopener"{% endif %}>投递</a>{% elif batch.primary_application_note %}<span class="action-link apply instructions" title="{{ batch.primary_application_note }}">小程序投递</span>{% else %}<span class="action-link unavailable" title="公告与岗位来源都没有给出可核验的投递入口">投递待确认</span>{% endif %}</td>
@@ -135,6 +135,6 @@
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
 <script>window.PHASE02_PREVIEW={{ is_preview|yesno:'true,false' }};</script>
-<script src="{% static 'radar/phase02.js' %}"></script>
+<script src="{% static 'radar/phase02.js' %}?v=20260831-4"></script>
 </body>
 </html>

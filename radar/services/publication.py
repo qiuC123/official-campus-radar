@@ -49,6 +49,7 @@ OPTIONAL_POSITION_EVIDENCE_FIELDS = {"raw_text", "source_updated_on", "position_
 ELIGIBLE_RECRUITMENT_TYPES = {
     RecruitmentBatch.RecruitmentType.SPRING,
     RecruitmentBatch.RecruitmentType.SPRING_SUPPLEMENT,
+    RecruitmentBatch.RecruitmentType.SUMMER,
     RecruitmentBatch.RecruitmentType.AUTUMN,
     RecruitmentBatch.RecruitmentType.AUTUMN_SUPPLEMENT,
     RecruitmentBatch.RecruitmentType.AUTUMN_EARLY,

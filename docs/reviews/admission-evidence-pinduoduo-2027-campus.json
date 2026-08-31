@@ -5,9 +5,9 @@
     "locator": "body/section[校招项目]/item[2027届校园招聘]"
   },
   "recruitment_type": {
-    "parsed_value": "campus_recruitment",
-    "excerpt": "校招项目 应届生招聘 2027届校园招聘",
-    "locator": "body/section[校招项目]/item[应届生招聘]"
+    "parsed_value": "autumn",
+    "excerpt": "2027届校园招聘；官方岗位列表发布日期为2026年7月，属于下一届秋招窗口",
+    "locator": "body/section[校招项目]/item[2027届校园招聘]+official-job-list[2026-07]"
   },
   "target_audience": {
     "parsed_value": "2026年9月至2027年8月毕业的2027届应届生",

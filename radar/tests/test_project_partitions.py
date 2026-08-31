@@ -8,6 +8,8 @@ from django.test import SimpleTestCase
 from radar.collectors.registry import AdapterRegistry
 from radar.services.project_partitions import (
     PARTITIONED_COMPANIES,
+    PROJECT_APPLICATION_URLS,
+    configured_project_application_url,
     partitioned_parser_config,
 )
 
@@ -78,3 +80,86 @@ class ProjectPartitionConfigurationTests(SimpleTestCase):
         dji["site_id"] = 1
         with self.assertRaisesRegex(ValueError, "unexpected Moka tenant"):
             partitioned_parser_config("大疆创新", "moka_public_api", dji)
+
+    def test_all_project_application_urls_are_configured_and_same_host(self) -> None:
+        expected_application_urls = {
+            "京东": {
+                "official-project:jd:plan:56": (
+                    "https://campus.jd.com/#/jobs?selProjects=56"
+                ),
+                "official-project:jd:plan:57": (
+                    "https://campus.jd.com/#/jobs?selProjects=57"
+                ),
+                "official-project:jd:plan:58": (
+                    "https://campus.jd.com/#/jobs?selProjects=58"
+                ),
+            },
+            "腾讯": {
+                "official-project:tencent:project:1": (
+                    "https://join.qq.com/post.html?query=p_1"
+                ),
+                "official-project:tencent:project:14": (
+                    "https://join.qq.com/post.html?query=p_14"
+                ),
+                "official-project:tencent:project:9": (
+                    "https://join.qq.com/post.html?query=p_9"
+                ),
+            },
+            "美团": {
+                "official-project:meituan:special:6": (
+                    "https://zhaopin.meituan.com/web/position?hiringType=2_6"
+                ),
+                "official-project:meituan:special:8": (
+                    "https://zhaopin.meituan.com/web/longcat"
+                ),
+                "official-project:meituan:special:3": (
+                    "https://zhaopin.meituan.com/web/beidou"
+                ),
+            },
+            "大疆创新": {
+                "official-project:dji:tuojiangzhe:2027": (
+                    "https://apply.careers.dji.com/campus-recruitment/dji/143359"
+                    "?locale=zh-CN#/jobs"
+                ),
+                "official-project:dji:digital-management:2027": (
+                    "https://apply.careers.dji.com/campus-recruitment/dji/143359"
+                    "?locale=zh-CN#/jobs?keyword="
+                    "%E6%95%B0%E5%AD%97%E7%AE%A1%E7%90%86"
+                    "&page=1&anchorName=jobsList"
+                ),
+            },
+        }
+        self.assertEqual(PROJECT_APPLICATION_URLS, expected_application_urls)
+        rows = self.catalog_rows()
+        for company, mappings in expected_application_urls.items():
+            source = SimpleNamespace(
+                source_url=rows[company]["source_url"],
+                organization=SimpleNamespace(name=company),
+            )
+            configured = partitioned_parser_config(
+                company,
+                rows[company]["adapter_name"],
+                json.loads(rows[company]["parser_config"]),
+            )
+            self.assertEqual(
+                set(mappings),
+                {
+                    item["batch"]["identity_key"]
+                    for item in configured["batch_partitions"]
+                },
+            )
+            for identity_key, expected_url in mappings.items():
+                self.assertEqual(
+                    configured_project_application_url(source, identity_key),
+                    expected_url,
+                )
+        wrong_host = SimpleNamespace(
+            source_url="https://untrusted.example/",
+            organization=SimpleNamespace(name="美团"),
+        )
+        self.assertIsNone(
+            configured_project_application_url(
+                wrong_host,
+                "official-project:meituan:special:8",
+            )
+        )

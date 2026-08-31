@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+import re
 
 from django.core.paginator import Paginator
 from django.utils import timezone
@@ -11,6 +12,7 @@ from radar.services.locations import (
     normalize_locations,
     province_locations,
 )
+from radar.services.project_partitions import configured_project_application_url
 from radar.viewmodels import (
     DashboardSummaryVM,
     MAX_SELECTED_PROVINCES,
@@ -71,20 +73,82 @@ def _position_keywords(params) -> tuple[str, ...]:
     return tuple(item.strip().casefold() for item in value.replace("，", ",").split(",") if item.strip())
 
 
-GENERIC_GRADUATE_AUDIENCE = "应届毕业生（届次未说明）"
-GENERIC_MIXED_AUDIENCE = "应届毕业生/实习生（届次未说明）"
+GENERIC_GRADUATE_AUDIENCE = "届次未说明"
+
+
+def audience_categories(
+    recruitment_type: str,
+    target_audience: str,
+    *,
+    batch_title: str = "",
+) -> tuple[str, ...]:
+    """Normalize announcement-backed audience text into compact filter labels."""
+
+    if recruitment_type == RecruitmentBatch.RecruitmentType.INTERNSHIP:
+        return ("在校生",)
+
+    text = " ".join(
+        value for value in (str(target_audience or "").strip(), str(batch_title or "").strip())
+        if value
+    )
+    years = {int(value) for value in re.findall(r"(20\d{2})\s*届", text)}
+    for match in re.finditer(
+        r"(20\d{2})年\s*(\d{1,2})月\s*(?:至|到|-|—)\s*(?:(20\d{2})年\s*)?(\d{1,2})月",
+        text,
+    ):
+        start_year, start_month, end_year, end_month = match.groups()
+        start_year = int(start_year)
+        start_month = int(start_month)
+        end_year = int(end_year or start_year)
+        end_month = int(end_month)
+        if end_year == start_year + 1 and start_month >= 7 and end_month <= 8:
+            years.add(end_year)
+        else:
+            years.update(range(start_year, end_year + 1))
+    years.update(
+        int(value)
+        for value in re.findall(r"(20\d{2})\s*(?:年度)?(?:应届|校园招聘)", text)
+    )
+    if years:
+        return tuple(f"{year}届" for year in sorted(years))
+    return (GENERIC_GRADUATE_AUDIENCE,)
+
+
 def canonical_audience(
     recruitment_type: str,
     target_audience: str,
+    *,
+    batch_title: str = "",
 ) -> str:
-    """Display only the audience explicitly stored from the primary announcement."""
+    return "、".join(audience_categories(
+        recruitment_type,
+        target_audience,
+        batch_title=batch_title,
+    ))
 
-    value = str(target_audience or "").strip()
-    if value in {"校招", "校园招聘", "应届", "应届毕业生", ""}:
-        return GENERIC_GRADUATE_AUDIENCE
-    if "应届" in value and "实习" in value:
-        return GENERIC_MIXED_AUDIENCE
-    return value or "未说明"
+
+RECRUITMENT_TYPE_LABELS = {
+    RecruitmentBatch.RecruitmentType.SPRING: "春招",
+    RecruitmentBatch.RecruitmentType.SPRING_SUPPLEMENT: "春招补录",
+    RecruitmentBatch.RecruitmentType.SUMMER: "夏招",
+    RecruitmentBatch.RecruitmentType.AUTUMN_EARLY: "秋招提前批",
+    RecruitmentBatch.RecruitmentType.AUTUMN: "秋招",
+    RecruitmentBatch.RecruitmentType.AUTUMN_SUPPLEMENT: "秋招补录",
+}
+
+
+def recruitment_type_categories(recruitment_type: str) -> frozenset[str]:
+    if recruitment_type == RecruitmentBatch.RecruitmentType.INTERNSHIP:
+        return frozenset({"internship"})
+    if recruitment_type in RECRUITMENT_TYPE_LABELS:
+        return frozenset({recruitment_type})
+    return frozenset({"unknown"})
+
+
+def canonical_recruitment_type(recruitment_type: str) -> str:
+    if recruitment_type == RecruitmentBatch.RecruitmentType.INTERNSHIP:
+        return "实习"
+    return RECRUITMENT_TYPE_LABELS.get(recruitment_type, "待确认")
 
 
 def filter_position_vms(positions, params):
@@ -123,25 +187,32 @@ def build_orm_dashboard(params, *, history: bool = False):
     queryset = queryset.filter(
         status__in=(RecruitmentBatch.Status.EXPIRED, RecruitmentBatch.Status.WITHDRAWN)
         if history else (RecruitmentBatch.Status.ACTIVE,)
-    ).select_related("organization", "application_progress", "primary_announcement").prefetch_related(
+    ).select_related(
+        "organization", "source", "application_progress", "primary_announcement"
+    ).prefetch_related(
         "positions__application_links", "application_links"
     )
     if params.get("company"):
         queryset = queryset.filter(organization__name__icontains=params["company"])
-    for key, lookup in (
-        ("company_type", "organization__company_type"),
-        ("recruitment_type", "recruitment_type"),
-    ):
+    for key, lookup in (("company_type", "organization__company_type"),):
         values = params.getlist(key)
         if values:
             queryset = queryset.filter(**{f"{lookup}__in": values})
     if params.get("industry"):
         queryset = queryset.filter(organization__industry__icontains=params["industry"])
     audience = params.get("audience") or params.get("target_audience")
+    selected_recruitment_types = set(params.getlist("recruitment_type"))
     today = date.today()
     batches: list[RecruitmentBatchVM] = []
     available_audiences: set[str] = set()
     for batch in queryset:
+        if (
+            selected_recruitment_types
+            and recruitment_type_categories(batch.recruitment_type).isdisjoint(
+                selected_recruitment_types
+            )
+        ):
+            continue
         try:
             progress = batch.application_progress
         except ApplicationProgress.DoesNotExist:
@@ -164,12 +235,14 @@ def build_orm_dashboard(params, *, history: bool = False):
                 positions = []
         else:
             positions = [item for item in batch.positions.all() if item.is_current]
-        target_audience = canonical_audience(
+        target_audience_categories = audience_categories(
             batch.recruitment_type,
             batch.target_audience,
+            batch_title=batch.title,
         )
-        available_audiences.add(target_audience)
-        if audience and target_audience != audience:
+        target_audience = "、".join(target_audience_categories)
+        available_audiences.update(target_audience_categories)
+        if audience and audience not in target_audience_categories:
             continue
         position_vms = [
             _position_vm(
@@ -197,6 +270,13 @@ def build_orm_dashboard(params, *, history: bool = False):
             }
             and item.href
         )
+        if not batch_application_urls:
+            configured_url = configured_project_application_url(
+                batch.source,
+                batch.identity_key,
+            )
+            if configured_url:
+                batch_application_urls = (configured_url,)
         batch_application_notes = tuple(
             " ".join(
                 value
@@ -220,7 +300,7 @@ def build_orm_dashboard(params, *, history: bool = False):
             company_type=batch.organization.get_company_type_display(),
             industry=batch.organization.industry,
             title=batch.title,
-            recruitment_type=batch.get_recruitment_type_display(),
+            recruitment_type=canonical_recruitment_type(batch.recruitment_type),
             target_audience=target_audience,
             deadline=batch.deadline,
             status=batch.get_status_display(),
@@ -236,6 +316,7 @@ def build_orm_dashboard(params, *, history: bool = False):
             ),
             batch_application_urls=batch_application_urls,
             batch_application_notes=batch_application_notes,
+            target_audience_source=batch.target_audience,
         ))
     batches.sort(key=lambda item: item.effective_updated_on, reverse=True)
     page = Paginator(batches, 20).get_page(params.get("page", 1))
@@ -250,17 +331,17 @@ def build_orm_dashboard(params, *, history: bool = False):
 def mock_dashboard(params, *, history: bool = False):
     today = date.today()
     rows = (
-        ("星河科技", "民企", "互联网/科技", "星河科技 2027 届校园招聘", "秋招", "2027届", 7,
+        ("星河科技", "民企", "互联网/科技", "星河科技 2027 届校园招聘", "autumn", "2027届", 7,
          (("上海", "浙江"), ("北京",), ("广东",), ("上海",), ("全国",), ("广东",), ("远程",)), 6),
-        ("远航能源", "央国企", "能源/电力", "远航能源集团秋季校园招聘", "秋招", "2026届", 2,
+        ("远航能源", "央国企", "能源/电力", "远航能源集团秋季校园招聘", "autumn", "2026届", 2,
          (("湖北", "全国"), ("北京",)), None),
-        ("云帆智能", "外资", "互联网/科技", "云帆智能长期实习生招聘", "实习", "实习生", 2,
+        ("云帆智能", "外资", "互联网/科技", "云帆智能长期实习生招聘", "internship", "实习生", 2,
          (("远程", "浙江"), ("远程",)), 66),
-        ("青峦银行", "银行", "金融", "青峦银行管理培训生项目", "秋招", "2025届", 2,
+        ("青峦银行", "银行", "金融", "青峦银行管理培训生项目", "autumn", "2025届", 2,
          (("北京", "上海", "广东"), ("北京",)), 25),
-        ("矩阵机器人", "中外合资", "制造业", "矩阵机器人全球校园招聘", "秋招提前批", "2028届", 2,
+        ("矩阵机器人", "中外合资", "制造业", "矩阵机器人全球校园招聘", "autumn_early", "2028届", 2,
          (("广东",), ("上海",)), 96),
-        ("海岳通信", "民企", "通信", "海岳通信春季补录", "春招补录", "2024届", 2,
+        ("海岳通信", "民企", "通信", "海岳通信春季补录", "spring_supplement", "2024届", 2,
          (("四川",), ("湖北",)), -57),
     )
     titles = (
@@ -286,15 +367,23 @@ def mock_dashboard(params, *, history: bool = False):
             effective_updated_on=(today - timedelta(days=index + number - 2) if index != 6 else today - timedelta(days=106 + number)),
             is_current=index != 6,
         ) for number in range(1, count + 1))
+        normalized_audience = canonical_audience(
+            recruitment_type,
+            audience,
+            batch_title=title,
+        )
         batches.append(RecruitmentBatchVM(
             id=f"mock-{index}", company=company, company_type=company_type, industry=industry,
-            title=title, recruitment_type=recruitment_type, target_audience=audience,
+            title=title,
+            recruitment_type=canonical_recruitment_type(recruitment_type),
+            target_audience=normalized_audience,
             deadline=(today + timedelta(days=days) if days is not None else None),
             status="已截止" if index == 6 else "招聘中", official_page_url=batch_url,
             progress_value="applied" if index == 2 else "not_applied",
             progress_label="已投递" if index == 2 else "未投递", positions=positions,
             announcement_url=batch_url,
             announcement_label="企业官网公告",
+            target_audience_source=audience,
         ))
 
     visible = [item for item in batches if (item.status != "招聘中") == history]
@@ -302,9 +391,7 @@ def mock_dashboard(params, *, history: bool = False):
     selected_company_types = {
         dict(PREVIEW_COMPANY_TYPE_CHOICES).get(value, value) for value in params.getlist("company_type")
     }
-    selected_recruitment_types = {
-        dict(PREVIEW_RECRUITMENT_TYPE_CHOICES).get(value, value) for value in params.getlist("recruitment_type")
-    }
+    selected_recruitment_types = set(params.getlist("recruitment_type"))
     audience = params.get("audience") or params.get("target_audience")
     selected_progress = set(params.getlist("progress"))
     filtered: list[RecruitmentBatchVM] = []
@@ -315,7 +402,10 @@ def mock_dashboard(params, *, history: bool = False):
             continue
         if params.get("industry") and params["industry"] not in batch.industry:
             continue
-        if selected_recruitment_types and batch.recruitment_type not in selected_recruitment_types:
+        raw_recruitment_type = rows[int(str(batch.id).removeprefix("mock-")) - 1][4]
+        if selected_recruitment_types and recruitment_type_categories(
+            raw_recruitment_type
+        ).isdisjoint(selected_recruitment_types):
             continue
         if audience and audience != batch.target_audience:
             continue

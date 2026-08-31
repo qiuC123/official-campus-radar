@@ -27,9 +27,10 @@ class DashboardViewTests(TestCase):
 
     def test_dashboard_displays_human_readable_recruitment_type(self) -> None:
         response = self.client.get("/")
-        self.assertContains(response, "校园招聘")
-        self.assertContains(response, f'value="{self.beijing.recruitment_type}"')
-        self.assertContains(response, '<span class="badge recruit-badge">校园招聘</span>', html=True)
+        self.assertContains(response, 'value="summer"')
+        self.assertContains(response, 'value="autumn_early"')
+        self.assertNotContains(response, 'value="campus"')
+        self.assertContains(response, '<span class="badge recruit-badge">待确认</span>', html=True)
 
     def test_progress_endpoint_accepts_only_known_choice(self) -> None:
         response = self.client.post(f"/batches/{self.beijing.pk}/progress/", {"status": "interviewed"})

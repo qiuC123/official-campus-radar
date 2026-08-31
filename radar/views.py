@@ -21,6 +21,7 @@ from radar.viewmodels import (
     PREVIEW_COMPANY_TYPE_CHOICES,
     PREVIEW_RECRUITMENT_TYPE_CHOICES,
     PROVINCE_CHOICES,
+    RECRUITMENT_TYPE_CHOICES,
 )
 
 
@@ -32,7 +33,7 @@ def _filter_context(request: HttpRequest, *, preview: bool) -> dict:
             PREVIEW_COMPANY_TYPE_CHOICES if preview else Organization.CompanyType.choices
         ),
         "recruitment_type_choices": (
-            PREVIEW_RECRUITMENT_TYPE_CHOICES if preview else RecruitmentBatch.RecruitmentType.choices
+            PREVIEW_RECRUITMENT_TYPE_CHOICES if preview else RECRUITMENT_TYPE_CHOICES
         ),
         "audience_choices": AUDIENCE_CHOICES,
         "selected_company_types": request.GET.getlist("company_type"),
@@ -70,15 +71,11 @@ def _render_dashboard(request: HttpRequest, *, history: bool = False) -> HttpRes
     context.update(_filter_context(request, preview=False))
     standard_audiences = [value for value, _label in AUDIENCE_CHOICES]
     selected_audience = context["selected_audience"]
-    extra_audiences = sorted(
-        (
-            set(available_audiences)
-            | ({selected_audience} if selected_audience else set())
-        )
-        - set(standard_audiences)
-    )
+    visible_audiences = set(available_audiences)
+    if selected_audience in standard_audiences:
+        visible_audiences.add(selected_audience)
     context["audience_choices"] = tuple(
-        (value, value) for value in (*standard_audiences, *extra_audiences)
+        (value, value) for value in standard_audiences if value in visible_audiences
     )
     return render(request, "radar/phase02_dashboard.html", context)
 

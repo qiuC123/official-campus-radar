@@ -1,8 +1,18 @@
 # Development state
 
-Last verified: 2026-08-30 Asia/Shanghai
+Last verified: 2026-08-31 Asia/Shanghai
 
 Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。ADR 0005 已取代“岗位接口直接驱动正式页”的旧规则；公告门控已开启，官网公告优先，只有官网没有合格公告时才交给 wxcli 补充微信证据。
+
+2026-08-31 用户进一步确认页面链接规则：公告入口依次采用官网招聘公告、官方微信招聘通知和官方招聘/投递页面；没有更具体的投递渠道时，“投递”回退到批次已核验的官方招聘页面，公告与投递允许同址。该调整记录于 ADR 0006，不放宽企业身份、公告准入或批次拆分门槛。
+
+同日进一步明确：已经按招聘计划拆分的批次，投递入口必须优先使用该计划专属的岗位选择页，不能停留在企业招聘首页或范围更大的混合岗位列表。美团日常实习、LongCat 和北斗实习已分别绑定对应官方岗位页；计划介绍页继续作为公告入口。
+
+项目投递入口现已覆盖全部 11 个拆分批次，而非只处理美团：京东 3 个计划使用官网 `selProjects` 筛选，腾讯 3 个项目使用官网 `query=p_<项目ID>` 筛选，美团 3 个项目使用各自岗位页，大疆数字管理构建者使用官网稳定关键词筛选页。大疆拓疆者对应除数字管理构建者外的 138 个岗位，但当前 Moka 页面不支持“排除某项目”的稳定链接，因此诚实回退到 139 个校招岗位总表，不伪造筛选参数。批次岗位选择页现在也优先于代表岗位的单岗位直投链接。
+
+根目录新增 `AGENTS.md`，将“每个可交付改动批次必须提交 Git、同步维护相关测试、完整测试及项目检查通过后才能交付、不得暂存用户文件”固化为项目级规则。
+
+项目投递页最初试放入来源解析配置，完整回归发现这会破坏 T4 冻结目录契约，因此立即恢复原配置并改为独立项目映射。两次配置切换均为本地、0 次网络请求，按追加式规则保留 6 条来源审计事件；美团最终配置哈希恢复为 `81684cb952e4db4751c984dabe35e19d0889e5a7e98f8a1fb75b0aebe47ecc7b`，来源保持 `enabled`。
 
 ## Current result — 2026-08-30
 
@@ -16,7 +26,7 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。AD
 - `configure_recruitment_batch_partitions` 和 `correct_pinduoduo_title_mapping` 默认只预演，必须显式传入 `--apply` 才写库。`preview_announcement_migration` 默认只读，必须显式 `--record` 才保存用于门控确认的摘要。
 - 已增加 `/applications/`：只要用户曾保存过投递进度，即使对应批次以后被隐藏或取代，仍可查看和修改个人记录。
 - 当前迁移已应用至 `0024_superseded_batches_and_policy_events`。详细准入证据和剩余限制见 `docs/reviews/announcement-driven-adversarial-review.md`。
-- 2026-08-30 完整回归共 476 项测试通过；`manage.py check`、迁移检查和 `git diff --check` 均通过。正式首页、历史页和“我的进度”页均返回 HTTP 200。
+- 2026-08-31 完整回归共 484 项测试通过；`manage.py check`、迁移检查和 `git diff --check` 均通过。正式首页、历史页和“我的进度”页均返回 HTTP 200。
 
 ## Historical implementation record through 2026-08-27
 

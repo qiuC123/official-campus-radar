@@ -208,7 +208,7 @@ class AnnouncementGateTests(TestCase):
         row = next(item for item in payload["batches"] if item["batch_id"] == self.batch.pk)
         self.assertEqual(row["outcome"], "keep")
 
-    def test_exact_announcement_audience_remains_available_as_a_filter(self):
+    def test_exact_announcement_audience_is_preserved_but_filter_uses_cohort_tags(self):
         announcement = self.verified_announcement()
         exact_audience = "2027届（部分项目同时接受2026届）"
         admit_batch_with_announcement(
@@ -222,7 +222,12 @@ class AnnouncementGateTests(TestCase):
         self.policy.announcement_gate_enforced = True
         self.policy.save(update_fields=["announcement_gate_enforced"])
         response = self.client.get("/")
-        self.assertContains(response, f'<option value="{exact_audience}"')
+        self.assertContains(response, '<option value="2026届"')
+        self.assertContains(response, '<option value="2027届"')
+        self.assertNotContains(response, f'<option value="{exact_audience}"')
+        self.assertContains(response, f"官方招聘对象：{exact_audience}")
+        self.assertContains(self.client.get("/?audience=2026届"), self.batch.title)
+        self.assertContains(self.client.get("/?audience=2027届"), self.batch.title)
 
     def test_website_replaces_wechat_but_wechat_cannot_replace_website(self):
         wechat = self.verified_announcement(kind="wechat_article", title="微信公告")
@@ -278,12 +283,12 @@ class AnnouncementGateTests(TestCase):
         )
         self.assertEqual(second.primary_announcement_id, split.pk)
 
-    def test_announcement_and_application_never_share_fallback(self):
+    def test_announcement_and_application_can_share_official_page_fallback(self):
         response = self.client.get("/")
-        self.assertContains(response, "投递待确认")
-        self.assertContains(response, f'href="{self.batch.official_page_url}"', count=1)
+        self.assertNotContains(response, "投递待确认")
+        self.assertContains(response, f'href="{self.batch.official_page_url}"', count=2)
 
-    def test_miniprogram_announcement_never_falls_back_to_job_page_url(self):
+    def test_miniprogram_announcement_keeps_notice_and_uses_job_page_for_application(self):
         WeChatAccountIdentity.objects.create(
             organization=self.source.organization,
             display_name="公告门控招聘小程序",
@@ -317,7 +322,8 @@ class AnnouncementGateTests(TestCase):
         response = self.client.get("/")
         self.assertContains(response, "小程序公告")
         self.assertContains(response, "微信小程序：公告门控招聘 2027校园招聘")
-        self.assertNotContains(response, f'href="{self.batch.official_page_url}"')
+        self.assertContains(response, f'href="{self.batch.official_page_url}"', count=1)
+        self.assertNotContains(response, "投递待确认")
 
     def test_batch_level_email_is_a_real_application_channel(self):
         ApplicationLink.objects.create(
@@ -479,7 +485,7 @@ class AnnouncementGateTests(TestCase):
         self.batch.save(update_fields=["target_audience"])
         self.assertEqual(
             canonical_audience(self.batch.recruitment_type, self.batch.target_audience),
-            "应届毕业生（届次未说明）",
+            "届次未说明",
         )
 
     def test_admission_rejects_unknown_type_and_out_of_scope_old_cohort(self):

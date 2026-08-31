@@ -21,7 +21,22 @@ from radar.tests.helpers import valid_html_parser_config
 
 
 class StrictRecruitmentClassificationTests(SimpleTestCase):
-    def test_only_explicit_campus_and_internship_content_is_eligible(self) -> None:
+    def test_explicit_recruitment_season_and_stage_take_precedence(self) -> None:
+        self.assertEqual(
+            classify_recruitment("2026届春招补录，7月重新开放"),
+            "spring_supplement",
+        )
+        self.assertEqual(classify_recruitment("2026届夏季校园招聘"), "summer")
+        self.assertEqual(classify_recruitment("2027届秋季提前批"), "autumn_early")
+        self.assertEqual(classify_recruitment("2027届秋招"), "autumn")
+
+    def test_month_alone_does_not_invent_a_recruitment_season(self) -> None:
+        self.assertEqual(
+            classify_recruitment("2027届校园招聘，7月1日启动"),
+            "campus_recruitment",
+        )
+
+    def test_generic_campus_and_internship_content_remain_eligible(self) -> None:
         self.assertEqual(classify_recruitment("2027 校园招聘"), "campus_recruitment")
         self.assertEqual(classify_recruitment("暑期实习生招聘"), "internship")
         self.assertEqual(classify_recruitment("招商合作公告"), "other")

@@ -16,7 +16,11 @@ from radar.models import (
 )
 from radar.services.admission import approve_application_host, transition_source
 from radar.services.publication import publish_candidates
-from radar.services.dashboard_data import _effective_date
+from radar.services.dashboard_data import (
+    _effective_date,
+    canonical_audience,
+    canonical_recruitment_type,
+)
 from radar.tests.helpers import (
     complete_candidate,
     create_enabled_source,
@@ -105,13 +109,58 @@ class Phase02FrontendFirstTests(TestCase):
         )
         publish_candidates(self.source, [candidate], self.version())
 
-        response = self.client.get("/?audience=应届毕业生（届次未说明）")
+        response = self.client.get("/?audience=届次未说明")
 
         self.assertContains(response, self.source.organization.name)
         self.assertContains(response, "民企")
-        self.assertContains(response, "应届毕业生（届次未说明）")
+        self.assertContains(response, "届次未说明")
         self.assertNotContains(response, ">2027届</span>")
         self.assertNotContains(response, ">private<")
+
+    def test_audience_categories_compact_official_date_ranges_and_internships(self):
+        self.assertEqual(
+            canonical_audience(
+                RecruitmentBatch.RecruitmentType.CAMPUS_RECRUITMENT,
+                "2026年9月至2027年8月毕业的在校生",
+            ),
+            "2027届",
+        )
+        self.assertEqual(
+            canonical_audience(
+                RecruitmentBatch.RecruitmentType.CAMPUS_RECRUITMENT,
+                "毕业时间为2026年1月至2027年12月",
+            ),
+            "2026届、2027届",
+        )
+        self.assertEqual(
+            canonical_audience(
+                RecruitmentBatch.RecruitmentType.INTERNSHIP,
+                "LongCat 实习生招聘对象",
+            ),
+            "在校生",
+        )
+
+    def test_recruitment_type_displays_season_instead_of_generic_campus(self):
+        self.assertEqual(
+            canonical_recruitment_type(RecruitmentBatch.RecruitmentType.SPECIAL_PROGRAM),
+            "待确认",
+        )
+        self.assertEqual(
+            canonical_recruitment_type(RecruitmentBatch.RecruitmentType.AUTUMN),
+            "秋招",
+        )
+        self.assertEqual(
+            canonical_recruitment_type(RecruitmentBatch.RecruitmentType.AUTUMN_EARLY),
+            "秋招提前批",
+        )
+        self.assertEqual(
+            canonical_recruitment_type(RecruitmentBatch.RecruitmentType.SUMMER),
+            "夏招",
+        )
+        self.assertEqual(
+            canonical_recruitment_type(RecruitmentBatch.RecruitmentType.INTERNSHIP),
+            "实习",
+        )
 
     def test_province_filter_matches_cities_and_summary_uses_provinces(self):
         candidate = complete_candidate(
@@ -235,11 +284,92 @@ class Phase02FrontendFirstTests(TestCase):
         self.assertEqual(locations, [["火星基地"], ["全国", "远程"]])
         self.assertContains(self.client.get("/", {"city": ["北京", "上海"]}), "远程岗位")
 
-    def test_missing_application_link_never_reuses_announcement(self):
+    def test_missing_application_link_reuses_verified_official_page(self):
         batch = publish_formal_notice(self.source, identity_key="no-link")
         response = self.client.get("/")
-        self.assertContains(response, "投递待确认")
-        self.assertContains(response, f'href="{batch.official_page_url}"', count=1)
+        self.assertNotContains(response, "投递待确认")
+        self.assertContains(response, f'href="{batch.official_page_url}"', count=2)
+
+    def test_project_specific_application_pages_cover_all_partitioned_companies(self):
+        cases = (
+            (
+                "京东",
+                "campus.jd.com",
+                "official-project:jd:plan:57",
+                "https://campus.jd.com/#/jobs?selProjects=57",
+            ),
+            (
+                "腾讯",
+                "join.qq.com",
+                "official-project:tencent:project:14",
+                "https://join.qq.com/post.html?query=p_14",
+            ),
+            (
+                "美团",
+                "zhaopin.meituan.com",
+                "official-project:meituan:special:8",
+                "https://zhaopin.meituan.com/web/longcat",
+            ),
+            (
+                "大疆创新",
+                "apply.careers.dji.com",
+                "official-project:dji:digital-management:2027",
+                "https://apply.careers.dji.com/campus-recruitment/dji/143359"
+                "?locale=zh-CN#/jobs?keyword="
+                "%E6%95%B0%E5%AD%97%E7%AE%A1%E7%90%86"
+                "&page=1&anchorName=jobsList",
+            ),
+        )
+        expected = {}
+        for index, (name, host, identity_key, project_url) in enumerate(cases):
+            source = create_enabled_source(name=name, host=host)
+            batch = publish_formal_notice(
+                source,
+                identity_key=identity_key,
+                hash_character=str(index + 1),
+            )
+            expected[batch.pk] = project_url
+
+        response = self.client.get("/")
+
+        for batch_vm in response.context["batches"]:
+            if batch_vm.id in expected:
+                self.assertEqual(
+                    batch_vm.primary_application_url,
+                    expected[batch_vm.id],
+                )
+                escaped_url = expected[batch_vm.id].replace("&", "&amp;")
+                self.assertContains(
+                    response,
+                    f'href="{escaped_url}"',
+                    count=1,
+                )
+
+    def test_project_page_precedes_a_single_position_application_link(self):
+        source = create_enabled_source(name="腾讯", host="join.qq.com")
+        candidate = complete_candidate(
+            source,
+            identity_key="official-project:tencent:project:9",
+            application_url="https://join.qq.com/post_detail.html?postid=1",
+        )
+        version = SourceVersion.objects.create(
+            source=source,
+            canonical_url=source.source_url,
+            content_hash="9" * 64,
+            is_applied=True,
+        )
+        result = publish_candidates(source, [candidate], version)[0]
+
+        response = self.client.get("/")
+        batch_vm = next(
+            item for item in response.context["batches"]
+            if item.id == result.batch_id
+        )
+
+        self.assertEqual(
+            batch_vm.primary_application_url,
+            "https://join.qq.com/post.html?query=p_9",
+        )
 
     def test_unknown_deadline_is_formal_and_not_counted_as_due_soon(self):
         candidate = complete_candidate(self.source, identity_key="unknown-deadline")
@@ -295,7 +425,7 @@ class Phase02FrontendFirstTests(TestCase):
         response = self.client.get("/")
         self.assertContains(response, batch.official_page_url)
         self.assertNotContains(response, application_url)
-        self.assertContains(response, "投递待确认")
+        self.assertNotContains(response, "投递待确认")
 
     def test_tampered_external_host_approval_hides_formal_link_and_batch(self):
         organization = Organization.objects.create(
@@ -419,7 +549,9 @@ class Phase02FrontendFirstTests(TestCase):
         )[0]
         batch = RecruitmentBatch.objects.get(pk=result.batch_id)
         home = self.client.get("/")
-        self.assertContains(home, "另有 1 个岗位")
+        self.assertContains(home, "另有 4 个岗位")
+        batch_vm = next(item for item in home.context["batches"] if item.id == batch.pk)
+        self.assertEqual(len(batch_vm.preview_positions), 2)
         fragment = self.client.get(f"/batches/{batch.pk}/positions/")
         self.assertEqual(fragment.content.count(b'class="position-item"'), 6)
 
@@ -492,7 +624,7 @@ class Phase02FrontendFirstTests(TestCase):
         publish_formal_notice(self.source, identity_key="typed-filter")
         company_type = self.source.organization.company_type
         formal = self.client.get(
-            f"/?company_type={company_type}&recruitment_type=campus_recruitment"
+            f"/?company_type={company_type}&recruitment_type=unknown"
         )
         self.assertContains(formal, self.source.organization.name)
         self.assertNotContains(self.client.get("/?company_type=state_owned"), self.source.organization.name)
