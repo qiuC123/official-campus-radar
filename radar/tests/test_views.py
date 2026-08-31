@@ -30,7 +30,7 @@ class DashboardViewTests(TestCase):
 
     def test_dashboard_displays_human_readable_recruitment_type(self) -> None:
         response = self.client.get("/")
-        self.assertContains(response, "phase02.css?v=20260831-6")
+        self.assertContains(response, "phase02.css?v=20260831-7")
         self.assertContains(response, 'value="summer"')
         self.assertContains(response, 'value="autumn_early"')
         self.assertNotContains(response, 'value="campus"')
@@ -68,6 +68,23 @@ class DashboardViewTests(TestCase):
             self.assertIn("background:", style)
             style_blocks.append(style)
         self.assertEqual(len(set(style_blocks)), len(style_blocks))
+
+    def test_dashboard_styles_use_full_width_and_prioritize_location_and_positions(self) -> None:
+        stylesheet = finders.find("radar/phase02.css")
+        self.assertIsNotNone(stylesheet)
+        css = Path(stylesheet).read_text(encoding="utf-8")
+
+        self.assertIn(
+            ".shell { width: calc(100% - 16px); max-width: none;",
+            css,
+        )
+        self.assertIn("min-width: 1680px", css)
+        self.assertIn("th:nth-child(6) { width: 220px; }", css)
+        self.assertIn("th:nth-child(7) { width: 520px; }", css)
+        self.assertRegex(
+            css,
+            r"\.compact-filters form \{[^}]*width: 100%;[^}]*max-width: none;",
+        )
 
     def test_progress_endpoint_accepts_only_known_choice(self) -> None:
         response = self.client.post(f"/batches/{self.beijing.pk}/progress/", {"status": "interviewed"})

@@ -20,6 +20,8 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。AD
 
 正式列表底部分页已升级为完整控件：显示当前筛选后的总记录数、上一页/下一页、当前页、相邻页、省略号和指定页跳转；翻页与跳页都会保留重复地点、多选招聘类型等全部筛选参数。每页仍最多显示 20 个招聘批次。
 
+正式页面已取消 1780px 外层上限和 1380px 筛选区上限，桌面端接近铺满整个视口；表格新增空间优先分给工作地点和岗位两列。窄屏继续在表格区域内部横向滚动，不压缩岗位文字或破坏其他列。
+
 招聘类型徽章已按八种标准类型使用独立配色：春招、春招补录、夏招、秋招提前批、秋招、秋招补录、实习和待确认不再共用同一种橙色；颜色只改变视觉识别，不改变筛选值和招聘类型证据。
 
 迁移 `0027_classify_verified_2027_autumn_batches` 为 11 个日期判断追加公告字段证据；迁移 `0028_classify_tencent_2027_main_campaign_as_autumn` 修正腾讯应届毕业生主校招；迁移 `0029_classify_shared_campaign_projects_and_dji_early_autumn` 按最新领域规则让腾讯两个专项继承主招聘活动的秋招季节，并把大疆拓疆者归为秋招提前批；迁移 `0030_add_tencent_internship_batches` 为腾讯三个实习计划追加独立公告、字段证据和已准入批次。迁移都保留原证据，不删除公司、旧批次或岗位。0027 前 SQLite 备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-season-classification-20260831-185005.sqlite3`，SHA-256 为 `0D933676B6430E064C6C125F69BF0BB058174D2F8F33B8FF5E9059F6CA969AFB`；0028 前备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-tencent-season-20260831-190852.sqlite3`，SHA-256 为 `BB70CE344BC385F80E93BFBB4888473A6A0361765B4982BA4338CCBD6EA9790D`；0029 前备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-shared-season-20260831-194045.sqlite3`，SHA-256 为 `EA06B951CA266071C09445C49B3761E3B6EF9838449BF2DB09B84AF9FFBE4966`；0030 前备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-tencent-internships-20260831-201041.sqlite3`，SHA-256 为 `5F2B45A2A7E90ACA4375EFD2A6DA59DED56697824D15B8FF5E9059F6CA969AFB`。
@@ -40,7 +42,7 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。AD
 - `configure_recruitment_batch_partitions` 和 `correct_pinduoduo_title_mapping` 默认只预演，必须显式传入 `--apply` 才写库。`preview_announcement_migration` 默认只读，必须显式 `--record` 才保存用于门控确认的摘要。
 - 已增加 `/applications/`：只要用户曾保存过投递进度，即使对应批次以后被隐藏或取代，仍可查看和修改个人记录。
 - 当前迁移已应用至 `0030_add_tencent_internship_batches`。腾讯来源配置哈希为 `88bc0b42f1282c029aedaeba547083bede736e26a8221cb4efc2fdcd768ecb6a`；UpdateRun 19 已成功更新全部 6 个腾讯批次，0 个来源失败、0 个批次拒绝。
-- 2026-08-31 完整回归共 499 项测试通过；`manage.py check`、迁移检查、目录确定性检查和 `git diff --check` 均通过。正式首页、历史页和“我的进度”页均返回 HTTP 200。
+- 2026-08-31 完整回归共 500 项测试通过；`manage.py check`、迁移检查、目录确定性检查和 `git diff --check` 均通过。正式首页、历史页和“我的进度”页均返回 HTTP 200。
 
 ## Historical implementation record through 2026-08-27
 
