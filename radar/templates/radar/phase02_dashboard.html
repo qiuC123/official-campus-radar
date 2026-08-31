@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>校招岗位工作台</title>
-  <link rel="stylesheet" href="{% static 'radar/phase02.css' %}?v=20260831-5">
+  <link rel="stylesheet" href="{% static 'radar/phase02.css' %}?v=20260831-6">
 </head>
 <body>
 <main class="shell">
@@ -127,11 +127,27 @@
     <section class="empty"><h2>{% if is_preview %}当前条件下没有匹配的招聘批次{% else %}尚无已准入的真实校招岗位{% endif %}</h2><p>{% if is_preview %}请调整筛选条件后再试。{% else %}数据库中没有通过正式准入链的匹配岗位；这不代表企业一定没有招聘。{% endif %}</p></section>
   {% endif %}
 
-  {% if page and page.paginator.num_pages > 1 %}<nav class="pagination">
-    {% if page.has_previous %}<a href="?{% if query_without_page %}{{ query_without_page }}&{% endif %}page={{ page.previous_page_number }}">上一页</a>{% endif %}
-    <span>{{ page.number }} / {{ page.paginator.num_pages }}</span>
-    {% if page.has_next %}<a href="?{% if query_without_page %}{{ query_without_page }}&{% endif %}page={{ page.next_page_number }}">下一页</a>{% endif %}
-  </nav>{% endif %}
+  {% if page and page.paginator.num_pages > 1 %}
+  <nav class="pagination" aria-label="招聘批次分页">
+    <strong class="pagination-summary">共 {{ page.paginator.count }} 条记录</strong>
+    <div class="pagination-controls">
+      {% if page.has_previous %}<a class="page-button" aria-label="上一页" href="?{% if query_without_page %}{{ query_without_page }}&{% endif %}page={{ page.previous_page_number }}">«</a>{% else %}<span class="page-button disabled" aria-label="上一页" aria-disabled="true">«</span>{% endif %}
+      {% for item in pagination_items %}
+        {% if item == page.paginator.ELLIPSIS %}<span class="page-ellipsis">{{ item }}</span>
+        {% elif item == page.number %}<span class="page-button current" aria-current="page">{{ item }}</span>
+        {% else %}<a class="page-button" href="?{% if query_without_page %}{{ query_without_page }}&{% endif %}page={{ item }}">{{ item }}</a>{% endif %}
+      {% endfor %}
+      {% if page.has_next %}<a class="page-button" aria-label="下一页" href="?{% if query_without_page %}{{ query_without_page }}&{% endif %}page={{ page.next_page_number }}">»</a>{% else %}<span class="page-button disabled" aria-label="下一页" aria-disabled="true">»</span>{% endif %}
+      <form class="page-jump" method="get">
+        {% for key,value in pagination_query_fields %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+        <span>前往</span>
+        <input type="number" name="page" value="{{ page.number }}" min="1" max="{{ page.paginator.num_pages }}" aria-label="跳转页码">
+        <span>页</span>
+        <button type="submit">确定</button>
+      </form>
+    </div>
+  </nav>
+  {% endif %}
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
 <script>window.PHASE02_PREVIEW={{ is_preview|yesno:'true,false' }};</script>

@@ -111,7 +111,7 @@
 
 ## 验证快照
 
-- Django 完整测试：498 项通过。
+- Django 完整测试：499 项通过。
 - Django 系统检查：通过。
 - `makemigrations --check --dry-run`：没有遗漏迁移。
 - `git diff --check`：通过。

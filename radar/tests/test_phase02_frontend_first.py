@@ -612,10 +612,39 @@ class Phase02FrontendFirstTests(TestCase):
             )
         first_page = self.client.get("/", {"company": "Phase", "city": ["北京", "上海"]})
         self.assertEqual(len(first_page.context["batches"]), 20)
+        self.assertEqual(tuple(first_page.context["pagination_items"]), (1, 2))
         self.assertContains(first_page, "company=Phase")
         self.assertContains(first_page, "city=%E5%8C%97%E4%BA%AC")
+        self.assertContains(first_page, "共 21 条记录")
+        self.assertContains(first_page, 'aria-label="上一页"')
+        self.assertContains(first_page, 'aria-label="下一页"')
+        self.assertContains(first_page, 'aria-current="page">1</span>')
+        self.assertContains(first_page, 'aria-label="跳转页码"')
+        self.assertContains(first_page, 'name="company" value="Phase"')
+        self.assertContains(first_page, 'name="city" value="北京"')
+        self.assertContains(first_page, 'name="city" value="上海"')
         second_page = self.client.get("/?company=Phase&city=北京&city=上海&page=2")
         self.assertEqual(len(second_page.context["batches"]), 1)
+        self.assertContains(second_page, 'aria-current="page">2</span>')
+        self.assertContains(second_page, 'aria-label="上一页"')
+
+    def test_dashboard_pagination_elides_distant_pages(self):
+        for index in range(181):
+            publish_formal_notice(
+                self.source,
+                identity_key=f"elided-page-{index}",
+                title=f"省略分页批次 {index}",
+                hash_character=hex(index % 16)[2:],
+            )
+
+        response = self.client.get("/", {"page": 4})
+
+        self.assertEqual(
+            tuple(response.context["pagination_items"]),
+            (1, 2, 3, 4, 5, 6, "…", 10),
+        )
+        self.assertContains(response, '<span class="page-ellipsis">…</span>')
+        self.assertContains(response, 'max="10"')
 
     def test_batch_position_fragment_loads_all_positions(self):
         candidate = complete_candidate(self.source, identity_key="expand-four")

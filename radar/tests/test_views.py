@@ -30,7 +30,7 @@ class DashboardViewTests(TestCase):
 
     def test_dashboard_displays_human_readable_recruitment_type(self) -> None:
         response = self.client.get("/")
-        self.assertContains(response, "phase02.css?v=20260831-5")
+        self.assertContains(response, "phase02.css?v=20260831-6")
         self.assertContains(response, 'value="summer"')
         self.assertContains(response, 'value="autumn_early"')
         self.assertNotContains(response, 'value="campus"')

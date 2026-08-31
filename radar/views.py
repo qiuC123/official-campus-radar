@@ -50,6 +50,12 @@ def _render_dashboard(request: HttpRequest, *, history: bool = False) -> HttpRes
     )
     preserved_query = request.GET.copy()
     preserved_query.pop("page", None)
+    pagination_query_fields = tuple(
+        (key, value)
+        for key, values in request.GET.lists()
+        if key != "page"
+        for value in values
+    )
     context = {
         "page": page,
         "batches": page.object_list,
@@ -65,6 +71,14 @@ def _render_dashboard(request: HttpRequest, *, history: bool = False) -> HttpRes
         "last_successful_update": latest_successful_update(),
         "source_failures": latest_source_failures(),
         "query_without_page": preserved_query.urlencode(),
+        "pagination_items": tuple(
+            page.paginator.get_elided_page_range(
+                page.number,
+                on_each_side=2,
+                on_ends=1,
+            )
+        ),
+        "pagination_query_fields": pagination_query_fields,
         "current_query": request.GET.urlencode(),
         "show_operations": request.user.is_staff,
     }

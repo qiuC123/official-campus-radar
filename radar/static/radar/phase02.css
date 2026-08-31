@@ -110,8 +110,20 @@ input, select { width: 100%; padding: 11px 12px; border: 1px solid #cbd5e1; bord
 .action-link.notice { color: var(--brand); background: #fff; border: 1px solid var(--brand-line); }
 .action-link.notice:hover { color: var(--brand-dark); background: var(--brand-soft); }
 .empty { padding: 60px 20px; color: var(--muted); text-align: center; background: var(--paper); border: 1px dashed #cbd5e1; border-radius: var(--radius-large); }
-.pagination { display: flex; justify-content: center; align-items: center; gap: 14px; padding: 22px; }
-.pagination a { color: var(--brand); }
+.pagination { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; padding: 28px 16px 8px; }
+.pagination-summary { color: #27364c; font-size: 14px; font-weight: 500; }
+.pagination-controls { display: flex; justify-content: center; align-items: center; gap: 5px; flex-wrap: wrap; }
+.page-button, .page-ellipsis { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 5px; font-size: 13px; text-decoration: none; }
+.page-button { color: var(--brand); background: #fff; border: 1px solid #d8e0ea; }
+.page-button:hover { color: #fff; background: var(--brand); border-color: var(--brand); }
+.page-button.current { color: #fff; background: var(--brand); border-color: var(--brand); font-weight: 700; }
+.page-button.disabled { color: #aab3c0; background: #f8fafc; cursor: not-allowed; }
+.page-button.disabled:hover { color: #aab3c0; background: #f8fafc; border-color: #d8e0ea; }
+.page-ellipsis { color: #7a8798; background: #fff; border: 1px solid #d8e0ea; }
+.page-jump { display: flex; align-items: center; gap: 7px; margin-left: 10px; color: #536174; font-size: 13px; }
+.page-jump input[type="number"] { width: 48px; height: 40px; padding: 8px 6px; border-radius: 5px; text-align: center; }
+.page-jump button { height: 40px; padding: 0 15px; color: #fff; background: var(--brand); border: 1px solid var(--brand); border-radius: 5px; font-weight: 700; }
+.page-jump button:hover { background: var(--brand-dark); border-color: var(--brand-dark); }
 #toast { position: fixed; z-index: 50; right: 24px; bottom: 24px; transform: translateY(20px); padding: 12px 16px; color: #fff; background: #17345f; border-radius: var(--radius-control); opacity: 0; pointer-events: none; transition: .2s ease; }
 #toast.show { transform: translateY(0); opacity: 1; }
 @media (max-width: 1050px) {
@@ -121,4 +133,6 @@ input, select { width: 100%; padding: 11px 12px; border: 1px solid #cbd5e1; bord
 @media (max-width: 640px) {
   .compact-filters form { grid-template-columns: 1fr; } .prototype-note, .health-panel { align-items: flex-start; flex-direction: column; }
   .wide { grid-column: 1; } .province-menu { width: min(420px, calc(100vw - 48px)); }
+  .pagination-controls { gap: 4px; } .page-button, .page-ellipsis { width: 36px; height: 36px; }
+  .page-jump { width: 100%; justify-content: center; margin: 8px 0 0; }
 }
