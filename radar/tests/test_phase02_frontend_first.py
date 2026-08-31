@@ -666,9 +666,9 @@ class Phase02FrontendFirstTests(TestCase):
         )[0]
         batch = RecruitmentBatch.objects.get(pk=result.batch_id)
         home = self.client.get("/")
-        self.assertContains(home, "另有 4 个岗位")
+        self.assertContains(home, "另有 2 个岗位")
         batch_vm = next(item for item in home.context["batches"] if item.id == batch.pk)
-        self.assertEqual(len(batch_vm.preview_positions), 2)
+        self.assertEqual(len(batch_vm.preview_positions), 4)
         fragment = self.client.get(f"/batches/{batch.pk}/positions/")
         self.assertEqual(fragment.content.count(b'class="position-item"'), 6)
 

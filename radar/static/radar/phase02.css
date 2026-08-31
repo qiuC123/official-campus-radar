@@ -94,7 +94,7 @@ input, select { width: 100%; padding: 11px 12px; border: 1px solid #cbd5e1; bord
 .audience-tags { display: flex; flex-wrap: wrap; gap: 4px; }
 .locations-cell { line-height: 1.8; }
 .positions-preview { position: relative; outline: none; }
-.positions-summary { display: block; width: 100%; overflow: hidden; padding: 9px 10px; color: var(--brand); background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: var(--radius-control); font-size: 12px; line-height: 1.8; text-align: left; cursor: help; }
+.positions-summary { display: block; width: 100%; overflow: hidden; padding: 9px 10px; color: #111; background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: var(--radius-control); font-family: SimSun, "宋体", serif; font-size: 12px; line-height: 1.8; text-align: left; cursor: help; }
 .positions-summary-line { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .positions-summary-line small { font-size: inherit; }
 .positions-tooltip { display: none; position: absolute; z-index: 40; top: calc(100% + 8px); left: 50%; width: min(520px, 70vw); max-height: 240px; overflow-y: auto; transform: translateX(-50%); padding: 12px 14px; color: #fff; background: #28303b; border-radius: var(--radius-control); box-shadow: 0 12px 30px rgba(15, 23, 42, .28); font-size: 12px; line-height: 1.7; }

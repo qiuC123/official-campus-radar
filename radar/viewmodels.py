@@ -33,6 +33,7 @@ AUDIENCE_CHOICES = tuple((value, value) for value in (
 
 PROVINCE_CHOICES = PROVINCE_NAMES
 MAX_SELECTED_PROVINCES = 5
+PREVIEW_POSITION_LIMIT = 4
 
 
 @dataclass(frozen=True)
@@ -72,15 +73,15 @@ class RecruitmentBatchVM:
 
     @property
     def preview_positions(self):
-        return self.positions[:2]
+        return self.positions[:PREVIEW_POSITION_LIMIT]
 
     @property
     def remaining_count(self) -> int:
-        return max(0, len(self.positions) - 2)
+        return max(0, len(self.positions) - PREVIEW_POSITION_LIMIT)
 
     @property
     def remaining_positions(self):
-        return self.positions[2:]
+        return self.positions[PREVIEW_POSITION_LIMIT:]
 
     @property
     def hover_positions(self):
