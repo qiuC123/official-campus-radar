@@ -95,7 +95,10 @@ class Phase02MigrationGuardTests(SimpleTestCase):
 class Phase02MigrationDataTests(TransactionTestCase):
     migrate_from = ("radar", "0010_officialsource_api_source_type")
     migrate_to = ("radar", "0011_recruitment_batches_and_position_progress")
-    current_target = ("radar", "0027_classify_verified_2027_autumn_batches")
+    current_target = (
+        "radar",
+        "0028_classify_tencent_2027_main_campaign_as_autumn",
+    )
 
     def _migrate(self, target):
         executor = MigrationExecutor(connection)
