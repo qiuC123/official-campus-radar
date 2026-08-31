@@ -22,7 +22,9 @@ BATCH_APPLICATION_URLS = {
     "中国电信集团有限公司": {
         "phase-02:s03": (
             "https://job.chinatelecom.com.cn/wt/TELE/web/index"
-            "?brandCode=1#/postinquiry"
+            "?brandCode=1#/postinquiry?data="
+            "eyJrZXkiOjU4MTYxNywidHlwZSI6IjEiLCJyZWNydWl0UHJvamVjdCI6IiIs"
+            "InJlY3J1aXRQcm9qZWN0TmFtZSI6IiJ9"
         ),
     },
     "中国联合网络通信集团有限公司": {

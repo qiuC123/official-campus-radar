@@ -12,6 +12,8 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。AD
 
 正式页其余 9 个批次也已逐一核验并绑定岗位选择页，不再只修拆分项目：百度修正为带 `/jobs/list` 的应届生岗位列表；OPPO、中国电信、中国联通、宁德时代、比亚迪和顺丰从招聘首页或旧入口下钻到岗位列表；vivo 与拼多多原入口本身已是带招聘范围的岗位页，因此保持不变。当前 13 家企业、20 个正式批次全部命中独立批次映射；映射仍要求 HTTPS、企业一致和来源同域，未知批次会安全回退，不会接受任意外站。
 
+中国电信第一版岗位深链遗漏了官网要求的招聘单位上下文，虽然能打开“工作岗位”路由，但会显示“暂无职位”。现已使用官网从招聘单位入口生成的公开 `data` 参数绑定中国电信北京公司（单位键 `581617`、校园招聘类型 `1`）；从其他页面重新加载该地址也能独立显示数据库对应的 8 个 2027 年秋招岗位。
+
 根目录新增 `AGENTS.md`，将“每个可交付改动批次必须提交 Git、同步维护相关测试、完整测试及项目检查通过后才能交付、不得暂存用户文件”固化为项目级规则。
 
 项目投递页最初试放入来源解析配置，完整回归发现这会破坏 T4 冻结目录契约，因此立即恢复原配置并改为独立项目映射。两次配置切换均为本地、0 次网络请求，按追加式规则保留 6 条来源审计事件；美团最终配置哈希恢复为 `81684cb952e4db4751c984dabe35e19d0889e5a7e98f8a1fb75b0aebe47ecc7b`，来源保持 `enabled`。
@@ -28,7 +30,7 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。AD
 - `configure_recruitment_batch_partitions` 和 `correct_pinduoduo_title_mapping` 默认只预演，必须显式传入 `--apply` 才写库。`preview_announcement_migration` 默认只读，必须显式 `--record` 才保存用于门控确认的摘要。
 - 已增加 `/applications/`：只要用户曾保存过投递进度，即使对应批次以后被隐藏或取代，仍可查看和修改个人记录。
 - 当前迁移已应用至 `0024_superseded_batches_and_policy_events`。详细准入证据和剩余限制见 `docs/reviews/announcement-driven-adversarial-review.md`。
-- 2026-08-31 完整回归共 487 项测试通过；`manage.py check`、迁移检查和 `git diff --check` 均通过。正式首页、历史页和“我的进度”页均返回 HTTP 200。
+- 2026-08-31 完整回归共 488 项测试通过；`manage.py check`、迁移检查和 `git diff --check` 均通过。正式首页、历史页和“我的进度”页均返回 HTTP 200。
 
 ## Historical implementation record through 2026-08-27
 

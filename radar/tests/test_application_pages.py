@@ -1,4 +1,7 @@
+import base64
+import json
 from types import SimpleNamespace
+from urllib.parse import parse_qs, urlparse
 
 from django.test import SimpleTestCase
 
@@ -27,7 +30,9 @@ class BatchApplicationPageTests(SimpleTestCase):
             "中国电信集团有限公司": {
                 "phase-02:s03": (
                     "https://job.chinatelecom.com.cn/wt/TELE/web/index"
-                    "?brandCode=1#/postinquiry"
+                    "?brandCode=1#/postinquiry?data="
+                    "eyJrZXkiOjU4MTYxNywidHlwZSI6IjEiLCJyZWNydWl0UHJvamVjdCI6IiIs"
+                    "InJlY3J1aXRQcm9qZWN0TmFtZSI6IiJ9"
                 ),
             },
             "中国联合网络通信集团有限公司": {
@@ -85,6 +90,22 @@ class BatchApplicationPageTests(SimpleTestCase):
         ]
         self.assertEqual(len(identities), 20)
         self.assertEqual(len(set(identities)), 20)
+
+    def test_telecom_job_page_preserves_the_beijing_company_context(self):
+        url = BATCH_APPLICATION_URLS["中国电信集团有限公司"]["phase-02:s03"]
+        route, separator, query = urlparse(url).fragment.partition("?")
+
+        self.assertEqual(route, "/postinquiry")
+        self.assertEqual(separator, "?")
+        payload = json.loads(
+            base64.b64decode(parse_qs(query)["data"][0]).decode("utf-8")
+        )
+        self.assertEqual(payload, {
+            "key": 581617,
+            "type": "1",
+            "recruitProject": "",
+            "recruitProjectName": "",
+        })
 
     def test_url_must_match_company_identity_and_source_host(self):
         source = SimpleNamespace(
