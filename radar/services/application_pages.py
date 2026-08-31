@@ -85,8 +85,17 @@ BATCH_APPLICATION_URLS = {
         "official-project:tencent:project:1": (
             "https://join.qq.com/post.html?query=p_1"
         ),
+        "official-project:tencent:project:2": (
+            "https://join.qq.com/post.html?query=p_2"
+        ),
+        "official-project:tencent:projects:4-12": (
+            "https://join.qq.com/post.html?query=p_104"
+        ),
         "official-project:tencent:project:14": (
             "https://join.qq.com/post.html?query=p_14"
+        ),
+        "official-project:tencent:project:20": (
+            "https://join.qq.com/post.html?query=p_20"
         ),
         "official-project:tencent:project:9": (
             "https://join.qq.com/post.html?query=p_9"

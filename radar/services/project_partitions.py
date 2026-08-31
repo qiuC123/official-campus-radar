@@ -62,7 +62,7 @@ def _jd_partitions(portal: str) -> list[dict]:
 
 
 def _tencent_partitions(portal: str) -> list[dict]:
-    audience = "毕业时间为2026年1月至2027年12月"
+    graduate_audience = "毕业时间为2026年1月至2027年12月"
     return [
         {
             "batch": _batch(
@@ -70,9 +70,29 @@ def _tencent_partitions(portal: str) -> list[dict]:
                 title="腾讯应届毕业生招聘",
                 official_page_url=portal,
                 recruitment_type="campus_recruitment",
-                target_audience=audience,
+                target_audience=graduate_audience,
             ),
             "row_filters": [{"path": "projectId", "equals_any": [1]}],
+        },
+        {
+            "batch": _batch(
+                identity_key="official-project:tencent:project:2",
+                title="腾讯 2026 应届实习招聘",
+                official_page_url=portal,
+                recruitment_type="internship",
+                target_audience="毕业时间为2026年9月至2027年12月",
+            ),
+            "row_filters": [{"path": "projectId", "equals_any": [2]}],
+        },
+        {
+            "batch": _batch(
+                identity_key="official-project:tencent:projects:4-12",
+                title="腾讯日常实习招聘",
+                official_page_url=portal,
+                recruitment_type="internship",
+                target_audience="全体在校生",
+            ),
+            "row_filters": [{"path": "projectId", "equals_any": [4, 12]}],
         },
         {
             "batch": _batch(
@@ -80,9 +100,19 @@ def _tencent_partitions(portal: str) -> list[dict]:
                 title="腾讯青云计划（应届生）",
                 official_page_url=portal,
                 recruitment_type="special_program",
-                target_audience=audience,
+                target_audience=graduate_audience,
             ),
             "row_filters": [{"path": "projectId", "equals_any": [14]}],
+        },
+        {
+            "batch": _batch(
+                identity_key="official-project:tencent:project:20",
+                title="腾讯青云计划（实习生）",
+                official_page_url=portal,
+                recruitment_type="internship",
+                target_audience="毕业时间为2026年9月以后",
+            ),
+            "row_filters": [{"path": "projectId", "equals_any": [20]}],
         },
         {
             "batch": _batch(
@@ -90,7 +120,7 @@ def _tencent_partitions(portal: str) -> list[dict]:
                 title="腾讯 AI 产品经理培训生",
                 official_page_url=portal,
                 recruitment_type="special_program",
-                target_audience=audience,
+                target_audience=graduate_audience,
             ),
             "row_filters": [{"path": "projectId", "equals_any": [9]}],
         },
@@ -218,4 +248,9 @@ def partitioned_parser_config(
         raise ValueError(f"missing official portal for {company}")
     result = copy.deepcopy(parser_config)
     result["batch_partitions"] = contract["factory"](portal)
+    if company == "腾讯":
+        body = result.get("body")
+        if not isinstance(body, dict):
+            raise ValueError("missing JSON request body for 腾讯")
+        body["projectMappingIdList"] = [1, 2, 104, 14, 20, 9]
     return result

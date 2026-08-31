@@ -74,7 +74,10 @@ class BatchApplicationPageTests(SimpleTestCase):
             },
             "腾讯": {
                 "official-project:tencent:project:1": "https://join.qq.com/post.html?query=p_1",
+                "official-project:tencent:project:2": "https://join.qq.com/post.html?query=p_2",
+                "official-project:tencent:projects:4-12": "https://join.qq.com/post.html?query=p_104",
                 "official-project:tencent:project:14": "https://join.qq.com/post.html?query=p_14",
+                "official-project:tencent:project:20": "https://join.qq.com/post.html?query=p_20",
                 "official-project:tencent:project:9": "https://join.qq.com/post.html?query=p_9",
             },
             "顺丰": {
@@ -88,8 +91,8 @@ class BatchApplicationPageTests(SimpleTestCase):
             for company_mapping in BATCH_APPLICATION_URLS.values()
             for identity in company_mapping
         ]
-        self.assertEqual(len(identities), 20)
-        self.assertEqual(len(set(identities)), 20)
+        self.assertEqual(len(identities), 23)
+        self.assertEqual(len(set(identities)), 23)
 
     def test_telecom_job_page_preserves_the_beijing_company_context(self):
         url = BATCH_APPLICATION_URLS["中国电信集团有限公司"]["phase-02:s03"]

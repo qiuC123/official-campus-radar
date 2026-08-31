@@ -34,7 +34,7 @@ class ProjectPartitionConfigurationTests(SimpleTestCase):
     def test_all_four_partition_contracts_are_valid_and_idempotent(self) -> None:
         rows = self.catalog_rows()
         self.assertEqual(set(rows), set(PARTITIONED_COMPANIES))
-        expected_counts = {"京东": 3, "腾讯": 3, "美团": 3, "大疆创新": 2}
+        expected_counts = {"京东": 3, "腾讯": 6, "美团": 3, "大疆创新": 2}
         for company in PARTITIONED_COMPANIES:
             with self.subTest(company=company):
                 row = rows[company]
@@ -100,8 +100,17 @@ class ProjectPartitionConfigurationTests(SimpleTestCase):
                 "official-project:tencent:project:1": (
                     "https://join.qq.com/post.html?query=p_1"
                 ),
+                "official-project:tencent:project:2": (
+                    "https://join.qq.com/post.html?query=p_2"
+                ),
+                "official-project:tencent:projects:4-12": (
+                    "https://join.qq.com/post.html?query=p_104"
+                ),
                 "official-project:tencent:project:14": (
                     "https://join.qq.com/post.html?query=p_14"
+                ),
+                "official-project:tencent:project:20": (
+                    "https://join.qq.com/post.html?query=p_20"
                 ),
                 "official-project:tencent:project:9": (
                     "https://join.qq.com/post.html?query=p_9"
@@ -171,3 +180,22 @@ class ProjectPartitionConfigurationTests(SimpleTestCase):
                 "official-project:meituan:special:8",
             )
         )
+
+    def test_tencent_scope_includes_all_official_mapping_ids_without_an_overseas_duplicate(self) -> None:
+        row = self.catalog_rows()["腾讯"]
+        configured = partitioned_parser_config(
+            "腾讯",
+            row["adapter_name"],
+            json.loads(row["parser_config"]),
+        )
+
+        self.assertEqual(
+            configured["body"]["projectMappingIdList"],
+            [1, 2, 104, 14, 20, 9],
+        )
+        identities = {
+            item["batch"]["identity_key"]
+            for item in configured["batch_partitions"]
+        }
+        self.assertEqual(len(identities), 6)
+        self.assertFalse(any("overseas" in identity for identity in identities))

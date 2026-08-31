@@ -97,7 +97,7 @@ class Phase02MigrationDataTests(TransactionTestCase):
     migrate_to = ("radar", "0011_recruitment_batches_and_position_progress")
     current_target = (
         "radar",
-        "0029_classify_shared_campaign_projects_and_dji_early_autumn",
+        "0030_add_tencent_internship_batches",
     )
 
     def _migrate(self, target):
