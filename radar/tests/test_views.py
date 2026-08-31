@@ -30,7 +30,7 @@ class DashboardViewTests(TestCase):
 
     def test_dashboard_displays_human_readable_recruitment_type(self) -> None:
         response = self.client.get("/")
-        self.assertContains(response, "phase02.css?v=20260831-8")
+        self.assertContains(response, "phase02.css?v=20260831-9")
         self.assertContains(response, 'value="summer"')
         self.assertContains(response, 'value="autumn_early"')
         self.assertNotContains(response, 'value="campus"')
@@ -94,6 +94,10 @@ class DashboardViewTests(TestCase):
         self.assertRegex(
             css,
             r'\.positions-summary \{[^}]*color: #111;[^}]*font-family: SimSun, "宋体", serif;',
+        )
+        self.assertIn(
+            ".positions-summary-line { display: inline; white-space: normal; }",
+            css,
         )
 
     def test_progress_endpoint_accepts_only_known_choice(self) -> None:

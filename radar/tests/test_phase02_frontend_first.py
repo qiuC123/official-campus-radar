@@ -667,6 +667,7 @@ class Phase02FrontendFirstTests(TestCase):
         batch = RecruitmentBatch.objects.get(pk=result.batch_id)
         home = self.client.get("/")
         self.assertContains(home, "另有 2 个岗位")
+        self.assertContains(home, "额外岗位 2</span>，", html=False)
         batch_vm = next(item for item in home.context["batches"] if item.id == batch.pk)
         self.assertEqual(len(batch_vm.preview_positions), 4)
         fragment = self.client.get(f"/batches/{batch.pk}/positions/")
