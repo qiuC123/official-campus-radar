@@ -1,6 +1,9 @@
+import re
+from pathlib import Path
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.contrib.staticfiles import finders
 from django.test import TestCase
 
 from radar.models import (
@@ -27,10 +30,44 @@ class DashboardViewTests(TestCase):
 
     def test_dashboard_displays_human_readable_recruitment_type(self) -> None:
         response = self.client.get("/")
+        self.assertContains(response, "phase02.css?v=20260831-5")
         self.assertContains(response, 'value="summer"')
         self.assertContains(response, 'value="autumn_early"')
         self.assertNotContains(response, 'value="campus"')
-        self.assertContains(response, '<span class="badge recruit-badge">待确认</span>', html=True)
+        self.assertContains(
+            response,
+            (
+                '<span class="badge recruit-badge" '
+                'data-recruitment-type="待确认">待确认</span>'
+            ),
+            html=True,
+        )
+
+    def test_each_recruitment_type_badge_has_a_distinct_color_style(self) -> None:
+        stylesheet = finders.find("radar/phase02.css")
+        self.assertIsNotNone(stylesheet)
+        css = Path(stylesheet).read_text(encoding="utf-8")
+        style_blocks = []
+        for label in (
+            "春招",
+            "春招补录",
+            "夏招",
+            "秋招提前批",
+            "秋招",
+            "秋招补录",
+            "实习",
+            "待确认",
+        ):
+            match = re.search(
+                rf'\.recruit-badge\[data-recruitment-type="{label}"\]\s*\{{([^}}]+)\}}',
+                css,
+            )
+            self.assertIsNotNone(match, label)
+            style = " ".join(match.group(1).split())
+            self.assertIn("color:", style)
+            self.assertIn("background:", style)
+            style_blocks.append(style)
+        self.assertEqual(len(set(style_blocks)), len(style_blocks))
 
     def test_progress_endpoint_accepts_only_known_choice(self) -> None:
         response = self.client.post(f"/batches/{self.beijing.pk}/progress/", {"status": "interviewed"})

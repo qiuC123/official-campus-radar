@@ -16,6 +16,8 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。AD
 
 招聘类型复核不再把“校园招聘”和“专项计划”直接显示为季节。依据已经核验的官网申请起始日或官方岗位发布日期，OPPO、中国电信、中国联通、京东 3 个项目、大疆数字管理构建者、宁德时代、比亚迪、百度和顺丰共 11 个批次改为秋招。加上此前已确认的 vivo、拼多多，以及同属腾讯 2027 校园招聘活动的应届毕业生招聘、青云计划和 AI 产品经理培训生，当前正式页为秋招 16 个、秋招提前批 1 个、实习 3 个、待确认 0 个；大疆拓疆者面向 2027 届并于 2026 年 6 月 25 日开启，归为秋招提前批。
 
+招聘类型徽章已按八种标准类型使用独立配色：春招、春招补录、夏招、秋招提前批、秋招、秋招补录、实习和待确认不再共用同一种橙色；颜色只改变视觉识别，不改变筛选值和招聘类型证据。
+
 迁移 `0027_classify_verified_2027_autumn_batches` 为 11 个日期判断追加公告字段证据；迁移 `0028_classify_tencent_2027_main_campaign_as_autumn` 修正腾讯应届毕业生主校招；迁移 `0029_classify_shared_campaign_projects_and_dji_early_autumn` 按最新领域规则让腾讯两个专项继承主招聘活动的秋招季节，并把大疆拓疆者归为秋招提前批。迁移都保留原证据且不修改公司、岗位或准入状态。0027 前 SQLite 备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-season-classification-20260831-185005.sqlite3`，SHA-256 为 `0D933676B6430E064C6C125F69BF0BB058174D2F8F33B8FF5E9059F6CA969AFB`；0028 前备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-tencent-season-20260831-190852.sqlite3`，SHA-256 为 `BB70CE344BC385F80E93BFBB4888473A6A0361765B4982BA4338CCBD6EA9790D`；0029 前备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-shared-season-20260831-194045.sqlite3`，SHA-256 为 `EA06B951CA266071C09445C49B3761E3B6EF9838449BF2DB09B84AF9FFBE4966`。
 
 根目录新增 `AGENTS.md`，将“每个可交付改动批次必须提交 Git、同步维护相关测试、完整测试及项目检查通过后才能交付、不得暂存用户文件”固化为项目级规则。
@@ -34,7 +36,7 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。AD
 - `configure_recruitment_batch_partitions` 和 `correct_pinduoduo_title_mapping` 默认只预演，必须显式传入 `--apply` 才写库。`preview_announcement_migration` 默认只读，必须显式 `--record` 才保存用于门控确认的摘要。
 - 已增加 `/applications/`：只要用户曾保存过投递进度，即使对应批次以后被隐藏或取代，仍可查看和修改个人记录。
 - 当前迁移已应用至 `0029_classify_shared_campaign_projects_and_dji_early_autumn`。详细准入证据和剩余限制见 `docs/reviews/announcement-driven-adversarial-review.md`。
-- 2026-08-31 完整回归共 494 项测试通过；`manage.py check`、迁移检查和 `git diff --check` 均通过。正式首页、历史页和“我的进度”页均返回 HTTP 200。
+- 2026-08-31 完整回归共 495 项测试通过；`manage.py check`、迁移检查和 `git diff --check` 均通过。正式首页、历史页和“我的进度”页均返回 HTTP 200。
 
 ## Historical implementation record through 2026-08-27
 

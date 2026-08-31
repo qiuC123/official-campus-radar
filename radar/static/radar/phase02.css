@@ -81,7 +81,15 @@ input, select { width: 100%; padding: 11px 12px; border: 1px solid #cbd5e1; bord
 .company-foreign { color: #3b5ab7; background: #edf2ff; }
 .company-bank { color: #7a4aa5; background: #f5edff; }
 .company-other { color: #516071; background: #eef2f5; }
-.recruit-badge { color: #d56700; background: #fff1df; }
+.recruit-badge { border: 1px solid transparent; font-weight: 650; }
+.recruit-badge[data-recruitment-type="春招"] { color: #18794e; background: #e7f6ed; border-color: #b7e2c7; }
+.recruit-badge[data-recruitment-type="春招补录"] { color: #087f8c; background: #e3f7f8; border-color: #afe1e5; }
+.recruit-badge[data-recruitment-type="夏招"] { color: #946200; background: #fff4cc; border-color: #f1d98a; }
+.recruit-badge[data-recruitment-type="秋招提前批"] { color: #6941c6; background: #f1eaff; border-color: #d7c4fa; }
+.recruit-badge[data-recruitment-type="秋招"] { color: #c2410c; background: #fff0e8; border-color: #f6c6ae; }
+.recruit-badge[data-recruitment-type="秋招补录"] { color: #b42318; background: #fff0ee; border-color: #f4c0bb; }
+.recruit-badge[data-recruitment-type="实习"] { color: #175cd3; background: #eaf2ff; border-color: #b9d1fb; }
+.recruit-badge[data-recruitment-type="待确认"] { color: #526173; background: #edf1f5; border-color: #d3dbe4; }
 .audience-badge { color: #08785b; background: #e4f8f1; }
 .audience-tags { display: flex; flex-wrap: wrap; gap: 4px; }
 .locations-cell { line-height: 1.8; }
