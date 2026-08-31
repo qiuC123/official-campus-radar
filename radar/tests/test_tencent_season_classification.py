@@ -68,7 +68,7 @@ class TencentSeasonClassificationTests(TestCase):
             recruitment_type=recruitment_type,
         )
 
-    def test_only_main_campaign_inherits_main_launch_announcement(self):
+    def test_0028_changes_only_the_main_campaign(self):
         migration.classify_tencent_main_campaign_as_autumn(apps, None)
 
         self.main_batch.refresh_from_db()
