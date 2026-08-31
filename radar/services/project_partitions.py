@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copy
-from urllib.parse import urlparse
 
 
 PARTITIONED_COMPANIES = ("京东", "大疆创新", "美团", "腾讯")
@@ -188,69 +187,6 @@ SOURCE_CONTRACTS = {
         "factory": _dji_partitions,
     },
 }
-
-PROJECT_APPLICATION_URLS = {
-    "京东": {
-        "official-project:jd:plan:56": (
-            "https://campus.jd.com/#/jobs?selProjects=56"
-        ),
-        "official-project:jd:plan:57": (
-            "https://campus.jd.com/#/jobs?selProjects=57"
-        ),
-        "official-project:jd:plan:58": (
-            "https://campus.jd.com/#/jobs?selProjects=58"
-        ),
-    },
-    "腾讯": {
-        "official-project:tencent:project:1": (
-            "https://join.qq.com/post.html?query=p_1"
-        ),
-        "official-project:tencent:project:14": (
-            "https://join.qq.com/post.html?query=p_14"
-        ),
-        "official-project:tencent:project:9": (
-            "https://join.qq.com/post.html?query=p_9"
-        ),
-    },
-    "美团": {
-        "official-project:meituan:special:6": (
-            "https://zhaopin.meituan.com/web/position?hiringType=2_6"
-        ),
-        "official-project:meituan:special:8": (
-            "https://zhaopin.meituan.com/web/longcat"
-        ),
-        "official-project:meituan:special:3": (
-            "https://zhaopin.meituan.com/web/beidou"
-        ),
-    },
-    "大疆创新": {
-        "official-project:dji:tuojiangzhe:2027": (
-            "https://apply.careers.dji.com/campus-recruitment/dji/143359"
-            "?locale=zh-CN#/jobs"
-        ),
-        "official-project:dji:digital-management:2027": (
-            "https://apply.careers.dji.com/campus-recruitment/dji/143359"
-            "?locale=zh-CN#/jobs?keyword=%E6%95%B0%E5%AD%97%E7%AE%A1%E7%90%86"
-            "&page=1&anchorName=jobsList"
-        ),
-    },
-}
-
-
-def configured_project_application_url(source, identity_key: str) -> str | None:
-    """Return the verified official job-selection URL for a project batch."""
-
-    company = getattr(getattr(source, "organization", None), "name", "")
-    url = PROJECT_APPLICATION_URLS.get(company, {}).get(identity_key, "")
-    source_host = (urlparse(source.source_url).hostname or "").casefold()
-    parsed = urlparse(url)
-    if (
-        parsed.scheme == "https"
-        and (parsed.hostname or "").casefold() == source_host
-    ):
-        return url
-    return None
-
 
 def partitioned_parser_config(
     company: str,

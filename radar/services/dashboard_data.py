@@ -12,7 +12,7 @@ from radar.services.locations import (
     normalize_locations,
     province_locations,
 )
-from radar.services.project_partitions import configured_project_application_url
+from radar.services.application_pages import configured_batch_application_url
 from radar.viewmodels import (
     DashboardSummaryVM,
     MAX_SELECTED_PROVINCES,
@@ -271,7 +271,7 @@ def build_orm_dashboard(params, *, history: bool = False):
             and item.href
         )
         if not batch_application_urls:
-            configured_url = configured_project_application_url(
+            configured_url = configured_batch_application_url(
                 batch.source,
                 batch.identity_key,
             )

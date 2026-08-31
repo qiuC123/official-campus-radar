@@ -345,6 +345,92 @@ class Phase02FrontendFirstTests(TestCase):
                     count=1,
                 )
 
+    def test_exact_job_pages_cover_all_non_partitioned_formal_companies(self):
+        cases = (
+            (
+                "OPPO",
+                "careers.oppo.com",
+                "phase-02:p12",
+                "https://careers.oppo.com/university/oppo/campus/post"
+                "?recruitType=Graduate",
+            ),
+            (
+                "vivo",
+                "hr-campus.vivo.com",
+                "phase-02:p13",
+                "https://hr-campus.vivo.com/jobs?1=%5B%7B%22id%22%3A%222%22%2C"
+                "%22label%22%3A%22%E7%A7%8B%E5%AD%A3%E6%A0%A1%E5%9B%AD"
+                "%E6%8B%9B%E8%81%98%22%7D%5D",
+            ),
+            (
+                "中国电信集团有限公司",
+                "job.chinatelecom.com.cn",
+                "phase-02:s03",
+                "https://job.chinatelecom.com.cn/wt/TELE/web/index"
+                "?brandCode=1#/postinquiry",
+            ),
+            (
+                "中国联合网络通信集团有限公司",
+                "zglt.zhaopin.com",
+                "phase-02:s04",
+                "https://zglt.zhaopin.com/scjobs/index.html",
+            ),
+            (
+                "宁德时代",
+                "app.mokahr.com",
+                "phase-02:p15",
+                "https://app.mokahr.com/campus-recruitment/catlhr/148948#/jobs",
+            ),
+            (
+                "拼多多",
+                "careers.pddglobalhr.com",
+                "phase-02:p11",
+                "https://careers.pddglobalhr.com/campus/grad",
+            ),
+            (
+                "比亚迪",
+                "job.byd.com",
+                "phase-02:p19",
+                "https://job.byd.com/portal/pc/#/school/schoolPositionList",
+            ),
+            (
+                "百度",
+                "talent.baidu.com",
+                "phase-02:p06",
+                "https://talent.baidu.com/jobs/list?recruitType=GRADUATE",
+            ),
+            (
+                "顺丰",
+                "campus.sf-express.com",
+                "phase-02:p18",
+                "https://campus.sf-express.com/#/positionList",
+            ),
+        )
+        expected = {}
+        for index, (name, host, identity_key, application_url) in enumerate(cases):
+            source = create_enabled_source(name=name, host=host)
+            batch = publish_formal_notice(
+                source,
+                identity_key=identity_key,
+                hash_character=f"{index + 1:x}",
+            )
+            expected[batch.pk] = application_url
+
+        response = self.client.get("/")
+
+        for batch_vm in response.context["batches"]:
+            if batch_vm.id in expected:
+                self.assertEqual(
+                    batch_vm.primary_application_url,
+                    expected[batch_vm.id],
+                )
+                escaped_url = expected[batch_vm.id].replace("&", "&amp;")
+                self.assertContains(
+                    response,
+                    f'href="{escaped_url}"',
+                    count=1,
+                )
+
     def test_project_page_precedes_a_single_position_application_link(self):
         source = create_enabled_source(name="腾讯", host="join.qq.com")
         candidate = complete_candidate(

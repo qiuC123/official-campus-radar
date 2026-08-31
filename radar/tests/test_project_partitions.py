@@ -6,10 +6,12 @@ from types import SimpleNamespace
 from django.test import SimpleTestCase
 
 from radar.collectors.registry import AdapterRegistry
+from radar.services.application_pages import (
+    BATCH_APPLICATION_URLS,
+    configured_batch_application_url,
+)
 from radar.services.project_partitions import (
     PARTITIONED_COMPANIES,
-    PROJECT_APPLICATION_URLS,
-    configured_project_application_url,
     partitioned_parser_config,
 )
 
@@ -129,7 +131,13 @@ class ProjectPartitionConfigurationTests(SimpleTestCase):
                 ),
             },
         }
-        self.assertEqual(PROJECT_APPLICATION_URLS, expected_application_urls)
+        self.assertEqual(
+            {
+                company: BATCH_APPLICATION_URLS[company]
+                for company in PARTITIONED_COMPANIES
+            },
+            expected_application_urls,
+        )
         rows = self.catalog_rows()
         for company, mappings in expected_application_urls.items():
             source = SimpleNamespace(
@@ -150,7 +158,7 @@ class ProjectPartitionConfigurationTests(SimpleTestCase):
             )
             for identity_key, expected_url in mappings.items():
                 self.assertEqual(
-                    configured_project_application_url(source, identity_key),
+                    configured_batch_application_url(source, identity_key),
                     expected_url,
                 )
         wrong_host = SimpleNamespace(
@@ -158,7 +166,7 @@ class ProjectPartitionConfigurationTests(SimpleTestCase):
             organization=SimpleNamespace(name="美团"),
         )
         self.assertIsNone(
-            configured_project_application_url(
+            configured_batch_application_url(
                 wrong_host,
                 "official-project:meituan:special:8",
             )
