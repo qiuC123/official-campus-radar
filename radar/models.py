@@ -139,7 +139,7 @@ class RecruitmentAnnouncement(models.Model):
     class VerificationMethod(models.TextChoices):
         HTTP = "http", "官网 HTTP 回读"
         BROWSER = "browser", "隔离浏览器回读"
-        WXCLI = "wxcli", "wxcli 微信证据"
+        WECHAT_OA = "wechat_oa", "wechat-oa 微信证据"
         HUMAN_SNAPSHOT = "human_snapshot", "人工确认快照"
         MANUAL_REVIEW = "manual_review", "人工审核"
 

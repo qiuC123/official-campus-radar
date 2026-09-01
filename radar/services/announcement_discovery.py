@@ -154,7 +154,9 @@ def _clean_url(value: object) -> str:
     if parts.username or parts.password:
         raise DiscoveryContractError("candidate URL must not contain credentials")
     if parts.hostname.casefold() == "mp.weixin.qq.com":
-        raise DiscoveryContractError("WeChat URLs belong to the wxcli candidate contract")
+        raise DiscoveryContractError(
+            "WeChat URLs belong to the wechat-oa candidate contract"
+        )
     return canonicalize_url(raw)
 
 

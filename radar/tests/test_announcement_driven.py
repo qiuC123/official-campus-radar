@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.core.exceptions import ValidationError
-from django.core.management import call_command
+from django.core.management import call_command, get_commands
 from django.core.management.base import CommandError
 from django.test import TestCase
 from django.utils import timezone
@@ -46,7 +46,7 @@ from radar.services.announcements import (
     admit_official_domain_announcement_source,
     admit_batch_with_announcement,
     create_announcement_only_batch,
-    import_wxcli_announcement,
+    import_wechat_oa_announcement,
     migration_preview_digest,
     migration_preview_payload,
     mark_batch_pending_with_announcement,
@@ -60,9 +60,9 @@ from radar.services.announcements import (
 )
 from radar.services.dashboard_data import canonical_audience
 from radar.services.update_runner import run_update
-from radar.services.wxcli_client import (
-    WxCliClient,
-    WxCliError,
+from radar.services.wechat_oa_client import (
+    WeChatOAClient,
+    WeChatOAError,
     build_wechat_candidate_batch,
     validate_wechat_candidate_batch,
 )
@@ -132,7 +132,7 @@ class AnnouncementGateTests(TestCase):
             last_verified_at=timezone.now(),
             verification_status=RecruitmentAnnouncement.VerificationStatus.VERIFIED,
             verification_method=(
-                RecruitmentAnnouncement.VerificationMethod.WXCLI
+                RecruitmentAnnouncement.VerificationMethod.WECHAT_OA
                 if kind in {
                     RecruitmentAnnouncement.SourceKind.WECHAT_ARTICLE,
                     RecruitmentAnnouncement.SourceKind.WECHAT_MINIPROGRAM,
@@ -431,7 +431,7 @@ class AnnouncementGateTests(TestCase):
             content_sha256="b" * 64,
             last_verified_at=timezone.now(),
             verification_status=RecruitmentAnnouncement.VerificationStatus.VERIFIED,
-            verification_method=RecruitmentAnnouncement.VerificationMethod.WXCLI,
+            verification_method=RecruitmentAnnouncement.VerificationMethod.WECHAT_OA,
         )
         admit_batch_with_announcement(
             self.batch,
@@ -475,7 +475,7 @@ class AnnouncementGateTests(TestCase):
             content_sha256="c" * 64,
             last_verified_at=timezone.now(),
             verification_status=RecruitmentAnnouncement.VerificationStatus.VERIFIED,
-            verification_method=RecruitmentAnnouncement.VerificationMethod.WXCLI,
+            verification_method=RecruitmentAnnouncement.VerificationMethod.WECHAT_OA,
         )
 
         with self.assertRaises(ValidationError):
@@ -1404,7 +1404,7 @@ class OfficialDiscoveryContractTests(TestCase):
         self.assertIn('"ok": false', output.getvalue())
 
 
-class WxCliBoundaryTests(TestCase):
+class WeChatOABoundaryTests(TestCase):
     def setUp(self):
         self.source = create_enabled_source(name="微信边界公司", host="wechat-boundary.test")
         WeChatAccountIdentity.objects.create(
@@ -1441,21 +1441,23 @@ class WxCliBoundaryTests(TestCase):
             },
         }
 
-    def test_wxcli_article_requires_radar_owned_account_allowlist(self):
-        announcement = import_wxcli_announcement(self.source.organization, self.wx_candidate())
+    def test_wechat_oa_article_requires_radar_owned_account_allowlist(self):
+        announcement = import_wechat_oa_announcement(
+            self.source.organization, self.wx_candidate()
+        )
         self.assertEqual(announcement.verification_status, "verified")
         self.assertEqual(announcement.account_biz_id, "biz-safe")
 
     def test_image_only_article_remains_pending(self):
-        announcement = import_wxcli_announcement(
+        announcement = import_wechat_oa_announcement(
             self.source.organization,
             self.wx_candidate(markdown="", images=[{"index": 0, "url": "https://img.test/a"}]),
         )
         self.assertEqual(announcement.verification_status, "pending_image")
 
-    def test_empty_wxcli_article_evidence_is_rejected(self):
+    def test_empty_wechat_oa_article_evidence_is_rejected(self):
         with self.assertRaises(ValidationError):
-            import_wxcli_announcement(
+            import_wechat_oa_announcement(
                 self.source.organization,
                 self.wx_candidate(markdown="", images=[]),
             )
@@ -1466,9 +1468,9 @@ class WxCliBoundaryTests(TestCase):
             "url": "https://img.test/a",
             "ocr_text": "OCR公告：2027届校园招聘，邮箱接收简历",
             "analysis_status": "human_confirmed",
-            "ocr_engine": "future-wxcli",
+            "ocr_engine": "wechat-oa",
         }])
-        announcement = import_wxcli_announcement(self.source.organization, candidate)
+        announcement = import_wechat_oa_announcement(self.source.organization, candidate)
         self.assertEqual(announcement.verification_status, "verified")
         batch = publish_formal_notice(
             self.source,
@@ -1499,9 +1501,9 @@ class WxCliBoundaryTests(TestCase):
         candidate = self.wx_candidate()
         candidate["evidence"]["account_identity"]["observed_biz_id"] = "different-biz"
         with self.assertRaises(ValidationError):
-            import_wxcli_announcement(self.source.organization, candidate)
+            import_wechat_oa_announcement(self.source.organization, candidate)
 
-    def test_wxcli_observed_links_and_media_remain_untrusted_channel_candidates(self):
+    def test_wechat_oa_observed_links_and_media_remain_untrusted_channel_candidates(self):
         candidate = self.wx_candidate()
         candidate["evidence"]["external_links"] = [
             {
@@ -1525,11 +1527,11 @@ class WxCliBoundaryTests(TestCase):
             "index": 0,
             "url": "https://img.example.test/poster.png",
             "ocr_text": "扫码投递",
-            "ocr_engine": "future-wxcli",
+            "ocr_engine": "wechat-oa",
             "analysis_status": "human_confirmed",
             "qr_payloads": ["weixin://dl/business/?ticket=safe"],
         }]
-        announcement = import_wxcli_announcement(self.source.organization, candidate)
+        announcement = import_wechat_oa_announcement(self.source.organization, candidate)
         self.assertEqual(len(announcement.observed_external_links), 2)
         self.assertEqual(announcement.observed_media[0]["ocr_text"], "扫码投递")
         channels = observed_application_channel_candidates(announcement)
@@ -1556,9 +1558,11 @@ class WxCliBoundaryTests(TestCase):
             }}
             return subprocess.CompletedProcess(command, 0, json.dumps(output), "")
 
-        client = WxCliClient(runner=runner)
+        client = WeChatOAClient(runner=runner)
         result = client.hydrate_candidate_batch({"schema_version": "1"})
         self.assertFalse(result.partial)
+        self.assertEqual(calls[0][0], "wechat-oa")
+        self.assertEqual(calls[1][0], "wechat-oa")
         self.assertNotIn("--browser", calls[1])
         self.assertEqual(call_options[1]["timeout"], 660)
 
@@ -1567,8 +1571,8 @@ class WxCliBoundaryTests(TestCase):
             subprocess.CompletedProcess([], 0, "0.4.0", ""),
             subprocess.CompletedProcess([], 0, json.dumps({"ok": False, "error": {"code": "VERIFICATION_REQUIRED"}}), ""),
         ))
-        client = WxCliClient(runner=lambda *args, **kwargs: next(responses))
-        with self.assertRaises(WxCliError) as raised:
+        client = WeChatOAClient(runner=lambda *args, **kwargs: next(responses))
+        with self.assertRaises(WeChatOAError) as raised:
             client.hydrate_candidate_batch({"schema_version": "1"})
         self.assertEqual(raised.exception.code, "VERIFICATION_REQUIRED")
 
@@ -1602,7 +1606,7 @@ class WxCliBoundaryTests(TestCase):
             dict(base, url="https://example.test/jobs"),
             dict(base, snippet="authorization=secret"),
         ):
-            with self.assertRaises(WxCliError):
+            with self.assertRaises(WeChatOAError):
                 build_wechat_candidate_batch(
                     query="2027校园招聘",
                     company="微信边界公司",
@@ -1611,7 +1615,7 @@ class WxCliBoundaryTests(TestCase):
                     providers=["exa"],
                 )
 
-    def test_import_command_rejects_unsafe_input_before_starting_wxcli(self):
+    def test_import_command_rejects_unsafe_input_before_starting_wechat_oa(self):
         payload = build_wechat_candidate_batch(
             query="2027校园招聘",
             company="微信边界公司",
@@ -1627,15 +1631,57 @@ class WxCliBoundaryTests(TestCase):
             path = handle.name
         try:
             with patch(
-                "radar.management.commands.import_wxcli_announcements.WxCliClient.hydrate_candidate_batch"
+                "radar.management.commands.import_wechat_oa_announcements.WeChatOAClient.hydrate_candidate_batch"
             ) as hydrate:
                 with self.assertRaises(CommandError):
                     call_command(
-                        "import_wxcli_announcements",
+                        "import_wechat_oa_announcements",
                         organization="微信边界公司",
                         input=path,
                     )
                 hydrate.assert_not_called()
+        finally:
+            import os
+            os.unlink(path)
+
+    def test_only_canonical_wechat_oa_import_command_is_registered(self):
+        commands = get_commands()
+        self.assertIn("import_wechat_oa_announcements", commands)
+        self.assertNotIn("import_wxcli_announcements", commands)
+
+    def test_import_command_accepts_canonical_wechat_oa_executable_option(self):
+        payload = build_wechat_candidate_batch(
+            query="2027校园招聘",
+            company="微信边界公司",
+            expected_accounts=[{"display_names": ["微信边界招聘"]}],
+            candidates=[],
+            providers=["exa"],
+        )
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", encoding="utf-8", delete=False
+        ) as handle:
+            json.dump(payload, handle, ensure_ascii=False)
+            path = handle.name
+        try:
+            with patch(
+                "radar.management.commands.import_wechat_oa_announcements.WeChatOAClient"
+            ) as client_class:
+                client_class.return_value.hydrate_candidate_batch.return_value = (
+                    SimpleNamespace(
+                        verified_candidates=(),
+                        partial=False,
+                    )
+                )
+                output = StringIO()
+                call_command(
+                    "import_wechat_oa_announcements",
+                    organization="微信边界公司",
+                    input=path,
+                    wechat_oa_path="C:/tools/wechat-oa.exe",
+                    stdout=output,
+                )
+            client_class.assert_called_once_with("C:/tools/wechat-oa.exe")
+            self.assertIn('"ok": true', output.getvalue())
         finally:
             import os
             os.unlink(path)

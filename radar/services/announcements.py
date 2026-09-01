@@ -56,25 +56,25 @@ def _parse_datetime(value) -> datetime | None:
     return parse_datetime(str(value))
 
 
-def _normalized_wxcli_links(value) -> list[dict]:
+def _normalized_wechat_oa_links(value) -> list[dict]:
     if value is None:
         return []
     if not isinstance(value, list) or len(value) > 200:
-        raise ValidationError("wxcli external links are invalid")
+        raise ValidationError("wechat-oa external links are invalid")
     normalized = []
     for item in value:
         if not isinstance(item, dict):
-            raise ValidationError("wxcli external link must be an object")
+            raise ValidationError("wechat-oa external link must be an object")
         kind = str(item.get("kind") or "").strip()
         target = str(item.get("normalized_value") or "").strip()
         if kind not in _EXTERNAL_LINK_KINDS or not target:
-            raise ValidationError("wxcli external link has invalid kind or target")
+            raise ValidationError("wechat-oa external link has invalid kind or target")
         try:
             index = int(item.get("index"))
         except (TypeError, ValueError) as error:
-            raise ValidationError("wxcli external link index is invalid") from error
+            raise ValidationError("wechat-oa external link index is invalid") from error
         if index < 0:
-            raise ValidationError("wxcli external link index is invalid")
+            raise ValidationError("wechat-oa external link index is invalid")
         normalized.append({
             "index": index,
             "source_location": str(item.get("source_location") or "").strip()[:500],
@@ -85,25 +85,27 @@ def _normalized_wxcli_links(value) -> list[dict]:
     return normalized
 
 
-def _normalized_wxcli_media(value) -> list[dict]:
+def _normalized_wechat_oa_media(value) -> list[dict]:
     if value is None:
         return []
     if not isinstance(value, list) or len(value) > 100:
-        raise ValidationError("wxcli image evidence is invalid")
+        raise ValidationError("wechat-oa image evidence is invalid")
     normalized = []
     for item in value:
         if not isinstance(item, dict):
-            raise ValidationError("wxcli image evidence must be an object")
+            raise ValidationError("wechat-oa image evidence must be an object")
         try:
             index = int(item.get("index"))
         except (TypeError, ValueError) as error:
-            raise ValidationError("wxcli image index is invalid") from error
+            raise ValidationError("wechat-oa image index is invalid") from error
         url = str(item.get("url") or "").strip()
         if index < 0 or urlsplit(url).scheme != "https":
-            raise ValidationError("wxcli image evidence requires an indexed HTTPS URL")
+            raise ValidationError(
+                "wechat-oa image evidence requires an indexed HTTPS URL"
+            )
         media = {"index": index, "url": url[:2000]}
-        # wxcli 0.4 only has index/url. These optional fields let Radar consume
-        # a future media-evidence minor extension without treating it as Article text.
+        # Optional fields let Radar consume wechat-oa media evidence without
+        # treating OCR output as independently verified article text.
         for key, limit in (
             ("ocr_text", 20000),
             ("ocr_engine", 200),
@@ -342,7 +344,10 @@ def announcement_identity_is_trusted(announcement: RecruitmentAnnouncement) -> b
             )
         )
     if announcement.source_kind == RecruitmentAnnouncement.SourceKind.WECHAT_ARTICLE:
-        if announcement.verification_method != RecruitmentAnnouncement.VerificationMethod.WXCLI:
+        if (
+            announcement.verification_method
+            != RecruitmentAnnouncement.VerificationMethod.WECHAT_OA
+        ):
             return False
         if (urlsplit(announcement.url).hostname or "").casefold() != "mp.weixin.qq.com":
             return False
@@ -353,7 +358,7 @@ def announcement_identity_is_trusted(announcement: RecruitmentAnnouncement) -> b
         ) is not None
     if announcement.source_kind == RecruitmentAnnouncement.SourceKind.WECHAT_MINIPROGRAM:
         if announcement.verification_method not in {
-            RecruitmentAnnouncement.VerificationMethod.WXCLI,
+            RecruitmentAnnouncement.VerificationMethod.WECHAT_OA,
             RecruitmentAnnouncement.VerificationMethod.HUMAN_SNAPSHOT,
         }:
             return False
@@ -368,17 +373,19 @@ def announcement_identity_is_trusted(announcement: RecruitmentAnnouncement) -> b
 
 
 @transaction.atomic
-def import_wxcli_announcement(
+def import_wechat_oa_announcement(
     organization: Organization,
     verified_candidate: dict,
 ) -> RecruitmentAnnouncement:
     evidence = verified_candidate.get("evidence")
     if not isinstance(evidence, dict) or evidence.get("schema_version") != "1":
-        raise ValidationError("wxcli candidate has no schema-v1 Article Evidence")
+        raise ValidationError(
+            "wechat-oa candidate has no schema-v1 Article Evidence"
+        )
     article = evidence.get("article")
     account = evidence.get("account_identity")
     if not isinstance(article, dict) or not isinstance(account, dict):
-        raise ValidationError("wxcli evidence is incomplete")
+        raise ValidationError("wechat-oa evidence is incomplete")
     observed_name = str(account.get("observed_display_name") or "").strip()
     observed_biz_id = str(account.get("observed_biz_id") or "").strip()
     identity = _matched_wechat_identity(organization, observed_name, observed_biz_id)
@@ -386,19 +393,23 @@ def import_wxcli_announcement(
         raise ValidationError("WeChat account is not on the organization's verified allowlist")
     url = str(article.get("source_url") or verified_candidate.get("fetch_url") or "").strip()
     if (urlsplit(url).hostname or "").casefold() != "mp.weixin.qq.com":
-        raise ValidationError("wxcli evidence does not point to a WeChat public article")
+        raise ValidationError(
+            "wechat-oa evidence does not point to a WeChat public article"
+        )
     title = str(article.get("title") or "").strip()
     if not title:
-        raise ValidationError("wxcli evidence has no article title")
+        raise ValidationError("wechat-oa evidence has no article title")
     markdown = str(article.get("content_markdown") or "").strip()
-    links = _normalized_wxcli_links(evidence.get("external_links"))
-    images = _normalized_wxcli_media(evidence.get("images"))
+    links = _normalized_wechat_oa_links(evidence.get("external_links"))
+    images = _normalized_wechat_oa_media(evidence.get("images"))
     if not markdown and not images:
-        raise ValidationError("wxcli evidence has neither article text nor image evidence")
+        raise ValidationError(
+            "wechat-oa evidence has neither article text nor image evidence"
+        )
     content_sha256 = str(evidence.get("content_sha256") or "").strip().casefold()
     evidence_sha256 = str(evidence.get("evidence_sha256") or "").strip().casefold()
     if not _SHA256.fullmatch(content_sha256) or not _SHA256.fullmatch(evidence_sha256):
-        raise ValidationError("wxcli evidence hashes are invalid")
+        raise ValidationError("wechat-oa evidence hashes are invalid")
     status = (
         RecruitmentAnnouncement.VerificationStatus.VERIFIED
         if markdown or any(_media_ocr_is_human_confirmed(media) for media in images)
@@ -406,7 +417,7 @@ def import_wxcli_announcement(
     )
     identity_key = str(verified_candidate.get("article_identity") or "").strip()
     if not identity_key:
-        raise ValidationError("wxcli candidate has no article identity")
+        raise ValidationError("wechat-oa candidate has no article identity")
     source = organization.official_sources.filter(
         source_type=OfficialSource.SourceType.WECHAT
     ).first()
@@ -428,7 +439,7 @@ def import_wxcli_announcement(
             "observed_external_links": links,
             "observed_media": images,
             "verification_status": status,
-            "verification_method": RecruitmentAnnouncement.VerificationMethod.WXCLI,
+            "verification_method": RecruitmentAnnouncement.VerificationMethod.WECHAT_OA,
         },
     )
     announcement.full_clean()
@@ -439,7 +450,7 @@ def import_wxcli_announcement(
 def observed_application_channel_candidates(
     announcement: RecruitmentAnnouncement,
 ) -> tuple[dict, ...]:
-    """Return inert candidates; never visits or promotes a wxcli-observed target."""
+    """Return inert candidates; never visits or promotes a wechat-oa target."""
 
     candidates = []
     for item in announcement.observed_external_links or []:
