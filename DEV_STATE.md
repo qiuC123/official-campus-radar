@@ -45,8 +45,8 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。AD
 - 门控查询已改为批量加载证据并复用内存索引；本地正式批次实测首页约 24 次 SQL，单批次门控约 18 次 SQL。旧审查前的 270/267 次 SQL 和 2026-08-27 的 1.3 秒结论均不再作为当前基线。
 - `configure_recruitment_batch_partitions` 和 `correct_pinduoduo_title_mapping` 默认只预演，必须显式传入 `--apply` 才写库。`preview_announcement_migration` 默认只读，必须显式 `--record` 才保存用于门控确认的摘要。
 - 已增加 `/applications/`：只要用户曾保存过投递进度，即使对应批次以后被隐藏或取代，仍可查看和修改个人记录。
-- 当前迁移已应用至 `0033_use_specific_recruitment_announcements`。0033 前 SQLite 备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-0033-20260901-142216.sqlite3`，SHA-256 为 `44D43F0EB2D29E98D4E313166286E660D7893438AC1E262454C89C10F2B18830`。腾讯来源配置哈希为 `88bc0b42f1282c029aedaeba547083bede736e26a8221cb4efc2fdcd768ecb6a`；UpdateRun 19 已成功更新全部 6 个腾讯批次，0 个来源失败、0 个批次拒绝。
-- 2026-09-01 微信优先主要公告规则完成后完整回归共 517 项测试通过；`manage.py check`、迁移检查和 `git diff --check` 均通过。正式首页、历史页和“我的进度”页均返回 HTTP 200。
+- 当前迁移已应用至 `0034_rename_wxcli_verification_method`。0034 将持久化验证方式改为 `wechat_oa`，应用前后旧值和新值均为 0 行，没有删除或改写公告；0033 前 SQLite 备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-0033-20260901-142216.sqlite3`，SHA-256 为 `44D43F0EB2D29E98D4E313166286E660D7893438AC1E262454C89C10F2B18830`。腾讯来源配置哈希为 `88bc0b42f1282c029aedaeba547083bede736e26a8221cb4efc2fdcd768ecb6a`；UpdateRun 19 已成功更新全部 6 个腾讯批次，0 个来源失败、0 个批次拒绝。
+- 2026-09-01 招聘雷达已从旧 wxcli 集成完整切换到 `wechat-oa 0.5.1`；Python 3.13 完整回归共 522 项测试通过，`manage.py check`、迁移检查和 `git diff --check` 均通过。正式首页、历史页和“我的进度”页均返回 HTTP 200。
 
 ## Historical implementation record through 2026-08-27
 
