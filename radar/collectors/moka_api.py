@@ -113,6 +113,10 @@ class MokaPublicApiAdapter(JsonApiSourceAdapter):
             normalized_config["batch_partitions"] = copy.deepcopy(
                 config["batch_partitions"]
             )
+        if config.get("row_filters"):
+            normalized_config["row_filters"] = copy.deepcopy(
+                config["row_filters"]
+            )
         return SimpleNamespace(
             parser_config=normalized_config,
             source_url=source.source_url,

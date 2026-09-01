@@ -67,6 +67,31 @@ class BatchApplicationPageTests(SimpleTestCase):
             "百度": {
                 "phase-02:p06": "https://talent.baidu.com/jobs/list?recruitType=GRADUATE",
             },
+            "理想汽车": {
+                "official-project:lixiang:25": "https://www.lixiang.com/employ/campus/list.html?project_id=25",
+                "official-project:lixiang:24": "https://www.lixiang.com/employ/campus/list.html?project_id=24",
+                "official-project:lixiang:23": "https://www.lixiang.com/employ/campus/list.html?project_id=23",
+            },
+            "吉利控股": {
+                "official-project:geely:2027-autumn": (
+                    "https://campus.geely.com/campus-recruitment/geely/78436"
+                    "?locale=zh-CN#/jobs?commitment%5B0%5D=%E5%85%A8%E8%81%8C"
+                    "&page=1&anchorName=jobsList"
+                ),
+                "official-project:geely:2027-internship": (
+                    "https://campus.geely.com/campus-recruitment/geely/78436"
+                    "?locale=zh-CN#/jobs?commitment%5B0%5D=%E5%AE%9E%E4%B9%A0"
+                    "&page=1&anchorName=jobsList"
+                ),
+            },
+            "美的集团": {
+                "official-project:midea:2027-star": "https://careers.midea.com/schoolOut/post?type=1",
+                "official-project:midea:2027-doctor": "https://careers.midea.com/schoolOut/post?type=5",
+                "phase-02:p17": "https://careers.midea.com/schoolOut/post?type=2",
+            },
+            "博世中国": {
+                "phase-02:f05": "https://www.bosch.com.cn/careers/job-offers/",
+            },
             "美团": {
                 "official-project:meituan:special:6": "https://zhaopin.meituan.com/web/position?hiringType=2_6",
                 "official-project:meituan:special:8": "https://zhaopin.meituan.com/web/longcat",
@@ -91,8 +116,8 @@ class BatchApplicationPageTests(SimpleTestCase):
             for company_mapping in BATCH_APPLICATION_URLS.values()
             for identity in company_mapping
         ]
-        self.assertEqual(len(identities), 23)
-        self.assertEqual(len(set(identities)), 23)
+        self.assertEqual(len(identities), 32)
+        self.assertEqual(len(set(identities)), 32)
 
     def test_telecom_job_page_preserves_the_beijing_company_context(self):
         url = BATCH_APPLICATION_URLS["中国电信集团有限公司"]["phase-02:s03"]

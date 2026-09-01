@@ -190,6 +190,41 @@ def _dji_partitions(portal: str) -> list[dict]:
     ]
 
 
+def _geely_partitions(portal: str) -> list[dict]:
+    return [
+        {
+            "batch": _batch(
+                identity_key="official-project:geely:2027-autumn",
+                title="吉利控股 2027 届秋季校园招聘",
+                official_page_url=portal,
+                recruitment_type="autumn",
+                target_audience="2027届",
+            ),
+            "row_filters": [
+                {
+                    "path": "customFields[].value",
+                    "contains_any": ["2027届秋招"],
+                }
+            ],
+        },
+        {
+            "batch": _batch(
+                identity_key="official-project:geely:2027-internship",
+                title="吉利控股 2027 届实习生招聘",
+                official_page_url=portal,
+                recruitment_type="internship",
+                target_audience="在校生",
+            ),
+            "row_filters": [
+                {
+                    "path": "customFields[].value",
+                    "contains_any": ["2027届实习生"],
+                }
+            ],
+        },
+    ]
+
+
 SOURCE_CONTRACTS = {
     "京东": {
         "adapter": "json_api",
@@ -216,6 +251,14 @@ SOURCE_CONTRACTS = {
         "base_identity": "phase-02:p14",
         "factory": _dji_partitions,
     },
+    "吉利控股": {
+        "adapter": "moka_public_api",
+        "org_id": "geely",
+        "site_id": 78436,
+        "legacy_site_ids": (98148,),
+        "base_identity": "phase-02:p16",
+        "factory": _geely_partitions,
+    },
 }
 
 def partitioned_parser_config(
@@ -238,15 +281,40 @@ def partitioned_parser_config(
     if adapter_name == "json_api":
         if parser_config.get("endpoint") != contract["endpoint"]:
             raise ValueError(f"unexpected endpoint for {company}")
-    elif (
-        parser_config.get("org_id") != contract["org_id"]
-        or parser_config.get("site_id") != contract["site_id"]
-    ):
-        raise ValueError(f"unexpected Moka tenant for {company}")
+    else:
+        accepted_site_ids = {
+            contract["site_id"],
+            *contract.get("legacy_site_ids", ()),
+        }
+        if (
+            parser_config.get("org_id") != contract["org_id"]
+            or parser_config.get("site_id") not in accepted_site_ids
+        ):
+            raise ValueError(f"unexpected Moka tenant for {company}")
     portal = str(batch.get("official_page_url") or "").strip()
     if not portal.startswith("https://"):
         raise ValueError(f"missing official portal for {company}")
     result = copy.deepcopy(parser_config)
+    if company == "吉利控股":
+        portal = (
+            "https://campus.geely.com/campus-recruitment/geely/78436"
+            "?locale=zh-CN#/jobs"
+        )
+        result["site_id"] = 78436
+        result["max_pages"] = 30
+        result["row_filters"] = [
+            {
+                "path": "customFields[].value",
+                "contains_any": ["2027届秋招", "2027届实习生"],
+            }
+        ]
+        result["batch"] = _batch(
+            identity_key="phase-02:p16",
+            title="吉利控股 2027 届校园招聘",
+            official_page_url=portal,
+            recruitment_type="autumn",
+            target_audience="2027届及在校生",
+        )
     result["batch_partitions"] = contract["factory"](portal)
     if company == "腾讯":
         body = result.get("body")

@@ -181,6 +181,42 @@ class ProjectPartitionConfigurationTests(SimpleTestCase):
             )
         )
 
+    def test_geely_contract_upgrades_the_group_tenant_and_splits_2027_rows(self) -> None:
+        with (ROOT / "data" / "source_catalog.csv").open(
+            encoding="utf-8-sig", newline=""
+        ) as handle:
+            row = next(
+                item
+                for item in csv.DictReader(handle)
+                if item["organization_name"] == "吉利控股"
+            )
+        configured = partitioned_parser_config(
+            "吉利控股",
+            row["adapter_name"],
+            json.loads(row["parser_config"]),
+        )
+
+        self.assertEqual(configured["site_id"], 78436)
+        self.assertEqual(
+            [
+                item["batch"]["identity_key"]
+                for item in configured["batch_partitions"]
+            ],
+            [
+                "official-project:geely:2027-autumn",
+                "official-project:geely:2027-internship",
+            ],
+        )
+        self.assertEqual(
+            configured["row_filters"],
+            [
+                {
+                    "path": "customFields[].value",
+                    "contains_any": ["2027届秋招", "2027届实习生"],
+                }
+            ],
+        )
+
     def test_tencent_scope_includes_all_official_mapping_ids_without_an_overseas_duplicate(self) -> None:
         row = self.catalog_rows()["腾讯"]
         configured = partitioned_parser_config(

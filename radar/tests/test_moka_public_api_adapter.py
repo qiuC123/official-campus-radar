@@ -221,3 +221,31 @@ class MokaPublicApiFetchAndExtractionTests(SimpleTestCase):
              for candidate in candidates],
             [["regular"], ["special"]],
         )
+
+    @patch("radar.collectors.json_api.requests.Session")
+    def test_base_row_filters_pass_through_moka_normalization(
+        self, session_type: Mock
+    ) -> None:
+        retained = job("retained")
+        retained["customFields"] = [{"value": "2027届秋招"}]
+        ignored = job("ignored")
+        ignored["customFields"] = [{"value": "2026届秋招"}]
+        session_type.return_value.request.return_value = response(
+            {"total": 2, "jobs": [retained, ignored]}
+        )
+        config = copy.deepcopy(MOKA_CONFIG)
+        config["row_filters"] = [
+            {
+                "path": "customFields[].value",
+                "contains_any": ["2027届"],
+            }
+        ]
+        source = make_source(config)
+        adapter = MokaPublicApiAdapter()
+
+        candidate = adapter.extract(source, adapter.fetch(source))[0]
+
+        self.assertEqual(
+            [position.position_key for position in candidate.positions],
+            ["retained"],
+        )
