@@ -192,10 +192,16 @@ class RecruitmentAnnouncement(models.Model):
 
     @property
     def priority(self) -> int:
+        if self.source_kind == self.SourceKind.WECHAT_ARTICLE:
+            return 1
+        if (
+            self.source_kind == self.SourceKind.WECHAT_MINIPROGRAM
+            and self.miniprogram_path.strip()
+        ):
+            return 1
         return {
-            self.SourceKind.WEBSITE: 1,
-            self.SourceKind.RECRUITING_SYSTEM: 2,
-            self.SourceKind.WECHAT_ARTICLE: 3,
+            self.SourceKind.WEBSITE: 2,
+            self.SourceKind.RECRUITING_SYSTEM: 3,
             self.SourceKind.WECHAT_MINIPROGRAM: 4,
         }[self.source_kind]
 

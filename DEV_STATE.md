@@ -1,10 +1,12 @@
 # Development state
 
-Last verified: 2026-08-31 Asia/Shanghai
+Last verified: 2026-09-01 Asia/Shanghai
 
-Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。ADR 0005 已取代“岗位接口直接驱动正式页”的旧规则；公告门控已开启，官网公告优先，只有官网没有合格公告时才交给 wxcli 补充微信证据。
+Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。ADR 0005 已取代“岗位接口直接驱动正式页”的旧规则；公告门控已开启。ADR 0007 进一步把主要公告顺序调整为微信公众号文章优先、合格微信小程序次之、官网公告降级，岗位和投递入口仍优先使用官网、招聘系统或官方接口。
 
 2026-08-31 用户进一步确认页面链接规则：公告入口依次采用官网招聘公告、官方微信招聘通知和官方招聘/投递页面；没有更具体的投递渠道时，“投递”回退到批次已核验的官方招聘页面，公告与投递允许同址。该调整记录于 ADR 0006，不放宽企业身份、公告准入或批次拆分门槛。
+
+2026-09-01 用户反转主要公告来源优先级：合格微信公众号文章优先于官网；微信小程序只有具备稳定名称与页面路径、企业身份和四项完整字段证据时才与公众号同级，否则仍由官网优先。官网可以先准入批次，后到的同批次微信公告在字段一致时升级为主要公告；招聘类型、招聘对象或当前可申请状态冲突时，批次转为待人工确认，只有显式确认后才切换来源和字段。
 
 同日进一步明确：已经按招聘计划拆分的批次，投递入口必须优先使用该计划专属的岗位选择页，不能停留在企业招聘首页或范围更大的混合岗位列表。美团日常实习、LongCat 和北斗实习已分别绑定对应官方岗位页；计划介绍页继续作为公告入口。
 
@@ -44,7 +46,7 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。AD
 - `configure_recruitment_batch_partitions` 和 `correct_pinduoduo_title_mapping` 默认只预演，必须显式传入 `--apply` 才写库。`preview_announcement_migration` 默认只读，必须显式 `--record` 才保存用于门控确认的摘要。
 - 已增加 `/applications/`：只要用户曾保存过投递进度，即使对应批次以后被隐藏或取代，仍可查看和修改个人记录。
 - 当前迁移已应用至 `0033_use_specific_recruitment_announcements`。0033 前 SQLite 备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-0033-20260901-142216.sqlite3`，SHA-256 为 `44D43F0EB2D29E98D4E313166286E660D7893438AC1E262454C89C10F2B18830`。腾讯来源配置哈希为 `88bc0b42f1282c029aedaeba547083bede736e26a8221cb4efc2fdcd768ecb6a`；UpdateRun 19 已成功更新全部 6 个腾讯批次，0 个来源失败、0 个批次拒绝。
-- 2026-09-01 公告详情链接复核后完整回归共 514 项测试通过；`manage.py check`、迁移检查和 `git diff --check` 均通过。正式首页、历史页和“我的进度”页均返回 HTTP 200。
+- 2026-09-01 微信优先主要公告规则完成后完整回归共 517 项测试通过；`manage.py check`、迁移检查和 `git diff --check` 均通过。正式首页、历史页和“我的进度”页均返回 HTTP 200。
 
 ## Historical implementation record through 2026-08-27
 

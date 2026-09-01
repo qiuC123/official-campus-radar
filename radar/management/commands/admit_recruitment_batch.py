@@ -19,6 +19,11 @@ class Command(BaseCommand):
             required=True,
             help="JSON 文件；title/recruitment_type/target_audience/availability 各为 parsed_value/excerpt/locator。",
         )
+        parser.add_argument(
+            "--confirm-field-conflicts",
+            action="store_true",
+            help="人工确认微信与当前主要公告的关键字段冲突后，允许采用新公告。",
+        )
 
     def handle(self, *args, **options):
         try:
@@ -29,7 +34,12 @@ class Command(BaseCommand):
                 name: (value["parsed_value"], value["excerpt"], value["locator"])
                 for name, value in raw.items()
             }
-            admit_batch_with_announcement(batch, announcement, field_evidence=evidence)
+            admit_batch_with_announcement(
+                batch,
+                announcement,
+                field_evidence=evidence,
+                confirm_field_conflicts=options["confirm_field_conflicts"],
+            )
         except (RecruitmentBatch.DoesNotExist, RecruitmentAnnouncement.DoesNotExist) as error:
             raise CommandError("batch or announcement not found") from error
         except (OSError, json.JSONDecodeError, KeyError, TypeError, ValidationError) as error:
@@ -38,5 +48,5 @@ class Command(BaseCommand):
             "ok": True,
             "batch_id": batch.pk,
             "announcement_id": announcement.pk,
-            "announcement_admission": "admitted",
+            "announcement_admission": batch.announcement_admission,
         }, ensure_ascii=False))

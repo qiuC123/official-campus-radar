@@ -229,27 +229,142 @@ class AnnouncementGateTests(TestCase):
         self.assertContains(self.client.get("/?audience=2026届"), self.batch.title)
         self.assertContains(self.client.get("/?audience=2027届"), self.batch.title)
 
-    def test_website_replaces_wechat_but_wechat_cannot_replace_website(self):
-        wechat = self.verified_announcement(kind="wechat_article", title="微信公告")
-        admit_batch_with_announcement(
-            self.batch,
-            wechat,
-            field_evidence=announcement_evidence(self.batch),
-        )
-        website = self.verified_announcement(kind="website", title="官网更新公告")
+    def test_wechat_replaces_website_but_website_cannot_replace_wechat(self):
+        website = self.verified_announcement(kind="website", title="官网公告")
         admit_batch_with_announcement(
             self.batch,
             website,
             field_evidence=announcement_evidence(self.batch),
         )
+        wechat = self.verified_announcement(kind="wechat_article", title="微信公告")
+        wechat_evidence = announcement_evidence(self.batch)
+        wechat_evidence["title"] = (
+            "微信公告中的批次名称",
+            "微信原文标题明确写出批次名称",
+            "article/title",
+        )
+        admit_batch_with_announcement(
+            self.batch,
+            wechat,
+            field_evidence=wechat_evidence,
+        )
         self.batch.refresh_from_db()
-        self.assertEqual(self.batch.primary_announcement_id, website.pk)
+        self.assertEqual(self.batch.primary_announcement_id, wechat.pk)
+        self.assertEqual(self.batch.title, "微信公告中的批次名称")
         with self.assertRaises(ValidationError):
             admit_batch_with_announcement(
                 self.batch,
-                wechat,
+                website,
                 field_evidence=announcement_evidence(self.batch),
             )
+
+    def test_conflicting_wechat_fields_require_explicit_confirmation(self):
+        website = self.verified_announcement(kind="website", title="官网公告")
+        admit_batch_with_announcement(
+            self.batch,
+            website,
+            field_evidence=announcement_evidence(
+                self.batch,
+                recruitment_type=RecruitmentBatch.RecruitmentType.AUTUMN,
+                target_audience="2027届",
+            ),
+        )
+        wechat = self.verified_announcement(kind="wechat_article", title="微信公告")
+        conflicting_evidence = announcement_evidence(
+            self.batch,
+            recruitment_type=RecruitmentBatch.RecruitmentType.INTERNSHIP,
+            target_audience="在校生",
+        )
+
+        admit_batch_with_announcement(
+            self.batch,
+            wechat,
+            field_evidence=conflicting_evidence,
+        )
+        self.batch.refresh_from_db()
+        self.assertEqual(
+            self.batch.announcement_admission,
+            RecruitmentBatch.AnnouncementAdmission.PENDING,
+        )
+        self.assertEqual(self.batch.primary_announcement_id, website.pk)
+        self.assertEqual(self.batch.target_audience, "2027届")
+
+        admit_batch_with_announcement(
+            self.batch,
+            wechat,
+            field_evidence=conflicting_evidence,
+            confirm_field_conflicts=True,
+        )
+        self.batch.refresh_from_db()
+        self.assertEqual(
+            self.batch.announcement_admission,
+            RecruitmentBatch.AnnouncementAdmission.ADMITTED,
+        )
+        self.assertEqual(self.batch.primary_announcement_id, wechat.pk)
+        self.assertEqual(self.batch.recruitment_type, RecruitmentBatch.RecruitmentType.INTERNSHIP)
+        self.assertEqual(self.batch.target_audience, "在校生")
+
+    def test_admit_command_reports_pending_until_conflicts_are_confirmed(self):
+        website = self.verified_announcement(kind="website", title="官网公告")
+        admit_batch_with_announcement(
+            self.batch,
+            website,
+            field_evidence=announcement_evidence(
+                self.batch,
+                recruitment_type=RecruitmentBatch.RecruitmentType.AUTUMN,
+                target_audience="2027届",
+            ),
+        )
+        wechat = self.verified_announcement(kind="wechat_article", title="微信公告")
+        evidence = announcement_evidence(
+            self.batch,
+            recruitment_type=RecruitmentBatch.RecruitmentType.INTERNSHIP,
+            target_audience="在校生",
+        )
+        payload = {
+            field_name: {
+                "parsed_value": values[0],
+                "excerpt": values[1],
+                "locator": values[2],
+            }
+            for field_name, values in evidence.items()
+        }
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", encoding="utf-8", delete=False
+        ) as handle:
+            json.dump(payload, handle, ensure_ascii=False)
+            path = handle.name
+        try:
+            pending_output = StringIO()
+            call_command(
+                "admit_recruitment_batch",
+                batch_id=self.batch.pk,
+                announcement_id=wechat.pk,
+                evidence=path,
+                stdout=pending_output,
+            )
+            self.assertEqual(
+                json.loads(pending_output.getvalue())["announcement_admission"],
+                RecruitmentBatch.AnnouncementAdmission.PENDING,
+            )
+
+            admitted_output = StringIO()
+            call_command(
+                "admit_recruitment_batch",
+                batch_id=self.batch.pk,
+                announcement_id=wechat.pk,
+                evidence=path,
+                confirm_field_conflicts=True,
+                stdout=admitted_output,
+            )
+            self.assertEqual(
+                json.loads(admitted_output.getvalue())["announcement_admission"],
+                RecruitmentBatch.AnnouncementAdmission.ADMITTED,
+            )
+        finally:
+            import os
+
+            os.unlink(path)
 
     def test_one_announcement_cannot_expand_to_two_batches_without_project_split(self):
         announcement = self.verified_announcement()
@@ -289,6 +404,12 @@ class AnnouncementGateTests(TestCase):
         self.assertContains(response, f'href="{self.batch.official_page_url}"', count=2)
 
     def test_miniprogram_announcement_keeps_notice_and_uses_job_page_for_application(self):
+        website = self.verified_announcement(kind="website", title="官网公告")
+        admit_batch_with_announcement(
+            self.batch,
+            website,
+            field_evidence=announcement_evidence(self.batch),
+        )
         WeChatAccountIdentity.objects.create(
             organization=self.source.organization,
             display_name="公告门控招聘小程序",
@@ -324,6 +445,45 @@ class AnnouncementGateTests(TestCase):
         self.assertContains(response, "微信小程序：公告门控招聘 2027校园招聘")
         self.assertContains(response, f'href="{self.batch.official_page_url}"', count=1)
         self.assertNotContains(response, "投递待确认")
+        self.batch.refresh_from_db()
+        self.assertEqual(self.batch.primary_announcement_id, announcement.pk)
+
+    def test_miniprogram_without_stable_path_cannot_replace_website(self):
+        website = self.verified_announcement(kind="website", title="官网公告")
+        admit_batch_with_announcement(
+            self.batch,
+            website,
+            field_evidence=announcement_evidence(self.batch),
+        )
+        WeChatAccountIdentity.objects.create(
+            organization=self.source.organization,
+            display_name="不稳定小程序账号",
+            biz_id="unstable-mini-program-biz",
+            identity_evidence="企业官网公示该小程序账号",
+            is_verified=True,
+            verified_at=timezone.now(),
+        )
+        miniprogram = RecruitmentAnnouncement.objects.create(
+            organization=self.source.organization,
+            identity_key="unstable-mini-program-notice",
+            source_kind=RecruitmentAnnouncement.SourceKind.WECHAT_MINIPROGRAM,
+            title="没有稳定路径的小程序通知",
+            miniprogram_name="示例招聘",
+            account_display_name="不稳定小程序账号",
+            account_biz_id="unstable-mini-program-biz",
+            identity_evidence="企业官网公示该小程序账号",
+            content_sha256="c" * 64,
+            last_verified_at=timezone.now(),
+            verification_status=RecruitmentAnnouncement.VerificationStatus.VERIFIED,
+            verification_method=RecruitmentAnnouncement.VerificationMethod.WXCLI,
+        )
+
+        with self.assertRaises(ValidationError):
+            admit_batch_with_announcement(
+                self.batch,
+                miniprogram,
+                field_evidence=announcement_evidence(self.batch),
+            )
 
     def test_batch_level_email_is_a_real_application_channel(self):
         ApplicationLink.objects.create(

@@ -639,6 +639,7 @@ def admit_batch_with_announcement(
     announcement: RecruitmentAnnouncement,
     *,
     field_evidence: dict[str, tuple[str, str, str]],
+    confirm_field_conflicts: bool = False,
 ) -> RecruitmentBatch:
     """Attach one verified notice; every interpreted batch field needs explicit proof."""
 
@@ -703,6 +704,22 @@ def admit_batch_with_announcement(
             locator=locator,
             parsed_value=parsed_value,
         )
+    material_conflicts = {
+        field_name
+        for field_name, current_value in {
+            "recruitment_type": batch.recruitment_type,
+            "target_audience": batch.target_audience,
+            "availability": batch.status,
+        }.items()
+        if existing is not None
+        and existing.pk != announcement.pk
+        and current_value != interpreted[field_name]
+    }
+    if material_conflicts and not confirm_field_conflicts:
+        batch.announcement_admission = RecruitmentBatch.AnnouncementAdmission.PENDING
+        batch.full_clean()
+        batch.save(update_fields=["announcement_admission"])
+        return batch
     batch.primary_announcement = announcement
     batch.announcement_admission = RecruitmentBatch.AnnouncementAdmission.ADMITTED
     batch.title = interpreted["title"]
