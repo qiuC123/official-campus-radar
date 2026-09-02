@@ -1,7 +1,7 @@
 # Exa-first 招聘公告候选发现交接
 
 日期：2026-09-02  
-状态：离线实现已完成，尚未应用迁移、执行真实 A/B 或切换生产默认
+状态：首轮真实 A/B 已完成但未达标；迁移未应用，生产默认未切换
 目标仓库：`E:\devlop\official-campus-radar`
 
 ## 1. 本交接的目的
@@ -294,9 +294,17 @@ Codex 兜底输入只包含企业名称与批准别名、已知官方域名、�
 - v1 输入继续只读兼容；v2 输出包含查询与多 Provider observations，可严格校验后离线重放。导入会重新规范 URL 和重算路由，不信任输入中的合格标记。
 - Exa/Codex 搜索元数据仍不是证据；摘要正文不入库。官网回读无标题时会拒绝核验，不再用搜索标题补证据。
 - Codex、`wechat-oa` 和隔离浏览器子进程环境会移除 `EXA_API_KEY`。所有新增测试使用 fake transport/runner，本次业务搜索调用为 0。
-- 下一道门仍是用户单独授权真实 A/B；达标后还需再次确认，才能应用迁移并切换生产默认。
+- 该离线实现完成时的下一道门是用户单独授权真实 A/B；授权和结果记录见下一节。迁移应用与生产默认切换仍未授权。
 
-## 16. 新任务启动指令
+## 16. 2026-09-02 首轮真实 A/B
+
+用户已明确授权真实 A/B。12 家冻结范围共执行 48 次 Exa 请求、12 次 Codex-only 和 3 次组合 fallback；未执行微信、Chrome、官网 live fetch、迁移应用或数据库记录。
+
+严格冻结 URL recall@10 为 Exa-only 0%、Codex-only 16.7%、实际组合 0%；已知官方 host recall@10 为 25%、75%、25%。组合不低于 Codex-only 的门槛没有达到，因此禁止切换生产默认。
+
+运行发现并修复 Windows Codex 超时进程树、宽主域子域误准入和 fallback 不重排三项问题；修复后保存结果离线回放的已知 host recall@10 为 58.3%，仍低于 Codex-only。完整报告见 `docs/reviews/exa-first-announcement-discovery-ab-2026-09-02.md`，冻结真值见 `data/announcement-discovery-benchmark-v1.json`。
+
+## 17. 新任务启动指令
 
 ```text
 先阅读 ADR 0008、docs/handoffs/exa-first-announcement-discovery-handoff.md 以及其中列出的项目文档。除非用户明确回复“开始实现”，不要写业务代码、应用迁移或执行真实 Exa、Codex、WeChat、Chrome 调用；真实 A/B 和生产默认切换还需要各自单独授权。

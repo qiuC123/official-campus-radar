@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+from pathlib import Path
 from datetime import date
 from io import StringIO
 from types import SimpleNamespace
@@ -36,6 +37,7 @@ from radar.services.exa_discovery import (
     normalize_discovery_url,
     parse_discovery_result_document,
     persist_discovery_result,
+    rank_discovery_candidates,
     route_candidate,
 )
 from radar.services.announcement_discovery import (
@@ -44,6 +46,7 @@ from radar.services.announcement_discovery import (
     discover_official_candidates_with_codex,
     refetch_official_candidate,
     scrubbed_discovery_subprocess_environment,
+    _codex_command_prefix,
 )
 from radar.services.announcements import verify_official_announcement
 from radar.tests.helpers import create_enabled_source
@@ -326,6 +329,56 @@ class SearchPlanningAndRoutingTests(TestCase):
         self.assertFalse(unknown_ats.qualified)
         self.assertEqual(aggregator.route_state, "rejected")
 
+    def test_broad_corporate_domain_does_not_admit_arbitrary_subdomain(self):
+        news = route_candidate(
+            self.organization,
+            merge_observations((
+                self.observation("https://news.galaxy.example/2027-campus"),
+            ))[0],
+            criteria=self.criteria,
+        )
+        self.assertEqual(news.route_state, "rejected")
+        self.assertFalse(news.qualified)
+
+    def test_known_source_candidate_ranks_ahead_of_exa_aggregator(self):
+        aggregator = route_candidate(
+            self.organization,
+            merge_observations((
+                self.observation("https://www.nowcoder.com/jobs/galaxy", rank=1),
+            ))[0],
+            criteria=self.criteria,
+        )
+        known = route_candidate(
+            self.organization,
+            merge_observations((
+                self.observation(
+                    "https://jobs.galaxy-ats.example/campus/2027",
+                    provider="codex_web_search",
+                    rank=2,
+                ),
+            ))[0],
+            criteria=self.criteria,
+        )
+        ranked = rank_discovery_candidates((aggregator, known))
+        self.assertEqual(ranked[0], known)
+
+    def test_frozen_ab_benchmark_has_explicit_scope_and_twelve_companies(self):
+        path = Path(__file__).resolve().parents[2] / "data" / "announcement-discovery-benchmark-v1.json"
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(payload["schema_version"], "1")
+        self.assertEqual(payload["criteria"]["audiences"], ["2027届"])
+        self.assertEqual(payload["criteria"]["recruitment_types"], ["秋招"])
+        self.assertEqual(len(payload["companies"]), 12)
+        self.assertEqual(
+            len({item["organization"] for item in payload["companies"]}),
+            12,
+        )
+        self.assertTrue(all(
+            item["truth_urls"]
+            and all(url.startswith("https://") for url in item["truth_urls"])
+            for item in payload["companies"]
+        ))
+
 
 class OrchestratorAndPersistenceTests(TestCase):
     def setUp(self):
@@ -443,6 +496,31 @@ class OrchestratorAndPersistenceTests(TestCase):
             "BATCH_DEADLINE_EXHAUSTED",
         )
         self.assertFalse(codex_calls)
+
+    def test_codex_timeout_keeps_stable_error_code_and_duration(self):
+        class Exa:
+            def search(inner, plan):
+                return ProviderQueryResult.empty(plan)
+
+        def codex(*args, **kwargs):
+            raise RuntimeError("Codex official-site discovery failed: TIMEOUT")
+
+        latency_values = iter((10.0, 10.25))
+        result = AnnouncementDiscoveryOrchestrator(
+            exa_client=Exa(),
+            codex_searcher=codex,
+            clock=lambda: 0,
+            latency_clock=lambda: next(latency_values),
+        ).discover(
+            [self.organization],
+            self.criteria,
+            allow_codex_fallback=True,
+        )
+
+        attempt = result.companies[0].attempts[-1]
+        self.assertEqual(attempt.provider, "codex_web_search")
+        self.assertEqual(attempt.error_code, "TIMEOUT")
+        self.assertEqual(attempt.duration_ms, 250)
 
     def test_recording_is_company_atomic_and_preserves_multiple_observations(self):
         plan = AnnouncementSearchPlanner().plan(self.organization, self.criteria)[0]
@@ -758,3 +836,16 @@ class EvidenceAndCredentialIsolationTests(TestCase):
         self.assertNotIn("不得进入 Codex 的 Exa 摘要", calls[0]["input"])
         self.assertEqual(result.providers, ("codex_web_search",))
         self.assertEqual(result.candidates[0].provider, "codex_web_search")
+
+    def test_windows_codex_wrapper_resolves_to_native_executable(self):
+        prefix = _codex_command_prefix("codex")
+        if os.name == "nt":
+            self.assertEqual(len(prefix), 1)
+            self.assertTrue(prefix[0].casefold().endswith("codex.exe"))
+            self.assertNotIn("cmd.exe", prefix[0].casefold())
+            with patch(
+                "radar.services.announcement_discovery.shutil.which",
+                return_value=None,
+            ):
+                with self.assertRaises(OSError):
+                    _codex_command_prefix("codex")

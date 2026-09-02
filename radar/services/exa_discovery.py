@@ -318,7 +318,40 @@ def _admitted_source_hosts(organization: Organization) -> tuple[tuple[str, str],
 
 
 def _host_matches(host: str, known: str) -> bool:
-    return host == known or host.endswith(f".{known}")
+    return host == known
+
+
+def rank_discovery_candidates(
+    candidates: Iterable[MergedCandidate],
+) -> tuple[MergedCandidate, ...]:
+    route_priority = {
+        "known_official": 0,
+        "known_ats": 0,
+        "source_identity_review_required": 1,
+        "rejected": 2,
+        "unrouted": 3,
+    }
+    provider_priority = {"exa": 0, "codex_web_search": 1, "known_source": 2}
+
+    def key(candidate: MergedCandidate):
+        observations = candidate.observations
+        best_observation = min(
+            observations,
+            key=lambda item: (
+                provider_priority.get(item.provider, 9),
+                item.rank,
+                item.result_id,
+            ),
+        )
+        return (
+            0 if candidate.qualified else 1,
+            route_priority.get(candidate.route_state, 9),
+            provider_priority.get(best_observation.provider, 9),
+            best_observation.rank,
+            candidate.identity_url,
+        )
+
+    return tuple(sorted(candidates, key=key))
 
 
 class AnnouncementSearchPlanner:
@@ -904,6 +937,7 @@ class AnnouncementDiscoveryOrchestrator:
         max_codex_fallback_companies: int = MAX_CODEX_FALLBACK_COMPANIES,
         max_batch_seconds: int = MAX_BATCH_SECONDS,
         clock: Callable[[], float] = time.monotonic,
+        latency_clock: Callable[[], float] = time.monotonic,
     ):
         self.exa_client = exa_client
         self.codex_searcher = codex_searcher
@@ -912,6 +946,7 @@ class AnnouncementDiscoveryOrchestrator:
         self.max_codex_fallback_companies = max_codex_fallback_companies
         self.max_batch_seconds = max_batch_seconds
         self.clock = clock
+        self.latency_clock = latency_clock
 
     def _exa_phase(
         self,
@@ -948,7 +983,7 @@ class AnnouncementDiscoveryOrchestrator:
                 continue
             observations.extend(result.observations)
             attempts.append(result.attempt)
-        candidates = tuple(
+        candidates = rank_discovery_candidates(
             route_candidate(organization, item, criteria=criteria)
             for item in merge_observations(observations)
         )
@@ -1024,6 +1059,7 @@ class AnnouncementDiscoveryOrchestrator:
                         fallback_reason = "FALLBACK_BUDGET_EXHAUSTED"
                     else:
                         fallback_used += 1
+                        codex_started = self.latency_clock()
                         try:
                             codex_observations = tuple(
                                 replace(item, provider="codex_web_search")
@@ -1037,8 +1073,17 @@ class AnnouncementDiscoveryOrchestrator:
                                     ),
                                 )
                             )
-                        except Exception:
+                        except Exception as error:
                             codex_observations = ()
+                            codex_duration_ms = max(
+                                0,
+                                int((self.latency_clock() - codex_started) * 1000),
+                            )
+                            codex_error_code = (
+                                "TIMEOUT"
+                                if "TIMEOUT" in str(error).upper()
+                                else "CODEX_EXEC_FAILED"
+                            )
                             attempts.append(ProviderAttempt(
                                 provider="codex_web_search",
                                 intent_key=",".join(phase.missing_intents),
@@ -1047,10 +1092,15 @@ class AnnouncementDiscoveryOrchestrator:
                                 request_key=hashlib.sha256(
                                     f"codex:{organization.pk}:{','.join(phase.missing_intents)}".encode("utf-8")
                                 ).hexdigest(),
-                                error_code="CODEX_EXEC_FAILED",
+                                duration_ms=codex_duration_ms,
+                                error_code=codex_error_code,
                             ))
                             status = "degraded"
                         else:
+                            codex_duration_ms = max(
+                                0,
+                                int((self.latency_clock() - codex_started) * 1000),
+                            )
                             attempts.append(ProviderAttempt(
                                 provider="codex_web_search",
                                 intent_key=",".join(phase.missing_intents),
@@ -1059,9 +1109,10 @@ class AnnouncementDiscoveryOrchestrator:
                                 request_key=hashlib.sha256(
                                     f"codex:{organization.pk}:{','.join(phase.missing_intents)}".encode("utf-8")
                                 ).hexdigest(),
+                                duration_ms=codex_duration_ms,
                                 result_count=len(codex_observations),
                             ))
-                            candidates = tuple(
+                            candidates = rank_discovery_candidates(
                                 route_candidate(organization, item, criteria=criteria)
                                 for item in merge_observations(
                                     (*phase.observations, *codex_observations)

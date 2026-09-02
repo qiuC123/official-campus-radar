@@ -2,7 +2,7 @@
 
 Last verified: 2026-09-02 Asia/Shanghai
 
-Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。ADR 0005 已取代“岗位接口直接驱动正式页”的旧规则；公告门控已开启。ADR 0007 进一步把主要公告顺序调整为微信公众号文章优先、合格微信小程序次之、官网公告降级，岗位和投递入口仍优先使用官网、招聘系统或官方接口。ADR 0008 的 Exa-first 官网/ATS 外部候选发现已完成离线实现，真实 A/B 和生产默认切换尚未授权。
+Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。ADR 0005 已取代“岗位接口直接驱动正式页”的旧规则；公告门控已开启。ADR 0007 进一步把主要公告顺序调整为微信公众号文章优先、合格微信小程序次之、官网公告降级，岗位和投递入口仍优先使用官网、招聘系统或官方接口。ADR 0008 的 Exa-first 官网/ATS 外部候选发现已完成首轮真实 A/B，但结果未达到生产默认切换门槛；迁移 `0035` 仍未应用。
 
 2026-08-31 用户进一步确认页面链接规则：公告入口依次采用官网招聘公告、官方微信招聘通知和官方招聘/投递页面；没有更具体的投递渠道时，“投递”回退到批次已核验的官方招聘页面，公告与投递允许同址。该调整记录于 ADR 0006，不放宽企业身份、公告准入或批次拆分门槛。
 
@@ -55,8 +55,17 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。AD
 - 同一企业和规范 URL 只保留一个候选实体；每个 Exa、Codex 或已知来源命中形成追加式观察。搜索摘要不写为证据，只保留哈希和确定性信号；Provider 身份由适配器固定。
 - Candidate Batch v1 保持只读兼容；新输出为严格 v2，可离线重放并在重新规范 URL、重算路由后显式记录。迁移 `0035_exa_first_discovery_records` 仅已生成并通过测试库验证，未应用到本地业务数据库。
 - Exa Key 只进入专用客户端；Codex、`wechat-oa` 和隔离浏览器子进程环境会显式移除 `EXA_API_KEY`。官网回读标题为空时不再回退使用搜索标题。
-- 本轮没有执行真实 Exa、Codex、WeChat、Chrome 或其他业务搜索，也没有应用迁移或修改业务数据。
-- Python 3.13 完整回归共 548 项测试通过；`manage.py check`、迁移漂移检查和 `git diff --check` 均通过。
+- 离线实现批次没有执行真实 Exa、Codex、WeChat、Chrome 或其他业务搜索，也没有应用迁移或修改业务数据；真实搜索只发生在下述单独授权的 A/B 批次。
+- 离线实现交付时 Python 3.13 完整回归共 548 项测试通过；`manage.py check`、迁移漂移检查和 `git diff --check` 均通过。
+
+## Exa-first A/B — 2026-09-02
+
+- 用户已单独授权真实 A/B。12 家冻结基准使用 `2027届`、`秋招`、`2026-06-01` 至 `2026-09-02`；真值来自评分前已有的核验公告和准入来源 URL。
+- Exa 共执行 48 次请求并达到硬预算，总费用约 `$0.280`；Codex-only 12 次、组合 fallback 3 次。未执行微信、Chrome、官网 live fetch、迁移应用或数据库记录。
+- 严格 URL recall@10：Exa-only 0%、Codex-only 16.7%、实际组合 0%；已知官方 host recall@10：Exa-only 25%、Codex-only 75%、实际组合 25%。当前 Exa-first 明确不达标，不能切换生产默认。
+- 真实运行发现 Windows Codex 包装进程超时失效、宽主域误准入子域、fallback 候选不重排三项缺陷；均已修复并增加测试。保存结果离线回放后，组合已知 host recall@10 为 58.3%，仍低于 Codex-only 75%。
+- 完整预算、指标、逐项解释和后续门槛见 `docs/reviews/exa-first-announcement-discovery-ab-2026-09-02.md`；冻结真值见 `data/announcement-discovery-benchmark-v1.json`。
+- A/B 整改后 Python 3.13 完整回归共 553 项测试通过；项目检查、迁移漂移检查和差异检查均通过。
 
 ## Historical implementation record through 2026-08-27
 
@@ -158,4 +167,4 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。AD
 
 ## Exact next task
 
-在用户另行授权真实 A/B 后，先冻结 12 家基准集的人工真值，再用同一范围运行 Exa-only、Codex-only、Exa-first + Codex fallback；比较 recall、官方候选 precision、首个正确候选排名、延迟、费用和 fallback 收益。没有 A/B 授权与达标数据前，不应用迁移、不切换生产默认，也不声称 Exa 召回优于 Codex。
+改进 Exa 查询计划和域名约束，补充经过安全回读确认的新项目 URL 真值，再冻结新一轮批次。只有新 A/B 的组合 recall 与官方候选 precision 不低于 Codex-only，且无证据候选误入正式数据为 0，才能再次请求应用迁移和切换生产默认；当前不得执行这两项动作。

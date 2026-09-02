@@ -115,8 +115,24 @@ def _codex_command_prefix(value: str) -> list[str]:
     if os.name != "nt":
         return [value]
     resolved = shutil.which("codex.cmd") if value.casefold() == "codex" else value
+    if not resolved:
+        raise OSError("Codex executable is unavailable")
     if str(resolved).casefold().endswith((".cmd", ".bat")):
-        return [os.environ.get("COMSPEC", "cmd.exe"), "/d", "/s", "/c", str(resolved)]
+        wrapper = Path(resolved).resolve()
+        native_candidates = sorted(
+            wrapper.parent.glob(
+                "node_modules/@openai/codex/node_modules/@openai/"
+                "codex-win32-*/vendor/*/bin/codex.exe"
+            )
+        )
+        native_candidates.extend(sorted(
+            wrapper.parent.glob(
+                "node_modules/@openai/codex/vendor/*/bin/codex.exe"
+            )
+        ))
+        if not native_candidates:
+            raise OSError("Codex native executable is unavailable")
+        return [str(native_candidates[0])]
     return [str(resolved)]
 
 
