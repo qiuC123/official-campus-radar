@@ -1,7 +1,7 @@
 # Exa-first 招聘公告候选发现交接
 
 日期：2026-09-02  
-状态：方案审查与设计决策已确认，尚未开始实现或真实 A/B
+状态：离线实现已完成，尚未应用迁移、执行真实 A/B 或切换生产默认
 目标仓库：`E:\devlop\official-campus-radar`
 
 ## 1. 本交接的目的
@@ -284,9 +284,19 @@ Codex 兜底输入只包含企业名称与批准别名、已知官方域名、�
 
 2026-09-02 的方案审查已确认：已知来源优先、官网/ATS 外部发现采用 Exa-first、Codex 仅条件兜底、微信与 Brave 不进入本轮、候选与追加式检索观察分离、搜索条件显式提供、各类联网和写库权限分开、旧 schema v1 只读兼容、新输出使用 v2、按企业原子写入，并采用本文件的初始资源上限和冻结基准集。
 
-本次确认只授权记录设计，不授权业务代码、数据库迁移应用或任何真实 Exa/Codex/WeChat/Chrome 调用。实现开始、真实 A/B、生产默认切换仍分别需要用户明确授权。
+用户随后已明确授权开始实现；该授权不包含数据库迁移应用、真实 Exa/Codex/WeChat/Chrome 调用、真实 A/B 或生产默认切换。后三项仍分别需要用户明确授权。
 
-## 15. 新任务启动指令
+## 15. 2026-09-02 离线实现结果
+
+- 已实现 `ExaDiscoveryClient`、确定性 `AnnouncementSearchPlanner`、Exa-first `AnnouncementDiscoveryOrchestrator`、URL 身份合并与官网/ATS/未知 ATS/聚合站分流。
+- 已新增候选身份 URL、运行、企业运行、Provider attempt 和追加式 observation 模型及迁移 `0035_exa_first_discovery_records`；迁移只在测试库验证，未应用到业务数据库。
+- 管理命令默认预演，Exa、Codex fallback、官网回读和记录分别授权；批量最多 8 家，公司级 Exa 并发 2，批次硬截止 10 分钟，Codex 每批最多 3 家且每家最多 180 秒。
+- v1 输入继续只读兼容；v2 输出包含查询与多 Provider observations，可严格校验后离线重放。导入会重新规范 URL 和重算路由，不信任输入中的合格标记。
+- Exa/Codex 搜索元数据仍不是证据；摘要正文不入库。官网回读无标题时会拒绝核验，不再用搜索标题补证据。
+- Codex、`wechat-oa` 和隔离浏览器子进程环境会移除 `EXA_API_KEY`。所有新增测试使用 fake transport/runner，本次业务搜索调用为 0。
+- 下一道门仍是用户单独授权真实 A/B；达标后还需再次确认，才能应用迁移并切换生产默认。
+
+## 16. 新任务启动指令
 
 ```text
 先阅读 ADR 0008、docs/handoffs/exa-first-announcement-discovery-handoff.md 以及其中列出的项目文档。除非用户明确回复“开始实现”，不要写业务代码、应用迁移或执行真实 Exa、Codex、WeChat、Chrome 调用；真实 A/B 和生产默认切换还需要各自单独授权。

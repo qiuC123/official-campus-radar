@@ -247,6 +247,16 @@ class AnnouncementDiscoveryCandidate(models.Model):
         DISCARDED = "discarded", "已丢弃"
         FAILED = "failed", "读取失败"
 
+    class RouteState(models.TextChoices):
+        UNROUTED = "unrouted", "尚未分流"
+        KNOWN_OFFICIAL = "known_official", "已知官网"
+        KNOWN_ATS = "known_ats", "已知招聘系统"
+        SOURCE_IDENTITY_REVIEW_REQUIRED = (
+            "source_identity_review_required",
+            "来源身份待审查",
+        )
+        REJECTED = "rejected", "已拒绝"
+
     organization = models.ForeignKey(
         Organization,
         on_delete=models.PROTECT,
@@ -254,6 +264,12 @@ class AnnouncementDiscoveryCandidate(models.Model):
     )
     source_kind = models.CharField(max_length=24, choices=RecruitmentAnnouncement.SourceKind.choices)
     url = models.URLField()
+    identity_url = models.URLField(blank=True)
+    route_state = models.CharField(
+        max_length=40,
+        choices=RouteState.choices,
+        default=RouteState.UNROUTED,
+    )
     title_hint = models.CharField(max_length=500, blank=True)
     provider = models.CharField(max_length=64)
     provider_result_id = models.CharField(max_length=128, blank=True)
@@ -278,7 +294,160 @@ class AnnouncementDiscoveryCandidate(models.Model):
                 fields=["organization", "url"],
                 name="unique_announcement_candidate_url_per_organization",
             ),
+            models.UniqueConstraint(
+                fields=["organization", "identity_url"],
+                name="unique_announcement_candidate_identity_per_org",
+            ),
         ]
+
+    def save(self, *args, **kwargs):
+        if not self.identity_url:
+            self.identity_url = self.url
+        return super().save(*args, **kwargs)
+
+
+class AnnouncementDiscoveryRun(models.Model):
+    """One bounded announcement discovery execution."""
+
+    class Status(models.TextChoices):
+        COMPLETE = "complete", "完成"
+        PARTIAL = "partial", "部分完成"
+        FAILED = "failed", "失败"
+
+    criteria = models.JSONField(default=dict)
+    status = models.CharField(max_length=16, choices=Status.choices)
+    started_at = models.DateTimeField()
+    completed_at = models.DateTimeField()
+    error_code = models.CharField(max_length=64, blank=True)
+
+
+class AnnouncementDiscoveryOrganizationRun(models.Model):
+    """The isolated result for one organization in a discovery run."""
+
+    class Status(models.TextChoices):
+        COMPLETE = "complete", "完成"
+        DEGRADED = "degraded", "降级完成"
+        FAILED = "failed", "失败"
+
+    run = models.ForeignKey(
+        AnnouncementDiscoveryRun,
+        on_delete=models.PROTECT,
+        related_name="organization_runs",
+    )
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.PROTECT,
+        related_name="announcement_discovery_runs",
+    )
+    status = models.CharField(max_length=16, choices=Status.choices)
+    fallback_reason = models.CharField(max_length=64, blank=True)
+    error_code = models.CharField(max_length=64, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["run", "organization"],
+                name="unique_organization_per_discovery_run",
+            ),
+        ]
+
+
+class AnnouncementDiscoveryProviderAttempt(models.Model):
+    """Append-only metadata for one logical Provider query attempt."""
+
+    class Status(models.TextChoices):
+        SUCCESS = "success", "成功"
+        EMPTY = "empty", "空结果"
+        TRANSIENT_ERROR = "transient_error", "瞬时错误"
+        PERMANENT_ERROR = "permanent_error", "永久错误"
+        SKIPPED = "skipped", "跳过"
+
+    organization_run = models.ForeignKey(
+        AnnouncementDiscoveryOrganizationRun,
+        on_delete=models.PROTECT,
+        related_name="provider_attempts",
+    )
+    provider = models.CharField(max_length=64)
+    request_key = models.CharField(max_length=64)
+    intent_key = models.CharField(max_length=64)
+    query = models.CharField(max_length=500)
+    status = models.CharField(max_length=24, choices=Status.choices)
+    request_id = models.CharField(max_length=128, blank=True)
+    duration_ms = models.PositiveIntegerField(default=0)
+    result_count = models.PositiveSmallIntegerField(default=0)
+    cost_dollars = models.DecimalField(
+        max_digits=12,
+        decimal_places=6,
+        null=True,
+        blank=True,
+    )
+    error_code = models.CharField(max_length=64, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization_run", "provider", "request_key"],
+                name="unique_provider_attempt_per_discovery_query",
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            raise ValidationError("AnnouncementDiscoveryProviderAttempt is append-only")
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError("AnnouncementDiscoveryProviderAttempt is append-only")
+
+
+class AnnouncementDiscoveryObservation(models.Model):
+    """Append-only record of a Provider returning one announcement candidate."""
+
+    organization_run = models.ForeignKey(
+        AnnouncementDiscoveryOrganizationRun,
+        on_delete=models.PROTECT,
+        related_name="observations",
+    )
+    candidate = models.ForeignKey(
+        AnnouncementDiscoveryCandidate,
+        on_delete=models.PROTECT,
+        related_name="search_observations",
+    )
+    intent_key = models.CharField(max_length=64)
+    request_key = models.CharField(max_length=64)
+    query = models.CharField(max_length=500)
+    provider = models.CharField(max_length=64)
+    rank = models.PositiveSmallIntegerField()
+    result_id = models.CharField(max_length=128)
+    title_hint = models.CharField(max_length=500, blank=True)
+    backend_date_hint = models.CharField(max_length=64, blank=True)
+    snippet_sha256 = models.CharField(max_length=64, blank=True)
+    company_signal_found = models.BooleanField(default=False)
+    recruitment_signal_found = models.BooleanField(default=False)
+    discovered_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "organization_run",
+                    "candidate",
+                    "provider",
+                    "request_key",
+                    "result_id",
+                ],
+                name="unique_discovery_observation_per_run",
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            raise ValidationError("AnnouncementDiscoveryObservation is append-only")
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError("AnnouncementDiscoveryObservation is append-only")
 
 
 class RecruitmentPolicy(models.Model):

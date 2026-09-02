@@ -1,8 +1,8 @@
 # Development state
 
-Last verified: 2026-09-01 Asia/Shanghai
+Last verified: 2026-09-02 Asia/Shanghai
 
-Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。ADR 0005 已取代“岗位接口直接驱动正式页”的旧规则；公告门控已开启。ADR 0007 进一步把主要公告顺序调整为微信公众号文章优先、合格微信小程序次之、官网公告降级，岗位和投递入口仍优先使用官网、招聘系统或官方接口。
+Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。ADR 0005 已取代“岗位接口直接驱动正式页”的旧规则；公告门控已开启。ADR 0007 进一步把主要公告顺序调整为微信公众号文章优先、合格微信小程序次之、官网公告降级，岗位和投递入口仍优先使用官网、招聘系统或官方接口。ADR 0008 的 Exa-first 官网/ATS 外部候选发现已完成离线实现，真实 A/B 和生产默认切换尚未授权。
 
 2026-08-31 用户进一步确认页面链接规则：公告入口依次采用官网招聘公告、官方微信招聘通知和官方招聘/投递页面；没有更具体的投递渠道时，“投递”回退到批次已核验的官方招聘页面，公告与投递允许同址。该调整记录于 ADR 0006，不放宽企业身份、公告准入或批次拆分门槛。
 
@@ -47,6 +47,16 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。AD
 - 已增加 `/applications/`：只要用户曾保存过投递进度，即使对应批次以后被隐藏或取代，仍可查看和修改个人记录。
 - 当前迁移已应用至 `0034_rename_wxcli_verification_method`。0034 将持久化验证方式改为 `wechat_oa`，应用前后旧值和新值均为 0 行，没有删除或改写公告；0033 前 SQLite 备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-0033-20260901-142216.sqlite3`，SHA-256 为 `44D43F0EB2D29E98D4E313166286E660D7893438AC1E262454C89C10F2B18830`。腾讯来源配置哈希为 `88bc0b42f1282c029aedaeba547083bede736e26a8221cb4efc2fdcd768ecb6a`；UpdateRun 19 已成功更新全部 6 个腾讯批次，0 个来源失败、0 个批次拒绝。
 - 2026-09-01 招聘雷达已从旧 wxcli 集成完整切换到 `wechat-oa 0.5.1`；Python 3.13 完整回归共 522 项测试通过，`manage.py check`、迁移检查和 `git diff --check` 均通过。正式首页、历史页和“我的进度”页均返回 HTTP 200。
+
+## Exa-first implementation — 2026-09-02
+
+- 官网/ATS 外部候选发现已改为“已知准入来源优先、Exa 首选、Codex 按企业条件兜底”。真实调用仍需要分别显式传入 `--allow-live-search` 和 `--allow-codex-fallback`；候选与观察写库还需要 `--record`，官网回读继续由 `--allow-live-fetch` 独立授权。
+- 新增稳定查询计划、固定 Exa HTTPS API 客户端、有限重试与响应上限、确定性 URL 身份和来源分流、公司级并发 2、批次 10 分钟截止、最多 3 家 Codex fallback，以及 `complete/partial/failed` 分层状态。
+- 同一企业和规范 URL 只保留一个候选实体；每个 Exa、Codex 或已知来源命中形成追加式观察。搜索摘要不写为证据，只保留哈希和确定性信号；Provider 身份由适配器固定。
+- Candidate Batch v1 保持只读兼容；新输出为严格 v2，可离线重放并在重新规范 URL、重算路由后显式记录。迁移 `0035_exa_first_discovery_records` 仅已生成并通过测试库验证，未应用到本地业务数据库。
+- Exa Key 只进入专用客户端；Codex、`wechat-oa` 和隔离浏览器子进程环境会显式移除 `EXA_API_KEY`。官网回读标题为空时不再回退使用搜索标题。
+- 本轮没有执行真实 Exa、Codex、WeChat、Chrome 或其他业务搜索，也没有应用迁移或修改业务数据。
+- Python 3.13 完整回归共 548 项测试通过；`manage.py check`、迁移漂移检查和 `git diff --check` 均通过。
 
 ## Historical implementation record through 2026-08-27
 
@@ -148,4 +158,4 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。AD
 
 ## Exact next task
 
-继续处理剩余 8 个 `excluded` 企业的官网候选：一汽-大众、东风日产、中国中车、亚马逊中国、广汽丰田、携程、网易、苹果中国。只有官网语义审阅确认没有合格公告时，才接收 wechat-oa 生成的微信 Candidate Batch。任何新批次仍须完成主要公告四字段证据和岗位投影门控，不得因为来源接口存在而自动展示。
+在用户另行授权真实 A/B 后，先冻结 12 家基准集的人工真值，再用同一范围运行 Exa-only、Codex-only、Exa-first + Codex fallback；比较 recall、官方候选 precision、首个正确候选排名、延迟、费用和 fallback 收益。没有 A/B 授权与达标数据前，不应用迁移、不切换生产默认，也不声称 Exa 召回优于 Codex。

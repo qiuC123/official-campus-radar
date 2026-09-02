@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 from dataclasses import dataclass
@@ -15,6 +16,12 @@ _CREDENTIAL_ASSIGNMENT = re.compile(
 _MAX_CANDIDATES = 100
 _MAX_DOCUMENT_BYTES = 2 * 1024 * 1024
 WECHAT_OA_HYDRATION_TIMEOUT_SECONDS = 660
+
+
+def _scrubbed_subprocess_environment() -> dict[str, str]:
+    values = dict(os.environ)
+    values.pop("EXA_API_KEY", None)
+    return values
 
 
 class WeChatOAError(RuntimeError):
@@ -62,6 +69,7 @@ class WeChatOAClient:
                 capture_output=True,
                 timeout=15,
                 check=False,
+                env=_scrubbed_subprocess_environment(),
             )
         except (OSError, subprocess.TimeoutExpired) as error:
             raise WeChatOAError(
@@ -104,6 +112,7 @@ class WeChatOAClient:
                 capture_output=True,
                 timeout=timeout_seconds,
                 check=False,
+                env=_scrubbed_subprocess_environment(),
             )
         except (OSError, subprocess.TimeoutExpired) as error:
             raise WeChatOAError(

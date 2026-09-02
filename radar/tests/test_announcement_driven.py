@@ -59,6 +59,7 @@ from radar.services.announcements import (
     verify_official_announcement,
 )
 from radar.services.dashboard_data import canonical_audience
+from radar.services.exa_discovery import ExaDiscoveryError
 from radar.services.update_runner import run_update
 from radar.services.wechat_oa_client import (
     WeChatOAClient,
@@ -1391,14 +1392,18 @@ class OfficialDiscoveryContractTests(TestCase):
     def test_discovery_command_uses_nonzero_failure_semantics(self):
         output = StringIO()
         with patch(
-            "radar.management.commands.discover_official_announcements.discover_official_candidates_with_codex",
-            side_effect=RuntimeError("RATE_LIMITED"),
+            "radar.management.commands.discover_official_announcements.build_exa_client_from_environment",
+            side_effect=ExaDiscoveryError("AUTH_INVALID", fallback_allowed=False),
         ):
             with self.assertRaises(CommandError):
                 call_command(
                     "discover_official_announcements",
-                    organization=self.source.organization.name,
+                    organization=[self.source.organization.name],
                     allow_live_search=True,
+                    audience=["2027届"],
+                    recruitment_type=["秋招"],
+                    published_after="2026-06-01",
+                    published_before="2026-12-31",
                     stdout=output,
                 )
         self.assertIn('"ok": false', output.getvalue())
@@ -1565,6 +1570,8 @@ class WeChatOABoundaryTests(TestCase):
         self.assertEqual(calls[1][0], "wechat-oa")
         self.assertNotIn("--browser", calls[1])
         self.assertEqual(call_options[1]["timeout"], 660)
+        self.assertNotIn("EXA_API_KEY", call_options[0]["env"])
+        self.assertNotIn("EXA_API_KEY", call_options[1]["env"])
 
     def test_client_checks_both_exit_code_and_json_envelope(self):
         responses = iter((

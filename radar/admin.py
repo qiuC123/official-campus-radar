@@ -1,6 +1,9 @@
 from django.contrib import admin
 
-from .models import (AnnouncementDiscoveryCandidate, AnnouncementFieldEvidence,
+from .models import (AnnouncementDiscoveryCandidate, AnnouncementDiscoveryObservation,
+                     AnnouncementDiscoveryOrganizationRun,
+                     AnnouncementDiscoveryProviderAttempt, AnnouncementDiscoveryRun,
+                     AnnouncementFieldEvidence,
                      ApprovedApplicationHost, ApplicationLink,
                      ApplicationProgress, Evidence, FetchRun, RecruitmentPosition,
                      OfficialSource, Organization, OrganizationAlias,
@@ -50,13 +53,23 @@ admin.site.register(WeChatAccountIdentity)
 
 @admin.register(AnnouncementDiscoveryCandidate)
 class AnnouncementDiscoveryCandidateAdmin(admin.ModelAdmin):
-    list_display = ("organization", "title_hint", "source_kind", "provider", "state", "discovered_at")
-    list_filter = ("source_kind", "provider", "state")
-    search_fields = ("organization__name", "title_hint", "url")
+    list_display = (
+        "organization",
+        "title_hint",
+        "source_kind",
+        "route_state",
+        "provider",
+        "state",
+        "discovered_at",
+    )
+    list_filter = ("source_kind", "route_state", "provider", "state")
+    search_fields = ("organization__name", "title_hint", "url", "identity_url")
     readonly_fields = (
         "organization",
         "source_kind",
         "url",
+        "identity_url",
+        "route_state",
         "title_hint",
         "provider",
         "provider_result_id",
@@ -64,3 +77,9 @@ class AnnouncementDiscoveryCandidateAdmin(admin.ModelAdmin):
         "announcement",
         "discovered_at",
     )
+
+
+admin.site.register(AnnouncementDiscoveryRun, AuditReadOnlyAdmin)
+admin.site.register(AnnouncementDiscoveryOrganizationRun, AuditReadOnlyAdmin)
+admin.site.register(AnnouncementDiscoveryProviderAttempt, AuditReadOnlyAdmin)
+admin.site.register(AnnouncementDiscoveryObservation, AuditReadOnlyAdmin)

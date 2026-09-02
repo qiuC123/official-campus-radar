@@ -237,6 +237,8 @@ def verify_official_announcement(
         raise ValidationError("candidate is not an official-site announcement")
     if not refetched.recruitment_signal_found:
         raise ValidationError("official page does not contain a recruitment-project signal")
+    if not refetched.title.strip():
+        raise ValidationError("official page title must come from refetched evidence")
     source = _source_for_url(candidate.organization, refetched.url)
     if source is None:
         raise ValidationError("official page is not covered by an admitted organization source")
@@ -249,7 +251,7 @@ def verify_official_announcement(
         identity_key=hashlib.sha256(refetched.url.encode("utf-8")).hexdigest(),
         defaults={
             "source": source,
-            "title": refetched.title or candidate.title_hint,
+            "title": refetched.title,
             "url": refetched.url,
             "last_verified_at": refetched.fetched_at,
             "identity_evidence": evidence,

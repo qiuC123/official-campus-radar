@@ -9,7 +9,7 @@ import socket
 import shutil
 import subprocess
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Callable, Iterable
 from urllib.parse import urljoin, urlsplit
@@ -118,6 +118,14 @@ def _codex_command_prefix(value: str) -> list[str]:
     if str(resolved).casefold().endswith((".cmd", ".bat")):
         return [os.environ.get("COMSPEC", "cmd.exe"), "/d", "/s", "/c", str(resolved)]
     return [str(resolved)]
+
+
+def scrubbed_discovery_subprocess_environment(
+    environ: dict[str, str] | None = None,
+) -> dict[str, str]:
+    values = dict(os.environ if environ is None else environ)
+    values.pop("EXA_API_KEY", None)
+    return values
 
 
 def _expect_keys(value: dict, allowed: set[str], label: str) -> None:
@@ -247,7 +255,7 @@ def official_candidate_json_schema() -> dict:
                     "properties": {
                         "url": {"type": "string"},
                         "title_hint": {"type": "string"},
-                        "provider": {"type": "string"},
+                        "provider": {"type": "string", "enum": ["codex_web_search"]},
                         "rank": {"type": "integer"},
                         "result_id": {"type": "string"},
                     },
@@ -262,6 +270,10 @@ def discover_official_candidates_with_codex(
     *,
     codex_path: str = "codex",
     timeout_seconds: int = 180,
+    search_queries: Iterable[str] = (),
+    published_after: str = "",
+    published_before: str = "",
+    candidate_context: Iterable[dict] = (),
     runner: Callable[..., subprocess.CompletedProcess] = subprocess.run,
 ) -> OfficialSiteCandidateBatch:
     known_hosts = sorted(
@@ -274,13 +286,36 @@ def discover_official_candidates_with_codex(
             if host
         }
     )
+    bounded_queries = [str(value).strip()[:500] for value in search_queries][:4]
+    bounded_context = [
+        {
+            "url": str(value.get("url") or "")[:2000],
+            "title_hint": str(value.get("title_hint") or "")[:500],
+            "route_state": str(value.get("route_state") or "")[:40],
+            "rejection_code": str(value.get("rejection_code") or "")[:64],
+        }
+        for value in candidate_context
+        if isinstance(value, dict)
+    ][:40]
+    scope = json.dumps(
+        {
+            "queries": bounded_queries,
+            "published_after": str(published_after or "")[:10],
+            "published_before": str(published_before or "")[:10],
+            "existing_candidate_classifications": bounded_context,
+        },
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
     prompt = (
         "搜索企业当前校园招聘的官方正式公告或官方招聘系统项目页。"
         "只返回企业官网、集团官网或官方招聘系统页面，不返回聚合站和微信公众号。"
         "搜索结果只是候选，不要声称已完成身份验证。\n"
         f"企业：{organization.name}\n"
         f"已知官方域名：{', '.join(known_hosts) or '未配置'}\n"
-        "输出必须符合给定 JSON Schema；provider 填实际搜索提供者。"
+        f"显式检索范围与已有候选分类：{scope}\n"
+        "不要根据当前年份推断届次；不要把已有候选的标题提示当作证据。\n"
+        "输出必须符合给定 JSON Schema；provider 固定填写 codex_web_search。"
     )
     with tempfile.TemporaryDirectory(prefix="radar-codex-discovery-") as directory:
         schema_path = Path(directory) / "schema.json"
@@ -288,29 +323,42 @@ def discover_official_candidates_with_codex(
             json.dumps(official_candidate_json_schema(), ensure_ascii=False),
             encoding="utf-8",
         )
-        completed = runner(
-            [
-                *_codex_command_prefix(codex_path),
-                "--search",
-                "exec",
-                "--ephemeral",
-                "--sandbox",
-                "read-only",
-                "--output-schema",
-                str(schema_path),
-                "-",
-            ],
-            input=prompt,
-            text=True,
-            encoding="utf-8",
-            capture_output=True,
-            timeout=timeout_seconds,
-            check=False,
-        )
+        try:
+            completed = runner(
+                [
+                    *_codex_command_prefix(codex_path),
+                    "--search",
+                    "exec",
+                    "--ephemeral",
+                    "--sandbox",
+                    "read-only",
+                    "--output-schema",
+                    str(schema_path),
+                    "-",
+                ],
+                input=prompt,
+                text=True,
+                encoding="utf-8",
+                capture_output=True,
+                timeout=timeout_seconds,
+                check=False,
+                env=scrubbed_discovery_subprocess_environment(),
+            )
+        except subprocess.TimeoutExpired as error:
+            raise RuntimeError("Codex official-site discovery failed: TIMEOUT") from error
     if completed.returncode != 0:
         category = _codex_failure_category(completed.stderr)
         raise RuntimeError(f"Codex official-site discovery failed: {category} (exit {completed.returncode})")
-    return parse_official_candidate_batch(completed.stdout)
+    batch = parse_official_candidate_batch(completed.stdout)
+    return OfficialSiteCandidateBatch(
+        query=batch.query,
+        orchestrator="codex",
+        providers=("codex_web_search",),
+        candidates=tuple(
+            replace(candidate, provider="codex_web_search")
+            for candidate in batch.candidates
+        ),
+    )
 
 
 def _bulk_candidate_json_schema(company_names: list[str]) -> dict:
@@ -446,15 +494,19 @@ def discover_official_candidates_bulk_with_codex(
             ),
             encoding="utf-8",
         )
-        completed = runner(
-            [*_codex_command_prefix(codex_path), "--search", "exec", "--ephemeral", "--sandbox", "read-only", "--output-schema", str(schema_path), "-"],
-            input=prompt,
-            text=True,
-            encoding="utf-8",
-            capture_output=True,
-            timeout=timeout_seconds,
-            check=False,
-        )
+        try:
+            completed = runner(
+                [*_codex_command_prefix(codex_path), "--search", "exec", "--ephemeral", "--sandbox", "read-only", "--output-schema", str(schema_path), "-"],
+                input=prompt,
+                text=True,
+                encoding="utf-8",
+                capture_output=True,
+                timeout=timeout_seconds,
+                check=False,
+                env=scrubbed_discovery_subprocess_environment(),
+            )
+        except subprocess.TimeoutExpired as error:
+            raise RuntimeError("Codex bulk official-site discovery failed: TIMEOUT") from error
     if completed.returncode != 0:
         category = _codex_failure_category(completed.stderr)
         raise RuntimeError(f"Codex bulk official-site discovery failed: {category} (exit {completed.returncode})")
@@ -561,6 +613,7 @@ def _playwright_render_official_page(
             browser = playwright.chromium.launch(
                 headless=True,
                 args=["--no-proxy-server"],
+                env=scrubbed_discovery_subprocess_environment(),
             )
             context_options = {
                 "service_workers": "block",
@@ -718,7 +771,7 @@ def refetch_official_candidate(
     if len(body) > MAX_DOCUMENT_BYTES:
         raise DiscoveryContractError("official page exceeds the 2 MiB evidence limit")
     soup = BeautifulSoup(body, "html.parser")
-    title = (soup.title.get_text(" ", strip=True) if soup.title else candidate.title_hint).strip()
+    title = (soup.title.get_text(" ", strip=True) if soup.title else "").strip()
     text = soup.get_text(" ", strip=True).casefold()
     return RefetchedOfficialCandidate(
         url=canonical_url,

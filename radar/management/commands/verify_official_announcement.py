@@ -45,6 +45,8 @@ class Command(BaseCommand):
             raise CommandError("--allow-browser requires --allow-live-fetch")
         if options["force_browser"] and not options["allow_browser"]:
             raise CommandError("--force-browser requires --allow-browser")
+        if options["snapshot_file"] and not options["snapshot_title"]:
+            raise CommandError("--snapshot-title is required with --snapshot-file")
         try:
             candidate = AnnouncementDiscoveryCandidate.objects.select_related("organization").get(
                 pk=options["candidate_id"]
@@ -61,7 +63,7 @@ class Command(BaseCommand):
                     candidate.organization,
                     discovery_candidate,
                     snapshot_bytes=Path(options["snapshot_file"]).read_bytes(),
-                    snapshot_title=options["snapshot_title"] or candidate.title_hint,
+                    snapshot_title=options["snapshot_title"],
                     human_confirmed_signal=options["human_confirmed_signal"],
                 )
             else:
