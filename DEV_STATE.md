@@ -71,11 +71,12 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。AD
 
 ## wechat-oa 原生 Exa Direct Discovery 接入 — 2026-09-02
 
-- 上游 `wechat-oa 0.7.0` 已提供原生 Exa Provider；招聘雷达新增 `discover_wechat_oa_announcements`，从自身已核验的企业公众号身份构造 `--company` / `--account`，并固定调用 `--provider exa --hydrate --no-browser`。
+- 上游 `wechat-oa 0.7.1` 已提供原生 Exa Provider 并修复 0.7.0 对企业、账号和日期提示的过度硬过滤；招聘雷达新增 `discover_wechat_oa_announcements`，从自身已核验的企业公众号身份构造 `--company` / `--account`，并固定调用 `--provider exa --hydrate --no-browser`。
 - 命令默认只预演且不启动子进程；`--allow-live-search` 才授权 Exa 搜索和微信公众号 HTTP 回读，`--record` 再单独授权把已核验 Article Evidence 按企业事务原子导入。Direct Discovery 不授权 Chrome、媒体分析或 OCR。
-- `wechat-oa` 只从自己的 Windows 凭据管理器读取 Exa Key；招聘雷达继续从子进程环境移除 `EXA_API_KEY`，并校验 0.7.0 最低版本、schema v1、`search_provider=exa`、稳定 Provider 错误 reason、候选 provenance 和严格微信文章 URL。
-- 本批只使用模拟子进程验证契约，没有执行真实 Exa、微信回读或 Chrome；真实烟雾测试仍需用户另行明确授权。
-- 当前业务数据库尚未登记腾讯的已核验公众号身份，纯预演会在启动子进程前安全停止；后续必须先取得公众号显示名或 `biz_id` 的官方身份依据并登记，不能用搜索提示自动补齐。
+- `wechat-oa` 只从自己的 Windows 凭据管理器读取 Exa Key；招聘雷达继续从子进程环境移除 `EXA_API_KEY`，并校验 0.7.1 最低版本、schema v1、`search_provider=exa`、稳定 Provider 错误 reason、候选 provenance 和严格微信文章 URL。
+- 用户提供的腾讯微信原文经显式授权的 `wechat-oa` 专用 Chrome 回读后，取得显示名“腾讯”、公开 `biz_id` 和指向已核验 `join.qq.com` 的正文链接；该身份已登记到本地业务数据库。搜索提示本身仍不能自动创建公众号身份。
+- 0.7.1 真实腾讯复验返回 50 个候选，证明原先零召回已解除；已知目标文章仍未被召回，候选中还混有其他企业和第三方内容。前 20 个 HTTP 回读均为 `VERIFICATION_REQUIRED`，其余 30 个未尝试，因此 0 篇具备 Article Evidence、0 篇导入。该结果已反馈上游继续改进召回和精度。
+- 真实复验同时发现 Windows GBK 控制台无法输出候选中的不换行空格；管理命令现以 ASCII-safe JSON 转义非 ASCII 字符，解析后的文本不变，并有 GBK 严格编码回归测试。
 - 接入后 Python 3.13 完整回归共 568 项测试通过；项目检查、迁移漂移检查和差异检查均通过。
 
 ## Historical implementation record through 2026-08-27

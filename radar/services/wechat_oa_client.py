@@ -17,7 +17,7 @@ _CREDENTIAL_ASSIGNMENT = re.compile(
 _MAX_CANDIDATES = 100
 _MAX_DOCUMENT_BYTES = 2 * 1024 * 1024
 WECHAT_OA_HYDRATION_TIMEOUT_SECONDS = 660
-WECHAT_OA_EXA_MINIMUM_VERSION = (0, 7, 0)
+WECHAT_OA_EXA_MINIMUM_VERSION = (0, 7, 1)
 _EXA_AUTH_FAILURE_REASONS = {
     "not_configured",
     "credential_rejected",
@@ -330,7 +330,7 @@ class WeChatOAClient:
         version = self.version()
         if version < WECHAT_OA_EXA_MINIMUM_VERSION:
             raise WeChatOAError(
-                "WECHAT_OA_TOO_OLD", "wechat-oa 0.7.0 or newer is required"
+                "WECHAT_OA_TOO_OLD", "wechat-oa 0.7.1 or newer is required"
             )
         command = [
             self.executable,

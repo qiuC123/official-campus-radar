@@ -11,7 +11,8 @@ wechat-oa --version
 ```
 
 招聘雷达要求命令位于 `PATH`。导入外部 Candidate Batch 要求版本不低于 0.4.0；
-由 `wechat-oa` 原生调用 Exa 的 Direct Discovery 要求版本不低于 0.7.0。旧的
+由 `wechat-oa` 原生调用 Exa 的 Direct Discovery 要求版本不低于 0.7.1；0.7.0 会把
+企业、账号和日期提示错误收窄为 Provider 硬过滤，可能在候选产生前造成零召回。旧的
 `wxcli` 可执行文件、Python 客户端和管理命令不再作为回退路径。
 
 Exa Key 由操作者在交互终端配置一次，并只保存在 `wechat-oa` 自己的 Windows
@@ -70,6 +71,9 @@ Article Evidence。
 空搜索是成功的空候选结果；单篇回读失败会显示为 `partial`，并保留候选级错误码。
 Provider 顶层失败会保留 `AUTHENTICATION_ERROR` 或 `NETWORK_ERROR` 以及稳定的
 `provider=exa`、`reason`，但不会输出凭据或 Exa 原始响应正文。
+
+命令输出是可被任意 Windows 控制台编码安全写出的 JSON；非 ASCII 字符可能显示为
+`\uXXXX` 转义，JSON 解析后的文本不变。
 
 ## 导入 Candidate Batch
 

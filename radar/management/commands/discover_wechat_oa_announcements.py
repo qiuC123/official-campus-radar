@@ -17,6 +17,12 @@ _CREDENTIAL_ASSIGNMENT = re.compile(
 )
 
 
+def _json_output(payload: dict) -> str:
+    """Keep JSON writable on legacy Windows console encodings."""
+
+    return json.dumps(payload, ensure_ascii=True)
+
+
 def _parse_date(value: str | None, label: str) -> date | None:
     if not value:
         return None
@@ -54,7 +60,7 @@ def _candidate_summary(candidate: dict) -> dict:
 
 class Command(BaseCommand):
     help = (
-        "通过 wechat-oa 0.7 的 Exa Provider 发现并回读微信公众号公告；"
+        "通过 wechat-oa 0.7.1+ 的 Exa Provider 发现并回读微信公众号公告；"
         "默认只预演，--record 才导入数据库。"
     )
 
@@ -111,7 +117,7 @@ class Command(BaseCommand):
             "account_names": [item.display_name for item in identities],
         }
         if not options["allow_live_search"]:
-            self.stdout.write(json.dumps({
+            self.stdout.write(_json_output({
                 **base,
                 "ok": True,
                 "status": "preview",
@@ -119,7 +125,7 @@ class Command(BaseCommand):
                 "candidate_count": 0,
                 "verified_articles": 0,
                 "announcements_imported": 0,
-            }, ensure_ascii=False))
+            }))
             return
 
         try:
@@ -138,7 +144,7 @@ class Command(BaseCommand):
                         for candidate in result.verified_candidates
                     ]
         except WeChatOAError as error:
-            self.stdout.write(json.dumps({
+            self.stdout.write(_json_output({
                 **base,
                 "ok": False,
                 "status": "failed",
@@ -148,7 +154,7 @@ class Command(BaseCommand):
                     "provider": error.provider or None,
                     "reason": error.reason or None,
                 },
-            }, ensure_ascii=False))
+            }))
             raise CommandError(error.code) from error
         except ValidationError as error:
             raise CommandError(str(error)) from error
@@ -158,7 +164,7 @@ class Command(BaseCommand):
             str(item.get("verification_status") or "unknown")
             for item in candidates
         )
-        self.stdout.write(json.dumps({
+        self.stdout.write(_json_output({
             **base,
             "ok": True,
             "status": "partial" if result.partial else "complete",
@@ -168,4 +174,4 @@ class Command(BaseCommand):
             "announcements_imported": len(announcements),
             "verification_statuses": dict(sorted(statuses.items())),
             "candidates": [_candidate_summary(item) for item in candidates],
-        }, ensure_ascii=False))
+        }))

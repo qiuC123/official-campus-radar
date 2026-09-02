@@ -3,7 +3,7 @@ import subprocess
 import tempfile
 from dataclasses import replace
 from datetime import datetime, timezone as datetime_timezone
-from io import StringIO
+from io import BytesIO, StringIO, TextIOWrapper
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -1620,7 +1620,7 @@ class WeChatOABoundaryTests(TestCase):
         def runner(command, **kwargs):
             calls.append((command, kwargs))
             if command[-1] == "--version":
-                return subprocess.CompletedProcess(command, 0, "0.7.0\n", "")
+                return subprocess.CompletedProcess(command, 0, "0.7.1\n", "")
             return subprocess.CompletedProcess(
                 command,
                 0,
@@ -1658,10 +1658,10 @@ class WeChatOABoundaryTests(TestCase):
         self.assertNotIn("EXA_API_KEY", options["env"])
         self.assertNotIn("input", options)
 
-    def test_direct_exa_client_requires_wechat_oa_070(self):
+    def test_direct_exa_client_requires_wechat_oa_071(self):
         client = WeChatOAClient(
             runner=lambda command, **kwargs: subprocess.CompletedProcess(
-                command, 0, "0.6.0\n", ""
+                command, 0, "0.7.0\n", ""
             )
         )
         with self.assertRaises(WeChatOAError) as raised:
@@ -1674,7 +1674,7 @@ class WeChatOABoundaryTests(TestCase):
 
     def test_direct_exa_client_preserves_stable_provider_failure_reason(self):
         responses = iter((
-            subprocess.CompletedProcess([], 0, "0.7.0\n", ""),
+            subprocess.CompletedProcess([], 0, "0.7.1\n", ""),
             subprocess.CompletedProcess([], 6, json.dumps({
                 "ok": False,
                 "error": {
@@ -1698,7 +1698,7 @@ class WeChatOABoundaryTests(TestCase):
 
     def test_direct_exa_client_rejects_mismatched_error_reason_contract(self):
         responses = iter((
-            subprocess.CompletedProcess([], 0, "0.7.0\n", ""),
+            subprocess.CompletedProcess([], 0, "0.7.1\n", ""),
             subprocess.CompletedProcess([], 6, json.dumps({
                 "ok": False,
                 "error": {
@@ -1727,7 +1727,7 @@ class WeChatOABoundaryTests(TestCase):
             dict(self.direct_candidate(), fetch_url="https://mp.weixin.qq.com/profile"),
         ):
             responses = iter((
-                subprocess.CompletedProcess([], 0, "0.7.0\n", ""),
+                subprocess.CompletedProcess([], 0, "0.7.1\n", ""),
                 subprocess.CompletedProcess([], 0, json.dumps({
                     "ok": True,
                     "data": self.direct_data(candidates=[candidate]),
@@ -1939,6 +1939,34 @@ class WeChatOABoundaryTests(TestCase):
                 organization=self.source.organization,
                 source_kind=RecruitmentAnnouncement.SourceKind.WECHAT_ARTICLE,
             ).exists()
+        )
+
+    def test_direct_discovery_json_is_safe_for_windows_gbk_stdout(self):
+        candidate = self.direct_candidate()
+        candidate["title_hint"] = "2027\u00a0campus recruitment"
+        result = SimpleNamespace(
+            data=self.direct_data(candidates=[candidate]),
+            verified_candidates=(candidate,),
+            partial=False,
+        )
+        raw_output = BytesIO()
+        output = TextIOWrapper(raw_output, encoding="gbk", errors="strict")
+        with patch(
+            "radar.management.commands.discover_wechat_oa_announcements.WeChatOAClient"
+        ) as client_class:
+            client_class.return_value.search_articles_with_exa.return_value = result
+            call_command(
+                "discover_wechat_oa_announcements",
+                organization="微信边界公司",
+                query="2027届 秋招",
+                allow_live_search=True,
+                stdout=output,
+            )
+        output.flush()
+        payload = json.loads(raw_output.getvalue().decode("gbk"))
+        self.assertEqual(
+            payload["candidates"][0]["title_hint"],
+            "2027\u00a0campus recruitment",
         )
 
     def test_direct_discovery_reports_safe_provider_error_contract(self):
