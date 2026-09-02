@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 from dataclasses import dataclass
+from datetime import date
 from typing import Callable
 from urllib.parse import urlsplit
 
@@ -16,6 +17,18 @@ _CREDENTIAL_ASSIGNMENT = re.compile(
 _MAX_CANDIDATES = 100
 _MAX_DOCUMENT_BYTES = 2 * 1024 * 1024
 WECHAT_OA_HYDRATION_TIMEOUT_SECONDS = 660
+WECHAT_OA_EXA_MINIMUM_VERSION = (0, 7, 0)
+_EXA_AUTH_FAILURE_REASONS = {
+    "not_configured",
+    "credential_rejected",
+}
+_EXA_NETWORK_FAILURE_REASONS = {
+    "rate_limited",
+    "timeout",
+    "network_error",
+    "provider_error",
+    "invalid_response",
+}
 
 
 def _scrubbed_subprocess_environment() -> dict[str, str]:
@@ -25,9 +38,20 @@ def _scrubbed_subprocess_environment() -> dict[str, str]:
 
 
 class WeChatOAError(RuntimeError):
-    def __init__(self, code: str, message: str):
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        provider: str = "",
+        reason: str = "",
+        exit_code: int | None = None,
+    ):
         super().__init__(message)
         self.code = code
+        self.provider = provider
+        self.reason = reason
+        self.exit_code = exit_code
 
 
 @dataclass(frozen=True)
@@ -39,6 +63,126 @@ class WeChatOAHydrationResult:
     @property
     def verified_evidence(self) -> tuple[dict, ...]:
         return tuple(item["evidence"] for item in self.verified_candidates)
+
+
+def _clean_search_text(value: object, label: str, maximum: int) -> str:
+    clean = str(value or "").strip()
+    if (
+        not clean
+        or len(clean) > maximum
+        or any(ord(character) < 32 or ord(character) == 127 for character in clean)
+    ):
+        raise WeChatOAError("INVALID_DISCOVERY_REQUEST", f"invalid {label}")
+    return clean
+
+
+def _date_argument(value: date | str | None, label: str) -> str:
+    if value is None or value == "":
+        return ""
+    raw = value.isoformat() if isinstance(value, date) else str(value).strip()
+    try:
+        return date.fromisoformat(raw).isoformat()
+    except ValueError as error:
+        raise WeChatOAError(
+            "INVALID_DISCOVERY_REQUEST", f"{label} must use YYYY-MM-DD"
+        ) from error
+
+
+def _failure_from_envelope(completed, operation: str) -> WeChatOAError | None:
+    try:
+        envelope = json.loads(completed.stdout)
+    except (TypeError, json.JSONDecodeError) as error:
+        return WeChatOAError(
+            "INVALID_JSON",
+            f"wechat-oa did not return one JSON document for {operation}",
+            exit_code=completed.returncode,
+        )
+    if not isinstance(envelope, dict):
+        return WeChatOAError(
+            "INVALID_JSON",
+            f"wechat-oa JSON envelope for {operation} must be an object",
+            exit_code=completed.returncode,
+        )
+    if completed.returncode == 0 and envelope.get("ok") is True:
+        return None
+    error_value = envelope.get("error") if isinstance(envelope.get("error"), dict) else {}
+    details = error_value.get("details") if isinstance(error_value.get("details"), dict) else {}
+    code = str(error_value.get("code") or f"EXIT_{completed.returncode}")
+    provider = str(details.get("provider") or "")
+    reason = str(details.get("reason") or "")
+    expected_reasons = {
+        "AUTHENTICATION_ERROR": _EXA_AUTH_FAILURE_REASONS,
+        "NETWORK_ERROR": _EXA_NETWORK_FAILURE_REASONS,
+    }.get(code)
+    if expected_reasons is not None and (
+        provider != "exa" or reason not in expected_reasons
+    ):
+        return WeChatOAError(
+            "INVALID_ERROR_CONTRACT",
+            f"wechat-oa returned an invalid {operation} error contract",
+            exit_code=completed.returncode,
+        )
+    return WeChatOAError(
+        code,
+        f"wechat-oa could not complete {operation}",
+        provider=provider,
+        reason=reason,
+        exit_code=completed.returncode,
+    )
+
+
+def _discovery_result(completed, *, provider: str, operation: str) -> WeChatOAHydrationResult:
+    failure = _failure_from_envelope(completed, operation)
+    if failure is not None:
+        raise failure
+    envelope = json.loads(completed.stdout)
+    data = envelope.get("data")
+    if not isinstance(data, dict) or data.get("schema_version") != "1":
+        raise WeChatOAError(
+            "UNSUPPORTED_SCHEMA", "wechat-oa returned an unsupported schema"
+        )
+    candidates = data.get("candidates")
+    summary = data.get("summary")
+    if (
+        not isinstance(candidates, list)
+        or len(candidates) > _MAX_CANDIDATES
+        or not isinstance(summary, dict)
+        or not isinstance(summary.get("partial"), bool)
+    ):
+        raise WeChatOAError("INVALID_RESULT", "wechat-oa returned an invalid result")
+    if provider and data.get("search_provider") != provider:
+        raise WeChatOAError(
+            "INVALID_RESULT", "wechat-oa returned an unexpected search provider"
+        )
+    for candidate in candidates:
+        provenance = candidate.get("search_provenance") if isinstance(candidate, dict) else None
+        parts = urlsplit(str(candidate.get("fetch_url") or "")) if isinstance(candidate, dict) else None
+        if (
+            not isinstance(candidate, dict)
+            or not isinstance(provenance, dict)
+            or provenance.get("provider") != provider
+            or not isinstance(provenance.get("rank"), int)
+            or isinstance(provenance.get("rank"), bool)
+            or provenance["rank"] < 1
+            or not str(provenance.get("result_id") or "").strip()
+            or len(str(provenance.get("result_id") or "")) > 128
+            or parts is None
+            or parts.scheme != "https"
+            or (parts.hostname or "").casefold() != "mp.weixin.qq.com"
+            or parts.username
+            or parts.password
+            or not re.match(r"^/s(?:/|$)", parts.path)
+        ):
+            raise WeChatOAError(
+                "INVALID_RESULT", "wechat-oa returned an invalid discovery candidate"
+            )
+    verified = tuple(
+        item
+        for item in candidates
+        if item.get("verification_status") == "verified"
+        and isinstance(item.get("evidence"), dict)
+    )
+    return WeChatOAHydrationResult(data, verified, summary["partial"])
 
 
 def _parse_version(value: str) -> tuple[int, int, int]:
@@ -149,6 +293,83 @@ class WeChatOAClient:
         )
         summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
         return WeChatOAHydrationResult(data, verified, bool(summary.get("partial")))
+
+    def search_articles_with_exa(
+        self,
+        *,
+        query: str,
+        company: str,
+        account_names: list[str] | tuple[str, ...],
+        published_after: date | str | None = None,
+        published_before: date | str | None = None,
+        timeout_seconds: int = WECHAT_OA_HYDRATION_TIMEOUT_SECONDS,
+    ) -> WeChatOAHydrationResult:
+        """Run WeChat OA 0.7 Direct Discovery without browser or media privileges."""
+
+        clean_query = _clean_search_text(query, "query", 500)
+        clean_company = _clean_search_text(company, "company", 200)
+        clean_accounts = tuple(dict.fromkeys(
+            _clean_search_text(value, "account", 200) for value in account_names
+        ))
+        if not clean_accounts:
+            raise WeChatOAError(
+                "INVALID_DISCOVERY_REQUEST", "at least one verified account is required"
+            )
+        if _CREDENTIAL_ASSIGNMENT.search(
+            " ".join((clean_query, clean_company, *clean_accounts))
+        ):
+            raise WeChatOAError(
+                "INVALID_DISCOVERY_REQUEST", "discovery text contains credential-like data"
+            )
+        after = _date_argument(published_after, "published_after")
+        before = _date_argument(published_before, "published_before")
+        if after and before and after > before:
+            raise WeChatOAError(
+                "INVALID_DISCOVERY_REQUEST", "published_after must not be after published_before"
+            )
+        version = self.version()
+        if version < WECHAT_OA_EXA_MINIMUM_VERSION:
+            raise WeChatOAError(
+                "WECHAT_OA_TOO_OLD", "wechat-oa 0.7.0 or newer is required"
+            )
+        command = [
+            self.executable,
+            "--json",
+            "discovery",
+            "search",
+            clean_query,
+            "--company",
+            clean_company,
+        ]
+        for account in clean_accounts:
+            command.extend(("--account", account))
+        if after:
+            command.extend(("--published-after", after))
+        if before:
+            command.extend(("--published-before", before))
+        command.extend(("--provider", "exa", "--hydrate", "--no-browser"))
+        try:
+            completed = self.runner(
+                command,
+                text=True,
+                encoding="utf-8",
+                capture_output=True,
+                timeout=timeout_seconds,
+                check=False,
+                env=_scrubbed_subprocess_environment(),
+            )
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise WeChatOAError(
+                "WECHAT_OA_EXEC_FAILED",
+                "wechat-oa Exa discovery execution failed",
+                provider="exa",
+                reason="timeout" if isinstance(error, subprocess.TimeoutExpired) else "",
+            ) from error
+        return _discovery_result(
+            completed,
+            provider="exa",
+            operation="Exa discovery",
+        )
 
 
 def build_wechat_candidate_batch(

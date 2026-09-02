@@ -1446,6 +1446,37 @@ class WeChatOABoundaryTests(TestCase):
             },
         }
 
+    def direct_candidate(self, *, token="safe-token", markdown="明确招聘2027届"):
+        candidate = self.wx_candidate(markdown=markdown)
+        candidate["fetch_url"] = f"https://mp.weixin.qq.com/s/{token}"
+        candidate["article_identity"] = f"token:{token}"
+        candidate["evidence"]["article"]["source_url"] = candidate["fetch_url"]
+        candidate["search_provenance"] = {
+            "provider": "exa",
+            "rank": 1,
+            "result_id": f"exa-{token}",
+        }
+        candidate["title_hint"] = "搜索标题不是公告证据"
+        return candidate
+
+    def direct_data(self, *, candidates=None, partial=False):
+        values = list(candidates or [])
+        return {
+            "schema_version": "1",
+            "search_provider": "exa",
+            "summary": {
+                "received": len(values),
+                "accepted": len(values),
+                "duplicates_removed": 0,
+                "hydration_attempted": len(values),
+                "verified": sum(
+                    item.get("verification_status") == "verified" for item in values
+                ),
+                "partial": partial,
+            },
+            "candidates": values,
+        }
+
     def test_wechat_oa_article_requires_radar_owned_account_allowlist(self):
         announcement = import_wechat_oa_announcement(
             self.source.organization, self.wx_candidate()
@@ -1583,6 +1614,135 @@ class WeChatOABoundaryTests(TestCase):
             client.hydrate_candidate_batch({"schema_version": "1"})
         self.assertEqual(raised.exception.code, "VERIFICATION_REQUIRED")
 
+    def test_direct_exa_client_uses_frozen_command_and_scrubbed_environment(self):
+        calls = []
+
+        def runner(command, **kwargs):
+            calls.append((command, kwargs))
+            if command[-1] == "--version":
+                return subprocess.CompletedProcess(command, 0, "0.7.0\n", "")
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                json.dumps({"ok": True, "data": self.direct_data()}),
+                "",
+            )
+
+        result = WeChatOAClient(runner=runner).search_articles_with_exa(
+            query="2027届 秋招",
+            company="微信边界公司",
+            account_names=("微信边界招聘",),
+            published_after="2026-06-01",
+            published_before="2026-09-02",
+        )
+
+        command, options = calls[1]
+        self.assertFalse(result.partial)
+        self.assertEqual(command[:5], [
+            "wechat-oa",
+            "--json",
+            "discovery",
+            "search",
+            "2027届 秋招",
+        ])
+        self.assertIn("--company", command)
+        self.assertIn("微信边界公司", command)
+        self.assertIn("--account", command)
+        self.assertIn("微信边界招聘", command)
+        self.assertIn("--provider", command)
+        self.assertIn("exa", command)
+        self.assertIn("--hydrate", command)
+        self.assertIn("--no-browser", command)
+        self.assertNotIn("--browser", command)
+        self.assertNotIn("--analyze-media", command)
+        self.assertNotIn("EXA_API_KEY", options["env"])
+        self.assertNotIn("input", options)
+
+    def test_direct_exa_client_requires_wechat_oa_070(self):
+        client = WeChatOAClient(
+            runner=lambda command, **kwargs: subprocess.CompletedProcess(
+                command, 0, "0.6.0\n", ""
+            )
+        )
+        with self.assertRaises(WeChatOAError) as raised:
+            client.search_articles_with_exa(
+                query="2027届 秋招",
+                company="微信边界公司",
+                account_names=("微信边界招聘",),
+            )
+        self.assertEqual(raised.exception.code, "WECHAT_OA_TOO_OLD")
+
+    def test_direct_exa_client_preserves_stable_provider_failure_reason(self):
+        responses = iter((
+            subprocess.CompletedProcess([], 0, "0.7.0\n", ""),
+            subprocess.CompletedProcess([], 6, json.dumps({
+                "ok": False,
+                "error": {
+                    "code": "AUTHENTICATION_ERROR",
+                    "message": "safe",
+                    "details": {"provider": "exa", "reason": "credential_rejected"},
+                },
+            }), ""),
+        ))
+        client = WeChatOAClient(runner=lambda *args, **kwargs: next(responses))
+        with self.assertRaises(WeChatOAError) as raised:
+            client.search_articles_with_exa(
+                query="2027届 秋招",
+                company="微信边界公司",
+                account_names=("微信边界招聘",),
+            )
+        self.assertEqual(raised.exception.code, "AUTHENTICATION_ERROR")
+        self.assertEqual(raised.exception.provider, "exa")
+        self.assertEqual(raised.exception.reason, "credential_rejected")
+        self.assertEqual(raised.exception.exit_code, 6)
+
+    def test_direct_exa_client_rejects_mismatched_error_reason_contract(self):
+        responses = iter((
+            subprocess.CompletedProcess([], 0, "0.7.0\n", ""),
+            subprocess.CompletedProcess([], 6, json.dumps({
+                "ok": False,
+                "error": {
+                    "code": "AUTHENTICATION_ERROR",
+                    "message": "safe",
+                    "details": {"provider": "exa", "reason": "rate_limited"},
+                },
+            }), ""),
+        ))
+        with self.assertRaises(WeChatOAError) as raised:
+            WeChatOAClient(
+                runner=lambda *args, **kwargs: next(responses)
+            ).search_articles_with_exa(
+                query="2027届 秋招",
+                company="微信边界公司",
+                account_names=("微信边界招聘",),
+            )
+        self.assertEqual(raised.exception.code, "INVALID_ERROR_CONTRACT")
+
+    def test_direct_exa_client_rejects_wrong_provider_or_non_article_url(self):
+        for candidate in (
+            dict(
+                self.direct_candidate(),
+                search_provenance={"provider": "brave", "rank": 1, "result_id": "bad"},
+            ),
+            dict(self.direct_candidate(), fetch_url="https://mp.weixin.qq.com/profile"),
+        ):
+            responses = iter((
+                subprocess.CompletedProcess([], 0, "0.7.0\n", ""),
+                subprocess.CompletedProcess([], 0, json.dumps({
+                    "ok": True,
+                    "data": self.direct_data(candidates=[candidate]),
+                }), ""),
+            ))
+            with self.assertRaises(WeChatOAError) as raised:
+                WeChatOAClient(
+                    runner=lambda *args, **kwargs: next(responses)
+                ).search_articles_with_exa(
+                    query="2027届 秋招",
+                    company="微信边界公司",
+                    account_names=("微信边界招聘",),
+                )
+            self.assertEqual(raised.exception.code, "INVALID_RESULT")
+
     def test_candidate_batch_has_no_browser_or_credentials_fields(self):
         payload = build_wechat_candidate_batch(
             query="2027校园招聘",
@@ -1692,3 +1852,201 @@ class WeChatOABoundaryTests(TestCase):
         finally:
             import os
             os.unlink(path)
+
+    def test_direct_discovery_command_is_read_only_preview_by_default(self):
+        with patch(
+            "radar.management.commands.discover_wechat_oa_announcements.WeChatOAClient"
+        ) as client_class:
+            output = StringIO()
+            call_command(
+                "discover_wechat_oa_announcements",
+                organization="微信边界公司",
+                query="2027届 秋招",
+                published_after="2026-06-01",
+                published_before="2026-09-02",
+                stdout=output,
+            )
+        payload = json.loads(output.getvalue())
+        self.assertEqual(payload["status"], "preview")
+        self.assertFalse(payload["recorded"])
+        client_class.assert_not_called()
+        self.assertFalse(
+            RecruitmentAnnouncement.objects.filter(
+                organization=self.source.organization,
+                source_kind=RecruitmentAnnouncement.SourceKind.WECHAT_ARTICLE,
+            ).exists()
+        )
+
+    def test_direct_discovery_record_requires_live_search_permission(self):
+        with self.assertRaisesMessage(
+            CommandError, "--record requires --allow-live-search"
+        ):
+            call_command(
+                "discover_wechat_oa_announcements",
+                organization="微信边界公司",
+                query="2027届 秋招",
+                record=True,
+                stdout=StringIO(),
+            )
+
+    def test_direct_discovery_rejects_unsafe_query_before_cli(self):
+        with patch(
+            "radar.management.commands.discover_wechat_oa_announcements.WeChatOAClient"
+        ) as client_class:
+            with self.assertRaisesMessage(CommandError, "credential-like"):
+                call_command(
+                    "discover_wechat_oa_announcements",
+                    organization="微信边界公司",
+                    query="api_key=must-not-be-forwarded",
+                    allow_live_search=True,
+                    stdout=StringIO(),
+                )
+        client_class.assert_not_called()
+
+    def test_direct_discovery_searches_without_recording_and_reports_partial(self):
+        candidate = self.direct_candidate()
+        result = SimpleNamespace(
+            data=self.direct_data(candidates=[candidate], partial=True),
+            verified_candidates=(candidate,),
+            partial=True,
+        )
+        with patch(
+            "radar.management.commands.discover_wechat_oa_announcements.WeChatOAClient"
+        ) as client_class:
+            client_class.return_value.search_articles_with_exa.return_value = result
+            output = StringIO()
+            call_command(
+                "discover_wechat_oa_announcements",
+                organization="微信边界公司",
+                query="2027届 秋招",
+                allow_live_search=True,
+                stdout=output,
+            )
+        payload = json.loads(output.getvalue())
+        self.assertEqual(payload["status"], "partial")
+        self.assertEqual(payload["verified_articles"], 1)
+        self.assertEqual(payload["announcements_imported"], 0)
+        self.assertFalse(payload["recorded"])
+        client_class.return_value.search_articles_with_exa.assert_called_once_with(
+            query="2027届 秋招",
+            company="微信边界公司",
+            account_names=("微信边界招聘",),
+            published_after=None,
+            published_before=None,
+        )
+        self.assertFalse(
+            RecruitmentAnnouncement.objects.filter(
+                organization=self.source.organization,
+                source_kind=RecruitmentAnnouncement.SourceKind.WECHAT_ARTICLE,
+            ).exists()
+        )
+
+    def test_direct_discovery_reports_safe_provider_error_contract(self):
+        with patch(
+            "radar.management.commands.discover_wechat_oa_announcements.WeChatOAClient"
+        ) as client_class:
+            client_class.return_value.search_articles_with_exa.side_effect = WeChatOAError(
+                "NETWORK_ERROR",
+                "upstream detail must not be copied",
+                provider="exa",
+                reason="rate_limited",
+                exit_code=5,
+            )
+            output = StringIO()
+            with self.assertRaisesMessage(CommandError, "NETWORK_ERROR"):
+                call_command(
+                    "discover_wechat_oa_announcements",
+                    organization="微信边界公司",
+                    query="2027届 秋招",
+                    allow_live_search=True,
+                    stdout=output,
+                )
+        payload = json.loads(output.getvalue())
+        self.assertEqual(payload["error"], {
+            "code": "NETWORK_ERROR",
+            "provider": "exa",
+            "reason": "rate_limited",
+        })
+        self.assertNotIn("upstream detail", output.getvalue())
+
+    def test_direct_discovery_records_verified_articles_only_when_explicit(self):
+        candidate = self.direct_candidate()
+        result = SimpleNamespace(
+            data=self.direct_data(candidates=[candidate]),
+            verified_candidates=(candidate,),
+            partial=False,
+        )
+        with patch(
+            "radar.management.commands.discover_wechat_oa_announcements.WeChatOAClient"
+        ) as client_class:
+            client_class.return_value.search_articles_with_exa.return_value = result
+            output = StringIO()
+            call_command(
+                "discover_wechat_oa_announcements",
+                organization="微信边界公司",
+                query="2027届 秋招",
+                allow_live_search=True,
+                record=True,
+                stdout=output,
+            )
+        payload = json.loads(output.getvalue())
+        self.assertTrue(payload["recorded"])
+        self.assertEqual(payload["announcements_imported"], 1)
+        self.assertTrue(
+            RecruitmentAnnouncement.objects.filter(
+                organization=self.source.organization,
+                source_kind=RecruitmentAnnouncement.SourceKind.WECHAT_ARTICLE,
+                identity_key="token:safe-token",
+            ).exists()
+        )
+
+    def test_direct_discovery_record_is_atomic_for_one_company(self):
+        valid = self.direct_candidate(token="valid")
+        invalid = self.direct_candidate(token="invalid")
+        invalid["evidence"]["account_identity"]["observed_biz_id"] = "other-biz"
+        result = SimpleNamespace(
+            data=self.direct_data(candidates=[valid, invalid]),
+            verified_candidates=(valid, invalid),
+            partial=False,
+        )
+        with patch(
+            "radar.management.commands.discover_wechat_oa_announcements.WeChatOAClient"
+        ) as client_class:
+            client_class.return_value.search_articles_with_exa.return_value = result
+            with self.assertRaises(CommandError):
+                call_command(
+                    "discover_wechat_oa_announcements",
+                    organization="微信边界公司",
+                    query="2027届 秋招",
+                    allow_live_search=True,
+                    record=True,
+                    stdout=StringIO(),
+                )
+        self.assertFalse(
+            RecruitmentAnnouncement.objects.filter(
+                organization=self.source.organization,
+                source_kind=RecruitmentAnnouncement.SourceKind.WECHAT_ARTICLE,
+            ).exists()
+        )
+
+    def test_direct_discovery_rejects_company_without_verified_account_before_cli(self):
+        organization = Organization.objects.create(
+            name="无公众号身份公司",
+            aliases=[],
+            company_type=Organization.CompanyType.PRIVATE,
+            industry="科技",
+        )
+        with patch(
+            "radar.management.commands.discover_wechat_oa_announcements.WeChatOAClient"
+        ) as client_class:
+            with self.assertRaisesMessage(
+                CommandError, "organization has no verified WeChat account identity"
+            ):
+                call_command(
+                    "discover_wechat_oa_announcements",
+                    organization=organization.name,
+                    query="2027届 秋招",
+                    allow_live_search=True,
+                    stdout=StringIO(),
+                )
+        client_class.assert_not_called()

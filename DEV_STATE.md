@@ -69,6 +69,15 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。AD
 - 本地开发可在仓库根目录被 Git 忽略的 `.env` 中配置 `EXA_API_KEY`；项目启动只读取这一项，并仅在本项目进程内覆盖旧的用户级同名变量。`manage.py test` 不读取个人 `.env`，Codex、`wechat-oa` 和隔离浏览器仍会移除该 Key。
 - `.env` 接入后 Python 3.13 完整回归共 555 项测试通过；项目检查、迁移漂移检查和差异检查均通过。
 
+## wechat-oa 原生 Exa Direct Discovery 接入 — 2026-09-02
+
+- 上游 `wechat-oa 0.7.0` 已提供原生 Exa Provider；招聘雷达新增 `discover_wechat_oa_announcements`，从自身已核验的企业公众号身份构造 `--company` / `--account`，并固定调用 `--provider exa --hydrate --no-browser`。
+- 命令默认只预演且不启动子进程；`--allow-live-search` 才授权 Exa 搜索和微信公众号 HTTP 回读，`--record` 再单独授权把已核验 Article Evidence 按企业事务原子导入。Direct Discovery 不授权 Chrome、媒体分析或 OCR。
+- `wechat-oa` 只从自己的 Windows 凭据管理器读取 Exa Key；招聘雷达继续从子进程环境移除 `EXA_API_KEY`，并校验 0.7.0 最低版本、schema v1、`search_provider=exa`、稳定 Provider 错误 reason、候选 provenance 和严格微信文章 URL。
+- 本批只使用模拟子进程验证契约，没有执行真实 Exa、微信回读或 Chrome；真实烟雾测试仍需用户另行明确授权。
+- 当前业务数据库尚未登记腾讯的已核验公众号身份，纯预演会在启动子进程前安全停止；后续必须先取得公众号显示名或 `biz_id` 的官方身份依据并登记，不能用搜索提示自动补齐。
+- 接入后 Python 3.13 完整回归共 568 项测试通过；项目检查、迁移漂移检查和差异检查均通过。
+
 ## Historical implementation record through 2026-08-27
 
 - 架构仍为 Django 5.2 + SQLite 服务端页面，没有引入 React/Vue。ADR 0004 已批准中国联通唯一的生产隔离浏览器例外；它不复用个人浏览器资料，也不扩展到其他来源。
