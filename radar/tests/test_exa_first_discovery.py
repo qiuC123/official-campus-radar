@@ -6,6 +6,7 @@ from datetime import date
 from io import StringIO
 from types import SimpleNamespace
 from unittest.mock import patch
+from tempfile import TemporaryDirectory
 
 import requests
 from django.core.exceptions import ValidationError
@@ -50,6 +51,7 @@ from radar.services.announcement_discovery import (
 )
 from radar.services.announcements import verify_official_announcement
 from radar.tests.helpers import create_enabled_source
+from campus_radar.environment import load_project_exa_key
 
 
 class FakeResponse:
@@ -785,6 +787,39 @@ class EvidenceAndCredentialIsolationTests(TestCase):
         with patch.dict(os.environ, {"EXA_API_KEY": "must-not-leak"}):
             environment = scrubbed_discovery_subprocess_environment()
         self.assertNotIn("EXA_API_KEY", environment)
+
+    def test_project_dotenv_loads_only_exa_key_and_overrides_old_process_value(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / ".env"
+            path.write_text(
+                "EXA_API_KEY=new-test-key\nDJANGO_SECRET_KEY=must-not-load\n",
+                encoding="utf-8",
+            )
+            environment = {
+                "EXA_API_KEY": "old-system-key",
+                "DJANGO_SECRET_KEY": "existing-secret",
+            }
+
+            loaded = load_project_exa_key(path, environ=environment)
+
+        self.assertTrue(loaded)
+        self.assertEqual(environment["EXA_API_KEY"], "new-test-key")
+        self.assertEqual(environment["DJANGO_SECRET_KEY"], "existing-secret")
+
+    def test_empty_or_missing_dotenv_does_not_clear_existing_key(self):
+        with TemporaryDirectory() as directory:
+            environment = {"EXA_API_KEY": "existing-key"}
+            missing = load_project_exa_key(
+                Path(directory) / "missing.env",
+                environ=environment,
+            )
+            empty_path = Path(directory) / ".env"
+            empty_path.write_text("EXA_API_KEY=\n", encoding="utf-8")
+            empty = load_project_exa_key(empty_path, environ=environment)
+
+        self.assertFalse(missing)
+        self.assertFalse(empty)
+        self.assertEqual(environment["EXA_API_KEY"], "existing-key")
 
     def test_codex_subprocess_receives_no_exa_key_and_provider_is_fixed(self):
         candidate_output = {

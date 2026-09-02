@@ -66,6 +66,8 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。AD
 - 真实运行发现 Windows Codex 包装进程超时失效、宽主域误准入子域、fallback 候选不重排三项缺陷；均已修复并增加测试。保存结果离线回放后，组合已知 host recall@10 为 58.3%，仍低于 Codex-only 75%。
 - 完整预算、指标、逐项解释和后续门槛见 `docs/reviews/exa-first-announcement-discovery-ab-2026-09-02.md`；冻结真值见 `data/announcement-discovery-benchmark-v1.json`。
 - A/B 整改后 Python 3.13 完整回归共 553 项测试通过；项目检查、迁移漂移检查和差异检查均通过。
+- 本地开发可在仓库根目录被 Git 忽略的 `.env` 中配置 `EXA_API_KEY`；项目启动只读取这一项，并仅在本项目进程内覆盖旧的用户级同名变量。`manage.py test` 不读取个人 `.env`，Codex、`wechat-oa` 和隔离浏览器仍会移除该 Key。
+- `.env` 接入后 Python 3.13 完整回归共 555 项测试通过；项目检查、迁移漂移检查和差异检查均通过。
 
 ## Historical implementation record through 2026-08-27
 
