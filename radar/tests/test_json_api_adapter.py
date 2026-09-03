@@ -742,6 +742,41 @@ class JsonApiFetchTests(SimpleTestCase):
 
     @patch("radar.collectors.json_api.time.sleep")
     @patch("radar.collectors.json_api.requests.Session.request")
+    def test_fetch_deduplicates_rows_when_only_page_views_change(
+        self, request: Mock, sleep: Mock
+    ) -> None:
+        first_row = {
+            "PostId": "same",
+            "RecruitPostName": "工程师",
+            "pageViews": 101,
+        }
+        request.side_effect = [
+            json_response(
+                {"Data": {"Count": 2, "Posts": [first_row]}}
+            ),
+            json_response(
+                {
+                    "Data": {
+                        "Count": 2,
+                        "Posts": [
+                            {
+                                "PostId": "same",
+                                "RecruitPostName": "工程师",
+                                "pageViews": 102,
+                            }
+                        ],
+                    }
+                }
+            ),
+        ]
+
+        document = json.loads(self.fetch(BASE_CONFIG).body)
+
+        self.assertEqual(document["Data"]["Posts"], [first_row])
+        self.assertEqual(document["_radar"]["duplicate_rows_removed"], 1)
+
+    @patch("radar.collectors.json_api.time.sleep")
+    @patch("radar.collectors.json_api.requests.Session.request")
     def test_fetch_rejects_conflicting_duplicate_position_keys(
         self, request: Mock, sleep: Mock
     ) -> None:

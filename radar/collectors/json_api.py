@@ -29,6 +29,13 @@ SUPPORTED_HTML_FIELDS = {
     "application_url",
 }
 
+# Some ATS responses repeat a position across adjacent pages while updating
+# request-time counters. These top-level fields are not part of the position's
+# business identity and must not turn an otherwise identical duplicate into a
+# conflict. Keep this allowlist deliberately narrow: all other fields remain
+# subject to strict equality.
+VOLATILE_DUPLICATE_COMPARISON_FIELDS = frozenset({"pageViews"})
+
 
 def _path_value(payload: object, path: str, default: object = None) -> object:
     """Resolve dotted object paths and flatten explicit ``[]`` list segments."""
@@ -109,6 +116,15 @@ def _canonical_json(value: object) -> str:
     )
 
 
+def _canonical_duplicate_comparison_row(row: dict) -> str:
+    comparison_row = {
+        key: value
+        for key, value in row.items()
+        if key not in VOLATILE_DUPLICATE_COMPARISON_FIELDS
+    }
+    return _canonical_json(comparison_row)
+
+
 class JsonApiSourceAdapter:
     max_page_limit = 100
     timeout_seconds = 15
@@ -143,7 +159,7 @@ class JsonApiSourceAdapter:
             if not position_key:
                 unique_positions.append(row)
                 continue
-            canonical_row = _canonical_json(row)
+            canonical_row = _canonical_duplicate_comparison_row(row)
             previous_row = rows_by_key.get(position_key)
             if previous_row is None:
                 rows_by_key[position_key] = canonical_row
