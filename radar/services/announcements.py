@@ -42,6 +42,10 @@ REQUIRED_ANNOUNCEMENT_FIELDS = {
 CURRENT_AUDIENCE_MARKERS = ("2027", "实习")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _EXTERNAL_LINK_KINDS = {"wechat", "external_http", "email", "phone"}
+PRIMARY_ANNOUNCEMENT_SOURCE_KINDS = frozenset({
+    RecruitmentAnnouncement.SourceKind.WEBSITE,
+    RecruitmentAnnouncement.SourceKind.RECRUITING_SYSTEM,
+})
 
 
 def _normalized_name(value: str) -> str:
@@ -307,6 +311,8 @@ def _matched_wechat_identity(
 def announcement_identity_is_trusted(announcement: RecruitmentAnnouncement) -> bool:
     if announcement.verification_status != RecruitmentAnnouncement.VerificationStatus.VERIFIED:
         return False
+    if announcement.source_kind not in PRIMARY_ANNOUNCEMENT_SOURCE_KINDS:
+        return False
     if not _SHA256.fullmatch(str(announcement.content_sha256 or "").casefold()):
         return False
     if announcement.source_kind in {
@@ -345,32 +351,6 @@ def announcement_identity_is_trusted(announcement: RecruitmentAnnouncement) -> b
                 or announcement_host.endswith(f".{source_host}")
             )
         )
-    if announcement.source_kind == RecruitmentAnnouncement.SourceKind.WECHAT_ARTICLE:
-        if (
-            announcement.verification_method
-            != RecruitmentAnnouncement.VerificationMethod.WECHAT_OA
-        ):
-            return False
-        if (urlsplit(announcement.url).hostname or "").casefold() != "mp.weixin.qq.com":
-            return False
-        return _matched_wechat_identity(
-            announcement.organization,
-            announcement.account_display_name,
-            announcement.account_biz_id,
-        ) is not None
-    if announcement.source_kind == RecruitmentAnnouncement.SourceKind.WECHAT_MINIPROGRAM:
-        if announcement.verification_method not in {
-            RecruitmentAnnouncement.VerificationMethod.WECHAT_OA,
-            RecruitmentAnnouncement.VerificationMethod.HUMAN_SNAPSHOT,
-        }:
-            return False
-        if not announcement.miniprogram_name.strip():
-            return False
-        return _matched_wechat_identity(
-            announcement.organization,
-            announcement.account_display_name,
-            announcement.account_biz_id,
-        ) is not None
     return False
 
 
@@ -633,6 +613,10 @@ def mark_batch_pending_with_announcement(
 
     if announcement.organization_id != batch.organization_id:
         raise ValidationError("announcement and batch organizations differ")
+    if announcement.source_kind not in PRIMARY_ANNOUNCEMENT_SOURCE_KINDS:
+        raise ValidationError(
+            "only official website or recruiting system announcements can be primary"
+        )
     if not announcement_identity_is_trusted(announcement):
         raise ValidationError("only identity-trusted announcements can mark a batch pending")
     if announcement.recruitment_batches.exclude(pk=batch.pk).exists():
@@ -658,6 +642,10 @@ def admit_batch_with_announcement(
 
     if announcement.organization_id != batch.organization_id:
         raise ValidationError("announcement and batch organizations differ")
+    if announcement.source_kind not in PRIMARY_ANNOUNCEMENT_SOURCE_KINDS:
+        raise ValidationError(
+            "only official website or recruiting system announcements can be primary"
+        )
     if not announcement_identity_is_trusted(announcement):
         raise ValidationError("only identity-trusted announcements can admit a batch")
     if announcement.recruitment_batches.exclude(pk=batch.pk).exists():

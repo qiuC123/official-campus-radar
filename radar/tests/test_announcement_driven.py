@@ -3,7 +3,7 @@ import subprocess
 import tempfile
 from dataclasses import replace
 from datetime import datetime, timezone as datetime_timezone
-from io import BytesIO, StringIO, TextIOWrapper
+from io import StringIO
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -230,7 +230,7 @@ class AnnouncementGateTests(TestCase):
         self.assertContains(self.client.get("/?audience=2026届"), self.batch.title)
         self.assertContains(self.client.get("/?audience=2027届"), self.batch.title)
 
-    def test_wechat_replaces_website_but_website_cannot_replace_wechat(self):
+    def test_wechat_cannot_replace_an_official_website_announcement(self):
         website = self.verified_announcement(kind="website", title="官网公告")
         admit_batch_with_announcement(
             self.batch,
@@ -244,22 +244,33 @@ class AnnouncementGateTests(TestCase):
             "微信原文标题明确写出批次名称",
             "article/title",
         )
-        admit_batch_with_announcement(
-            self.batch,
-            wechat,
-            field_evidence=wechat_evidence,
-        )
-        self.batch.refresh_from_db()
-        self.assertEqual(self.batch.primary_announcement_id, wechat.pk)
-        self.assertEqual(self.batch.title, "微信公告中的批次名称")
-        with self.assertRaises(ValidationError):
+        with self.assertRaisesMessage(
+            ValidationError,
+            "only official website or recruiting system announcements can be primary",
+        ):
             admit_batch_with_announcement(
                 self.batch,
-                website,
-                field_evidence=announcement_evidence(self.batch),
+                wechat,
+                field_evidence=wechat_evidence,
             )
+        self.batch.refresh_from_db()
+        self.assertEqual(self.batch.primary_announcement_id, website.pk)
+        self.assertEqual(self.batch.title, "2027 Campus")
 
-    def test_conflicting_wechat_fields_require_explicit_confirmation(self):
+    def test_formal_queryset_excludes_legacy_wechat_primary_announcement(self):
+        wechat = self.verified_announcement(kind="wechat_article", title="历史微信公告")
+        RecruitmentBatch.objects.filter(pk=self.batch.pk).update(
+            primary_announcement=wechat,
+            announcement_admission=RecruitmentBatch.AnnouncementAdmission.ADMITTED,
+        )
+        self.policy.announcement_gate_enforced = True
+        self.policy.save(update_fields=["announcement_gate_enforced"])
+
+        self.assertFalse(
+            RecruitmentBatch.objects.formal().filter(pk=self.batch.pk).exists()
+        )
+
+    def test_conflicting_official_website_fields_require_explicit_confirmation(self):
         website = self.verified_announcement(kind="website", title="官网公告")
         admit_batch_with_announcement(
             self.batch,
@@ -270,7 +281,10 @@ class AnnouncementGateTests(TestCase):
                 target_audience="2027届",
             ),
         )
-        wechat = self.verified_announcement(kind="wechat_article", title="微信公告")
+        newer_website = self.verified_announcement(
+            kind="website",
+            title="新的官网公告",
+        )
         conflicting_evidence = announcement_evidence(
             self.batch,
             recruitment_type=RecruitmentBatch.RecruitmentType.INTERNSHIP,
@@ -279,7 +293,7 @@ class AnnouncementGateTests(TestCase):
 
         admit_batch_with_announcement(
             self.batch,
-            wechat,
+            newer_website,
             field_evidence=conflicting_evidence,
         )
         self.batch.refresh_from_db()
@@ -292,7 +306,7 @@ class AnnouncementGateTests(TestCase):
 
         admit_batch_with_announcement(
             self.batch,
-            wechat,
+            newer_website,
             field_evidence=conflicting_evidence,
             confirm_field_conflicts=True,
         )
@@ -301,7 +315,7 @@ class AnnouncementGateTests(TestCase):
             self.batch.announcement_admission,
             RecruitmentBatch.AnnouncementAdmission.ADMITTED,
         )
-        self.assertEqual(self.batch.primary_announcement_id, wechat.pk)
+        self.assertEqual(self.batch.primary_announcement_id, newer_website.pk)
         self.assertEqual(self.batch.recruitment_type, RecruitmentBatch.RecruitmentType.INTERNSHIP)
         self.assertEqual(self.batch.target_audience, "在校生")
 
@@ -316,7 +330,10 @@ class AnnouncementGateTests(TestCase):
                 target_audience="2027届",
             ),
         )
-        wechat = self.verified_announcement(kind="wechat_article", title="微信公告")
+        newer_website = self.verified_announcement(
+            kind="website",
+            title="新的官网公告",
+        )
         evidence = announcement_evidence(
             self.batch,
             recruitment_type=RecruitmentBatch.RecruitmentType.INTERNSHIP,
@@ -340,7 +357,7 @@ class AnnouncementGateTests(TestCase):
             call_command(
                 "admit_recruitment_batch",
                 batch_id=self.batch.pk,
-                announcement_id=wechat.pk,
+                announcement_id=newer_website.pk,
                 evidence=path,
                 stdout=pending_output,
             )
@@ -353,7 +370,7 @@ class AnnouncementGateTests(TestCase):
             call_command(
                 "admit_recruitment_batch",
                 batch_id=self.batch.pk,
-                announcement_id=wechat.pk,
+                announcement_id=newer_website.pk,
                 evidence=path,
                 confirm_field_conflicts=True,
                 stdout=admitted_output,
@@ -404,7 +421,7 @@ class AnnouncementGateTests(TestCase):
         self.assertNotContains(response, "投递待确认")
         self.assertContains(response, f'href="{self.batch.official_page_url}"', count=2)
 
-    def test_miniprogram_announcement_keeps_notice_and_uses_job_page_for_application(self):
+    def test_miniprogram_announcement_cannot_replace_official_website(self):
         website = self.verified_announcement(kind="website", title="官网公告")
         admit_batch_with_announcement(
             self.batch,
@@ -434,20 +451,24 @@ class AnnouncementGateTests(TestCase):
             verification_status=RecruitmentAnnouncement.VerificationStatus.VERIFIED,
             verification_method=RecruitmentAnnouncement.VerificationMethod.WECHAT_OA,
         )
-        admit_batch_with_announcement(
-            self.batch,
-            announcement,
-            field_evidence=announcement_evidence(self.batch),
-        )
+        with self.assertRaisesMessage(
+            ValidationError,
+            "only official website or recruiting system announcements can be primary",
+        ):
+            admit_batch_with_announcement(
+                self.batch,
+                announcement,
+                field_evidence=announcement_evidence(self.batch),
+            )
         self.policy.announcement_gate_enforced = True
         self.policy.save(update_fields=["announcement_gate_enforced"])
         response = self.client.get("/")
-        self.assertContains(response, "小程序公告")
-        self.assertContains(response, "微信小程序：公告门控招聘 2027校园招聘")
+        self.assertNotContains(response, "小程序公告")
+        self.assertNotContains(response, "微信小程序：公告门控招聘 2027校园招聘")
         self.assertContains(response, f'href="{self.batch.official_page_url}"', count=1)
         self.assertNotContains(response, "投递待确认")
         self.batch.refresh_from_db()
-        self.assertEqual(self.batch.primary_announcement_id, announcement.pk)
+        self.assertEqual(self.batch.primary_announcement_id, website.pk)
 
     def test_miniprogram_without_stable_path_cannot_replace_website(self):
         website = self.verified_announcement(kind="website", title="官网公告")
@@ -1498,7 +1519,7 @@ class WeChatOABoundaryTests(TestCase):
                 self.wx_candidate(markdown="", images=[]),
             )
 
-    def test_image_only_article_requires_human_confirmed_ocr_before_verification(self):
+    def test_historical_image_evidence_cannot_admit_a_batch(self):
         candidate = self.wx_candidate(markdown="", images=[{
             "index": 0,
             "url": "https://img.test/a",
@@ -1513,25 +1534,28 @@ class WeChatOABoundaryTests(TestCase):
             identity_key="ocr-batch",
             title="OCR公告",
         )
-        admit_batch_with_announcement(
-            batch,
-            announcement,
-            field_evidence={
-                "title": ("OCR公告", "OCR公告", "image[0]/ocr"),
-                "recruitment_type": (
-                    RecruitmentBatch.RecruitmentType.CAMPUS_RECRUITMENT,
-                    "校园招聘",
-                    "image[0]/ocr",
-                ),
-                "target_audience": ("2027届", "2027届", "image[0]/ocr"),
-                "availability": (
-                    RecruitmentBatch.Status.ACTIVE,
-                    "邮箱接收简历",
-                    "image[0]/ocr",
-                ),
-            },
-        )
-        self.assertEqual(batch.announcement_admission, RecruitmentBatch.AnnouncementAdmission.ADMITTED)
+        with self.assertRaisesMessage(
+            ValidationError,
+            "only official website or recruiting system announcements can be primary",
+        ):
+            admit_batch_with_announcement(
+                batch,
+                announcement,
+                field_evidence={
+                    "title": ("OCR公告", "OCR公告", "image[0]/ocr"),
+                    "recruitment_type": (
+                        RecruitmentBatch.RecruitmentType.CAMPUS_RECRUITMENT,
+                        "校园招聘",
+                        "image[0]/ocr",
+                    ),
+                    "target_audience": ("2027届", "2027届", "image[0]/ocr"),
+                    "availability": (
+                        RecruitmentBatch.Status.ACTIVE,
+                        "邮箱接收简历",
+                        "image[0]/ocr",
+                    ),
+                },
+            )
 
     def test_nonempty_biz_id_mismatch_cannot_fall_back_to_same_display_name(self):
         candidate = self.wx_candidate()
@@ -1782,299 +1806,13 @@ class WeChatOABoundaryTests(TestCase):
                     providers=["exa"],
                 )
 
-    def test_import_command_rejects_unsafe_input_before_starting_wechat_oa(self):
-        payload = build_wechat_candidate_batch(
-            query="2027校园招聘",
-            company="微信边界公司",
-            expected_accounts=[{"display_names": ["微信边界招聘"]}],
-            candidates=[],
-            providers=["exa"],
-        )
-        payload["cookie"] = "secret"
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", encoding="utf-8", delete=False
-        ) as handle:
-            json.dump(payload, handle, ensure_ascii=False)
-            path = handle.name
-        try:
-            with patch(
-                "radar.management.commands.import_wechat_oa_announcements.WeChatOAClient.hydrate_candidate_batch"
-            ) as hydrate:
-                with self.assertRaises(CommandError):
-                    call_command(
-                        "import_wechat_oa_announcements",
-                        organization="微信边界公司",
-                        input=path,
-                    )
-                hydrate.assert_not_called()
-        finally:
-            import os
-            os.unlink(path)
-
-    def test_only_canonical_wechat_oa_import_command_is_registered(self):
+    def test_wechat_oa_commands_are_retired(self):
         commands = get_commands()
-        self.assertIn("import_wechat_oa_announcements", commands)
-        self.assertNotIn("import_wxcli_announcements", commands)
-
-    def test_import_command_accepts_canonical_wechat_oa_executable_option(self):
-        payload = build_wechat_candidate_batch(
-            query="2027校园招聘",
-            company="微信边界公司",
-            expected_accounts=[{"display_names": ["微信边界招聘"]}],
-            candidates=[],
-            providers=["exa"],
-        )
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", encoding="utf-8", delete=False
-        ) as handle:
-            json.dump(payload, handle, ensure_ascii=False)
-            path = handle.name
-        try:
-            with patch(
-                "radar.management.commands.import_wechat_oa_announcements.WeChatOAClient"
-            ) as client_class:
-                client_class.return_value.hydrate_candidate_batch.return_value = (
-                    SimpleNamespace(
-                        verified_candidates=(),
-                        partial=False,
-                    )
-                )
-                output = StringIO()
-                call_command(
-                    "import_wechat_oa_announcements",
-                    organization="微信边界公司",
-                    input=path,
-                    wechat_oa_path="C:/tools/wechat-oa.exe",
-                    stdout=output,
-                )
-            client_class.assert_called_once_with("C:/tools/wechat-oa.exe")
-            self.assertIn('"ok": true', output.getvalue())
-        finally:
-            import os
-            os.unlink(path)
-
-    def test_direct_discovery_command_is_read_only_preview_by_default(self):
-        with patch(
-            "radar.management.commands.discover_wechat_oa_announcements.WeChatOAClient"
-        ) as client_class:
-            output = StringIO()
-            call_command(
-                "discover_wechat_oa_announcements",
-                organization="微信边界公司",
-                query="2027届 秋招",
-                published_after="2026-06-01",
-                published_before="2026-09-02",
-                stdout=output,
-            )
-        payload = json.loads(output.getvalue())
-        self.assertEqual(payload["status"], "preview")
-        self.assertFalse(payload["recorded"])
-        client_class.assert_not_called()
-        self.assertFalse(
-            RecruitmentAnnouncement.objects.filter(
-                organization=self.source.organization,
-                source_kind=RecruitmentAnnouncement.SourceKind.WECHAT_ARTICLE,
-            ).exists()
-        )
-
-    def test_direct_discovery_record_requires_live_search_permission(self):
-        with self.assertRaisesMessage(
-            CommandError, "--record requires --allow-live-search"
+        for command_name in (
+            "discover_wechat_oa_announcements",
+            "import_wechat_oa_announcements",
         ):
-            call_command(
-                "discover_wechat_oa_announcements",
-                organization="微信边界公司",
-                query="2027届 秋招",
-                record=True,
-                stdout=StringIO(),
-            )
-
-    def test_direct_discovery_rejects_unsafe_query_before_cli(self):
-        with patch(
-            "radar.management.commands.discover_wechat_oa_announcements.WeChatOAClient"
-        ) as client_class:
-            with self.assertRaisesMessage(CommandError, "credential-like"):
-                call_command(
-                    "discover_wechat_oa_announcements",
-                    organization="微信边界公司",
-                    query="api_key=must-not-be-forwarded",
-                    allow_live_search=True,
-                    stdout=StringIO(),
-                )
-        client_class.assert_not_called()
-
-    def test_direct_discovery_searches_without_recording_and_reports_partial(self):
-        candidate = self.direct_candidate()
-        result = SimpleNamespace(
-            data=self.direct_data(candidates=[candidate], partial=True),
-            verified_candidates=(candidate,),
-            partial=True,
-        )
-        with patch(
-            "radar.management.commands.discover_wechat_oa_announcements.WeChatOAClient"
-        ) as client_class:
-            client_class.return_value.search_articles_with_exa.return_value = result
-            output = StringIO()
-            call_command(
-                "discover_wechat_oa_announcements",
-                organization="微信边界公司",
-                query="2027届 秋招",
-                allow_live_search=True,
-                stdout=output,
-            )
-        payload = json.loads(output.getvalue())
-        self.assertEqual(payload["status"], "partial")
-        self.assertEqual(payload["verified_articles"], 1)
-        self.assertEqual(payload["announcements_imported"], 0)
-        self.assertFalse(payload["recorded"])
-        client_class.return_value.search_articles_with_exa.assert_called_once_with(
-            query="2027届 秋招",
-            company="微信边界公司",
-            account_names=("微信边界招聘",),
-            published_after=None,
-            published_before=None,
-        )
-        self.assertFalse(
-            RecruitmentAnnouncement.objects.filter(
-                organization=self.source.organization,
-                source_kind=RecruitmentAnnouncement.SourceKind.WECHAT_ARTICLE,
-            ).exists()
-        )
-
-    def test_direct_discovery_json_is_safe_for_windows_gbk_stdout(self):
-        candidate = self.direct_candidate()
-        candidate["title_hint"] = "2027\u00a0campus recruitment"
-        result = SimpleNamespace(
-            data=self.direct_data(candidates=[candidate]),
-            verified_candidates=(candidate,),
-            partial=False,
-        )
-        raw_output = BytesIO()
-        output = TextIOWrapper(raw_output, encoding="gbk", errors="strict")
-        with patch(
-            "radar.management.commands.discover_wechat_oa_announcements.WeChatOAClient"
-        ) as client_class:
-            client_class.return_value.search_articles_with_exa.return_value = result
-            call_command(
-                "discover_wechat_oa_announcements",
-                organization="微信边界公司",
-                query="2027届 秋招",
-                allow_live_search=True,
-                stdout=output,
-            )
-        output.flush()
-        payload = json.loads(raw_output.getvalue().decode("gbk"))
-        self.assertEqual(
-            payload["candidates"][0]["title_hint"],
-            "2027\u00a0campus recruitment",
-        )
-
-    def test_direct_discovery_reports_safe_provider_error_contract(self):
-        with patch(
-            "radar.management.commands.discover_wechat_oa_announcements.WeChatOAClient"
-        ) as client_class:
-            client_class.return_value.search_articles_with_exa.side_effect = WeChatOAError(
-                "NETWORK_ERROR",
-                "upstream detail must not be copied",
-                provider="exa",
-                reason="rate_limited",
-                exit_code=5,
-            )
-            output = StringIO()
-            with self.assertRaisesMessage(CommandError, "NETWORK_ERROR"):
-                call_command(
-                    "discover_wechat_oa_announcements",
-                    organization="微信边界公司",
-                    query="2027届 秋招",
-                    allow_live_search=True,
-                    stdout=output,
-                )
-        payload = json.loads(output.getvalue())
-        self.assertEqual(payload["error"], {
-            "code": "NETWORK_ERROR",
-            "provider": "exa",
-            "reason": "rate_limited",
-        })
-        self.assertNotIn("upstream detail", output.getvalue())
-
-    def test_direct_discovery_records_verified_articles_only_when_explicit(self):
-        candidate = self.direct_candidate()
-        result = SimpleNamespace(
-            data=self.direct_data(candidates=[candidate]),
-            verified_candidates=(candidate,),
-            partial=False,
-        )
-        with patch(
-            "radar.management.commands.discover_wechat_oa_announcements.WeChatOAClient"
-        ) as client_class:
-            client_class.return_value.search_articles_with_exa.return_value = result
-            output = StringIO()
-            call_command(
-                "discover_wechat_oa_announcements",
-                organization="微信边界公司",
-                query="2027届 秋招",
-                allow_live_search=True,
-                record=True,
-                stdout=output,
-            )
-        payload = json.loads(output.getvalue())
-        self.assertTrue(payload["recorded"])
-        self.assertEqual(payload["announcements_imported"], 1)
-        self.assertTrue(
-            RecruitmentAnnouncement.objects.filter(
-                organization=self.source.organization,
-                source_kind=RecruitmentAnnouncement.SourceKind.WECHAT_ARTICLE,
-                identity_key="token:safe-token",
-            ).exists()
-        )
-
-    def test_direct_discovery_record_is_atomic_for_one_company(self):
-        valid = self.direct_candidate(token="valid")
-        invalid = self.direct_candidate(token="invalid")
-        invalid["evidence"]["account_identity"]["observed_biz_id"] = "other-biz"
-        result = SimpleNamespace(
-            data=self.direct_data(candidates=[valid, invalid]),
-            verified_candidates=(valid, invalid),
-            partial=False,
-        )
-        with patch(
-            "radar.management.commands.discover_wechat_oa_announcements.WeChatOAClient"
-        ) as client_class:
-            client_class.return_value.search_articles_with_exa.return_value = result
-            with self.assertRaises(CommandError):
-                call_command(
-                    "discover_wechat_oa_announcements",
-                    organization="微信边界公司",
-                    query="2027届 秋招",
-                    allow_live_search=True,
-                    record=True,
-                    stdout=StringIO(),
-                )
-        self.assertFalse(
-            RecruitmentAnnouncement.objects.filter(
-                organization=self.source.organization,
-                source_kind=RecruitmentAnnouncement.SourceKind.WECHAT_ARTICLE,
-            ).exists()
-        )
-
-    def test_direct_discovery_rejects_company_without_verified_account_before_cli(self):
-        organization = Organization.objects.create(
-            name="无公众号身份公司",
-            aliases=[],
-            company_type=Organization.CompanyType.PRIVATE,
-            industry="科技",
-        )
-        with patch(
-            "radar.management.commands.discover_wechat_oa_announcements.WeChatOAClient"
-        ) as client_class:
-            with self.assertRaisesMessage(
-                CommandError, "organization has no verified WeChat account identity"
-            ):
-                call_command(
-                    "discover_wechat_oa_announcements",
-                    organization=organization.name,
-                    query="2027届 秋招",
-                    allow_live_search=True,
-                    stdout=StringIO(),
-                )
-        client_class.assert_not_called()
+            with self.subTest(command=command_name):
+                self.assertIn(command_name, commands)
+                with self.assertRaisesMessage(CommandError, "is disabled"):
+                    call_command(command_name, stdout=StringIO())

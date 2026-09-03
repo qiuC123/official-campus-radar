@@ -192,16 +192,10 @@ class RecruitmentAnnouncement(models.Model):
 
     @property
     def priority(self) -> int:
-        if self.source_kind == self.SourceKind.WECHAT_ARTICLE:
-            return 1
-        if (
-            self.source_kind == self.SourceKind.WECHAT_MINIPROGRAM
-            and self.miniprogram_path.strip()
-        ):
-            return 1
         return {
-            self.SourceKind.WEBSITE: 2,
-            self.SourceKind.RECRUITING_SYSTEM: 3,
+            self.SourceKind.WEBSITE: 1,
+            self.SourceKind.RECRUITING_SYSTEM: 2,
+            self.SourceKind.WECHAT_ARTICLE: 3,
             self.SourceKind.WECHAT_MINIPROGRAM: 4,
         }[self.source_kind]
 
@@ -792,6 +786,10 @@ class RecruitmentBatchQuerySet(models.QuerySet):
         if gate_enforced:
             queryset = queryset.filter(
                 announcement_admission=RecruitmentBatch.AnnouncementAdmission.ADMITTED,
+                primary_announcement__source_kind__in=(
+                    RecruitmentAnnouncement.SourceKind.WEBSITE,
+                    RecruitmentAnnouncement.SourceKind.RECRUITING_SYSTEM,
+                ),
                 primary_announcement__verification_status=RecruitmentAnnouncement.VerificationStatus.VERIFIED,
                 primary_announcement__organization_id=models.F("organization_id"),
             )
@@ -862,6 +860,10 @@ class RecruitmentBatchQuerySet(models.QuerySet):
         if gate_enforced:
             queryset = queryset.filter(
                 announcement_admission=RecruitmentBatch.AnnouncementAdmission.ADMITTED,
+                primary_announcement__source_kind__in=(
+                    RecruitmentAnnouncement.SourceKind.WEBSITE,
+                    RecruitmentAnnouncement.SourceKind.RECRUITING_SYSTEM,
+                ),
                 primary_announcement__verification_status=RecruitmentAnnouncement.VerificationStatus.VERIFIED,
                 primary_announcement__organization_id=models.F("organization_id"),
             )
@@ -979,6 +981,13 @@ class RecruitmentBatch(models.Model):
                 != RecruitmentAnnouncement.VerificationStatus.VERIFIED
             ):
                 raise ValidationError("admitted batches require a verified primary announcement")
+            if self.primary_announcement.source_kind not in {
+                RecruitmentAnnouncement.SourceKind.WEBSITE,
+                RecruitmentAnnouncement.SourceKind.RECRUITING_SYSTEM,
+            }:
+                raise ValidationError(
+                    "admitted batches require an official website or recruiting system announcement"
+                )
 
 
 class AnnouncementFieldEvidence(models.Model):
