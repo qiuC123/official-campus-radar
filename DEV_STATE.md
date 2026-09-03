@@ -165,6 +165,14 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。�
 - 升级后的单源只读实时复验为 HTTP 200，跨页移除 2 条仅 `pageViews` 波动的重复行，得到 16 个唯一岗位，提取 1 个候选批次、16/16 岗位且 `positions_complete=true`。结合前述 28 个成功来源，本轮完整来源复验收口为 29/29。
 - 写入前数据库备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-faw-vw-2027-20260903-152931.sqlite3`，SHA-256 为 `983AC74909154570359BF28F978F385B6E316F57092CAA30FDAE897CE57B6E4B`。本轮只更新来源配置和准入审计链，未运行发布流程，既有 2026 批次和业务岗位数据未改写。
 
+## Midea internship retirement correction (2026-09-03)
+
+- 用户提供的美的校园招聘官网截图明确显示“现阶段投递已结束”和“在招岗位（0）”，美少年计划与实习生招聘两个实习入口均无开放岗位。截图 SHA-256 分别为 `0BA2DEC01FE90A3DFAD781ABE8E1BD3DB74D1C644AD6EEE6B1F6EDC594662B99`、`17D89701F5335911B5722218C84F6B994C23B18E9BE192FA1D7B2F12F3D8AE48`。
+- 公开岗位列表接口仍返回 148 个旧岗位，公开项目接口也仍给出 `status=1`；这两个后端提示与用户可见投递页面冲突，不能继续把旧岗位数量解释成当前可投递。
+- `retire_midea_closed_internship --apply` 已暂停日常实习来源，将批次 `phase-02:p17` 标为已截止，并把 148 个遗留岗位设为非当前。状态转换追加 1 条来源审计事件，不改写另外两个独立来源的 2027 届美的星和博士招聘。
+- 正式页按“美的”筛选后只显示 2027 届美的星（144 个当前岗位）和 2027 届博士招聘（65 个当前岗位）；关闭的实习批次不再出现。
+- 写入前数据库备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-midea-intern-retire-20260903-155135.sqlite3`，SHA-256 为 `07C37EF08C74FDFC48A9F53DA8187A674D5EF8C80781C97A77A70CAB98B3E51B`。
+
 ## Candidate validation evidence
 
 - `py -3.13 manage.py makemigrations --check --dry-run`：No changes detected。
