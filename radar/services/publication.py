@@ -240,13 +240,30 @@ def _publish_candidate(
     )
     if lifecycle_identity_is_trusted and candidate.withdrawn:
         withdrawn_at = timezone.now()
+        availability_evidence = candidate.field_evidence.get("availability")
         event = _event(
             version=version,
             candidate=candidate,
             event_type=PublicationEvent.EventType.WITHDRAWN,
             batch=existing_batch,
-            reasons=("explicit_source_withdrawal",),
+            reasons=(
+                (
+                    "explicit_source_withdrawal",
+                    "availability_probe_closed",
+                )
+                if availability_evidence is not None
+                else ("explicit_source_withdrawal",)
+            ),
+            evidence_complete=availability_evidence is not None,
         )
+        if availability_evidence is not None:
+            _write_evidence(
+                batch=existing_batch,
+                version=version,
+                event=event,
+                field_name="availability",
+                value=availability_evidence,
+            )
         existing_batch.status = RecruitmentBatch.Status.WITHDRAWN
         existing_batch.latest_publication_event = event
         existing_batch.last_verified_at = withdrawn_at

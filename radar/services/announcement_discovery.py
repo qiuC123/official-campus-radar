@@ -614,10 +614,11 @@ def _stable_final_url(requested_url: str, observed_url: str) -> str:
     return observed
 
 
-def _playwright_render_official_page(
+def playwright_render_official_page(
     url: str,
     *,
     timeout_seconds: int,
+    wait_for_text: Iterable[str] = _RECRUITMENT_TERMS,
 ) -> RenderedOfficialPage:
     from playwright.sync_api import Error as PlaywrightError
     from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
@@ -668,7 +669,7 @@ def _playwright_render_official_page(
                     body_text = page.locator("body").inner_text(timeout=timeout_ms)
                     if any(
                         term.casefold() in body_text.casefold()
-                        for term in _RECRUITMENT_TERMS
+                        for term in wait_for_text
                     ):
                         break
                     wait_ms = min(500, remaining_wait_ms)
@@ -696,7 +697,7 @@ def render_official_candidate(
     candidate: OfficialSiteCandidate,
     *,
     timeout_seconds: int = 30,
-    renderer: Callable[..., RenderedOfficialPage] = _playwright_render_official_page,
+    renderer: Callable[..., RenderedOfficialPage] = playwright_render_official_page,
 ) -> RefetchedOfficialCandidate:
     """Render one reviewed official URL in an isolated, non-persistent browser."""
 
@@ -837,7 +838,7 @@ def fetch_official_candidate_for_verification(
     force_browser: bool = False,
     session=requests,
     resolver: Callable[[str], Iterable[str]] = _resolved_addresses,
-    renderer: Callable[..., RenderedOfficialPage] = _playwright_render_official_page,
+    renderer: Callable[..., RenderedOfficialPage] = playwright_render_official_page,
 ) -> RefetchedOfficialCandidate:
     """Use HTTP first; render only when explicitly allowed and HTTP is insufficient."""
 

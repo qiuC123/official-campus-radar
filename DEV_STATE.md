@@ -173,6 +173,13 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。�
 - 正式页按“美的”筛选后只显示 2027 届美的星（144 个当前岗位）和 2027 届博士招聘（65 个当前岗位）；关闭的实习批次不再出现。
 - 写入前数据库备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-midea-intern-retire-20260903-155135.sqlite3`，SHA-256 为 `07C37EF08C74FDFC48A9F53DA8187A674D5EF8C80781C97A77A70CAB98B3E51B`。
 
+## Independent application-availability gate (2026-09-03)
+
+- ADR 0010 将“可投递状态”从岗位库存中独立出来。只有完成单独审核的来源才配置 `availability_probe`；明确关闭时跳过旧岗位接口并撤回批次，明确开放时才继续岗位采集，信号缺失、冲突或运行失败时 fail-closed，旧库存不会继续进入正式列表。
+- 通用探测只允许同一来源 host 的 HTTPS 页面，使用全新无持久化无头浏览器，不读取用户 profile、Cookie、登录态或代理，不下载、不做 OCR，也不保存页面全文。数据库只记录状态、命中信号摘要、规范 URL 和内容哈希。
+- 美的日常实习是首个接入来源。配置前的无写入实时探测得到 `state=closed; position_counts=0`；接入后单源 UpdateRun 21 成功，未调用仍返回旧岗位的岗位接口，批次改为 `withdrawn`，可投岗位保持 0，并写入 `availability_probe_closed` 发布原因及字段证据。
+- 接入前数据库备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-availability-gate-20260903-170521.sqlite3`，SHA-256 为 `1E0164379746722EAEDDC5D169D415E1C18C3B83DA767E381BE13CDCFACD970C`。
+
 ## Candidate validation evidence
 
 - `py -3.13 manage.py makemigrations --check --dry-run`：No changes detected。
@@ -201,7 +208,7 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。�
 
 ## Explicitly not started
 
-除 ADR 0004 的中国联通岗位采集和受控官网公告核验外，不扩大生产浏览器采集。Windows 计划任务、自动备份和云部署仍未开始；未经明确授权，不运行 `scripts/install_daily_task.ps1 -Apply`。招聘雷达不再执行微信公众号搜索、回读或导入。
+除 ADR 0004 的中国联通岗位采集、受控官网公告核验和 ADR 0010 的按来源可投递状态探测外，不扩大生产浏览器采集。Windows 计划任务、自动备份和云部署仍未开始；未经明确授权，不运行 `scripts/install_daily_task.ps1 -Apply`。招聘雷达不再执行微信公众号搜索、回读或导入。
 
 ## Exact next task
 

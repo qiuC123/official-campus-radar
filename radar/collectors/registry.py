@@ -6,6 +6,7 @@ from radar.collectors.isolated_browser_json import IsolatedBrowserJsonSourceAdap
 from radar.collectors.json_api import JsonApiSourceAdapter
 from radar.collectors.moka_api import MokaPublicApiAdapter
 from radar.models import OfficialSource
+from radar.services.availability import validate_availability_probe_config
 
 
 class DisabledLocalDemoAdapter:
@@ -47,3 +48,4 @@ class AdapterRegistry:
     def validate_source_config(cls, source: OfficialSource) -> None:
         adapter = cls.get(source)
         adapter.validate_source_config(source)
+        validate_availability_probe_config(source)

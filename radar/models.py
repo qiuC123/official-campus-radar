@@ -775,6 +775,7 @@ class RecruitmentBatchQuerySet(models.QuerySet):
             announcement_direction_projection_is_complete,
             announcement_evidence_is_complete,
         )
+        from radar.services.availability import source_availability_gate_passes
         from radar.services.evidence import batch_projection_has_valid_evidence
 
         gate_enforced = RecruitmentPolicy.announcement_gate_is_enforced()
@@ -823,18 +824,21 @@ class RecruitmentBatchQuerySet(models.QuerySet):
             batch.pk
             for batch in verification_queryset
             if (
-                batch_projection_has_valid_evidence(
-                    batch,
-                    announcement_fields=gate_enforced,
-                )
-                if not gate_enforced
-                else announcement_evidence_is_complete(batch)
+                source_availability_gate_passes(batch.source)
                 and (
                     batch_projection_has_valid_evidence(
                         batch,
-                        announcement_fields=True,
+                        announcement_fields=gate_enforced,
                     )
-                    or announcement_direction_projection_is_complete(batch)
+                    if not gate_enforced
+                    else announcement_evidence_is_complete(batch)
+                    and (
+                        batch_projection_has_valid_evidence(
+                            batch,
+                            announcement_fields=True,
+                        )
+                        or announcement_direction_projection_is_complete(batch)
+                    )
                 )
             )
         ]

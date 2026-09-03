@@ -20,6 +20,11 @@ from radar.models import (
     UpdateRun,
 )
 from radar.services.admission import source_is_admitted
+from radar.services.availability import (
+    closed_availability_candidate,
+    closed_availability_page,
+    probe_source_availability,
+)
 from radar.services.publication import PublicationResult, publish_candidates
 
 
@@ -203,8 +208,15 @@ def run_update(
         checked += 1
         try:
             adapter = AdapterRegistry.get(source)
-            page = adapter.fetch(source)
-            candidates = [] if page.not_modified else list(adapter.extract(source, page))
+            availability = probe_source_availability(source)
+            if availability is not None and availability.state == "closed":
+                page = closed_availability_page(availability)
+                candidates = [closed_availability_candidate(source, availability)]
+            else:
+                page = adapter.fetch(source)
+                candidates = (
+                    [] if page.not_modified else list(adapter.extract(source, page))
+                )
             if not page.not_modified and not candidates:
                 raise ValueError("source returned no recruitment batches")
             results = _apply_source_page(
