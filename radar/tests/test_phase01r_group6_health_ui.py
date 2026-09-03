@@ -96,8 +96,8 @@ class CurrentPositionAndHealthViewTests(TestCase):
 
 
 class ScheduleFactAndSanitizationTests(TestCase):
-    def test_2201_is_missing_and_manual_success_does_not_satisfy_schedule(self) -> None:
-        now = datetime(2026, 8, 18, 22, 1, tzinfo=ZoneInfo("Asia/Shanghai"))
+    def test_2001_is_missing_and_manual_success_does_not_satisfy_schedule(self) -> None:
+        now = datetime(2026, 8, 18, 20, 1, tzinfo=ZoneInfo("Asia/Shanghai"))
         self.assertTrue(scheduled_run_is_missing(now))
         UpdateRun.objects.create(trigger="manual", status="success")
         self.assertTrue(scheduled_run_is_missing(now))
@@ -105,6 +105,14 @@ class ScheduleFactAndSanitizationTests(TestCase):
             trigger="scheduled",
             scheduled_for_date=date(2026, 8, 18),
             status="partial_failure",
+            started_at=datetime(
+                2026,
+                8,
+                18,
+                20,
+                0,
+                tzinfo=ZoneInfo("Asia/Shanghai"),
+            ),
         )
         self.assertFalse(scheduled_run_is_missing(now))
 

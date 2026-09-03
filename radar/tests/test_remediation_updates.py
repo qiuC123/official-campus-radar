@@ -65,7 +65,19 @@ class UpdateStatusRemediationTests(TestCase):
     def test_previous_night_missing_is_reported_but_first_install_is_not(self) -> None:
         now = datetime(2026, 8, 18, 9, 0, tzinfo=ZoneInfo("Asia/Shanghai"))
         self.assertFalse(scheduled_run_is_missing(now))
-        UpdateRun.objects.create(trigger="scheduled", scheduled_for_date=date(2026, 8, 16), status="success")
+        UpdateRun.objects.create(
+            trigger="scheduled",
+            scheduled_for_date=date(2026, 8, 16),
+            status="success",
+            started_at=datetime(
+                2026,
+                8,
+                16,
+                20,
+                0,
+                tzinfo=ZoneInfo("Asia/Shanghai"),
+            ),
+        )
         self.assertTrue(scheduled_run_is_missing(now))
 
     def test_immediate_update_web_endpoint_is_deferred(self) -> None:

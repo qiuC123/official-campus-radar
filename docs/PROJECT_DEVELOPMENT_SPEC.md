@@ -9,7 +9,7 @@ Links: `docs/superpowers/specs/2026-08-17-official-campus-recruitment-radar-desi
 ## Project context
 
 - Problem and target users: 为项目所有者提供不限城市的官方校招岗位本地雷达，并按岗位记录个人投递进度。
-- Constraints and assumptions: Windows 本机、每日 22:00 更新、只使用公开官方来源、自动发布但严格校验、电脑关机时提示漏跑。
+- Constraints and assumptions: Windows 本机、每日 12:00 和 20:00 更新、只使用公开官方来源、自动发布但严格校验、电脑错过触发时在下次可用后补跑并保留漏跑事实。
 - Project-wide non-goals: 云部署、公开访问、账号系统、自动投递、社区经验信息、规避站点访问限制。
 
 ## Goals

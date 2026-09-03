@@ -44,4 +44,4 @@ py -3.13 manage.py load_local_demo
 py -3.13 manage.py load_local_demo --remove
 ```
 
-清理命令只删除专属 demo ownership 下的数据。Windows 定时任务不在本轮范围；没有单独授权时不得运行 `scripts/install_daily_task.ps1 -Apply`。
+清理命令只删除专属 demo ownership 下的数据。Windows 定时任务通过 `scripts/install_daily_task.ps1` 预演，并只在用户明确授权后使用 `-Apply` 注册或替换；当前时段和检查方法见 `docs/runbooks/windows-scheduled-task.md`。

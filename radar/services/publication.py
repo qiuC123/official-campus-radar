@@ -201,8 +201,18 @@ def _publish_candidate(
     )
     existing_by_url = (
         RecruitmentBatch.objects.filter(
-            source=source, official_page_url=official_page_url
-        ).exclude(pk=getattr(existing_by_identity, "pk", None)).first()
+            source=source,
+            official_page_url=official_page_url,
+            status=RecruitmentBatch.Status.ACTIVE,
+        )
+        .exclude(pk=getattr(existing_by_identity, "pk", None))
+        .exclude(
+            announcement_admission__in={
+                RecruitmentBatch.AnnouncementAdmission.EXCLUDED,
+                RecruitmentBatch.AnnouncementAdmission.SUPERSEDED,
+            }
+        )
+        .first()
         if official_page_url
         else None
     )

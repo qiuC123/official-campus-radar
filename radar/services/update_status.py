@@ -6,25 +6,36 @@ from radar.models import UpdateRun
 
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
-SCHEDULE_TIME = time(22, 0)
+SCHEDULE_TIMES = (time(12, 0), time(20, 0))
+
+
+def expected_scheduled_at(now: datetime) -> datetime:
+    local = now.astimezone(SHANGHAI)
+    for schedule_time in reversed(SCHEDULE_TIMES):
+        if local.time() >= schedule_time:
+            return datetime.combine(local.date(), schedule_time, tzinfo=SHANGHAI)
+    return datetime.combine(
+        local.date() - timedelta(days=1),
+        SCHEDULE_TIMES[-1],
+        tzinfo=SHANGHAI,
+    )
 
 
 def expected_scheduled_date(now: datetime):
-    local = now.astimezone(SHANGHAI)
-    return local.date() if local.time() >= SCHEDULE_TIME else local.date() - timedelta(days=1)
+    return expected_scheduled_at(now).date()
 
 
 def scheduled_run_is_missing(now: datetime) -> bool:
     local = now.astimezone(SHANGHAI)
     if (
-        local.time() < SCHEDULE_TIME
+        local.time() < SCHEDULE_TIMES[0]
         and not UpdateRun.objects.filter(trigger=UpdateRun.Trigger.SCHEDULED).exists()
     ):
         return False
     return not UpdateRun.objects.filter(
         trigger=UpdateRun.Trigger.SCHEDULED,
         status__in=[UpdateRun.Status.SUCCESS, UpdateRun.Status.PARTIAL_FAILURE],
-        scheduled_for_date=expected_scheduled_date(local),
+        started_at__gte=expected_scheduled_at(local),
     ).exists()
 
 

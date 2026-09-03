@@ -58,6 +58,35 @@ class PublicationTests(TestCase):
         batch.refresh_from_db()
         self.assertEqual(batch.title, "2027 校园招聘")
 
+    def test_excluded_old_identity_does_not_block_current_campaign_on_same_portal(
+        self,
+    ) -> None:
+        old = RecruitmentBatch.objects.create(
+            organization=self.source.organization,
+            source=self.source,
+            identity_key="batch-2026",
+            title="2026 校园招聘",
+            official_page_url="https://careers.example.test/campus",
+            announcement_admission=RecruitmentBatch.AnnouncementAdmission.EXCLUDED,
+        )
+
+        result = publish_candidate(
+            self.source,
+            self.candidate(
+                title="2027 校园招聘",
+                url="https://careers.example.test/campus",
+            ),
+            self.version,
+        )
+
+        self.assertEqual(result.action, "created")
+        self.assertNotEqual(result.batch_id, old.pk)
+        old.refresh_from_db()
+        self.assertEqual(
+            old.announcement_admission,
+            RecruitmentBatch.AnnouncementAdmission.EXCLUDED,
+        )
+
     def test_declared_campus_type_wins_over_negative_words_in_position_title(self) -> None:
         self.source.adapter_name = "json_api"
         self.source.save(update_fields=["adapter_name"])

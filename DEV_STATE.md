@@ -191,6 +191,15 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。�
 - 升级前数据库备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-vivo-project-coverage-20260903-190500.sqlite3`，SHA-256 为 `3FB455DC686F6A0C8AF0B1BD2B9B7B0CD0C7A24B78D8F04C934FFB4EC783A6BD`。迁移 `0035_exa_first_discovery_records` 仍未应用。
 - 修复后 Python 3.13 完整回归共 585 项测试通过；`manage.py check`、迁移漂移检查、来源目录确定性检查和 `git diff --check` 均通过。
 
+## Twice-daily automatic update (2026-09-03)
+
+- Windows 计划任务 `OfficialCampusRadarDailyUpdate` 已从每日一次 22:00 改为每日 12:00、20:00 两个本机时区触发器。动作使用安装时解析到的 `C:\WINDOWS\py.exe` 和项目绝对路径，只执行 `run_daily_update --trigger scheduled`。
+- 任务启用 `StartWhenAvailable`，电脑错过时间后会在下次可用时补跑；`MultipleInstances=IgnoreNew` 防止同一任务并发写 SQLite，单次执行上限两小时，不唤醒电脑。
+- 漏跑检查现在按最近已经到期的 12:00 或 20:00 时段判断，并以计划运行的实际开始时间区分同一天两个时段；手工更新仍不能冒充计划更新。
+- 安装后从 Windows 任务计划程序手动触发一次，系统返回码 0，UpdateRun 23 完成 29/29 个来源抓取且 0 个来源失败。发布门控最初安全拒绝一汽-大众新 2027 批次，因为已排除的 2026 历史批次共用同一门户 URL。
+- URL 身份冲突检查现只让当前有效批次阻止新身份；已排除、已取代或已结束的历史批次继续保留但不再误伤新招聘季。UpdateRun 24 对一汽-大众受控重处理后成功创建 2027 批次，1/1 来源成功、0 拒绝。
+- 自动任务只更新已准入官网、官方 ATS 和公开岗位接口，不调用 Exa、Codex 或 `wechat-oa`；外部公告候选发现仍是独立、非定时、需显式授权的流程。
+
 ## Candidate validation evidence
 
 - `py -3.13 manage.py makemigrations --check --dry-run`：No changes detected。
@@ -219,7 +228,7 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。�
 
 ## Explicitly not started
 
-除 ADR 0004 的中国联通岗位采集、受控官网公告核验和 ADR 0010 的按来源可投递状态探测外，不扩大生产浏览器采集。Windows 计划任务、自动备份和云部署仍未开始；未经明确授权，不运行 `scripts/install_daily_task.ps1 -Apply`。招聘雷达不再执行微信公众号搜索、回读或导入。
+除 ADR 0004 的中国联通岗位采集、受控官网公告核验和 ADR 0010 的按来源可投递状态探测外，不扩大生产浏览器采集。自动备份和云部署仍未开始。招聘雷达不再执行微信公众号搜索、回读或导入。
 
 ## Exact next task
 
