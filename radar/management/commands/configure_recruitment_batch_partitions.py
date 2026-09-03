@@ -26,7 +26,7 @@ def _config_hash(config: dict) -> str:
 
 
 class Command(BaseCommand):
-    help = "为四个混合招聘接口配置互斥且完整的招聘批次分组；配置阶段不联网。"
+    help = "为已登记的混合招聘接口配置互斥且完整的招聘批次分组；配置阶段不联网。"
 
     def add_arguments(self, parser) -> None:
         parser.add_argument("--actor", default="local-owner")
@@ -45,8 +45,13 @@ class Command(BaseCommand):
             ).select_related("organization")
         )
         by_company = {source.organization.name: source for source in sources}
-        if set(by_company) != set(PARTITIONED_COMPANIES) or len(sources) != 4:
-            raise CommandError("the four expected partition sources are not uniquely present")
+        if (
+            set(by_company) != set(PARTITIONED_COMPANIES)
+            or len(sources) != len(PARTITIONED_COMPANIES)
+        ):
+            raise CommandError(
+                "the expected partition sources are not uniquely present"
+            )
         prepared = []
         for company in PARTITIONED_COMPANIES:
             source = by_company[company]

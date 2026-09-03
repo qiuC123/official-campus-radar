@@ -12,6 +12,7 @@ from radar.services.application_pages import (
 )
 from radar.services.project_partitions import (
     PARTITIONED_COMPANIES,
+    VIVO_PROJECT_URLS,
     partitioned_parser_config,
 )
 
@@ -31,10 +32,16 @@ class ProjectPartitionConfigurationTests(SimpleTestCase):
                 if row["organization_name"] in PARTITIONED_COMPANIES
             }
 
-    def test_all_four_partition_contracts_are_valid_and_idempotent(self) -> None:
+    def test_all_five_partition_contracts_are_valid_and_idempotent(self) -> None:
         rows = self.catalog_rows()
         self.assertEqual(set(rows), set(PARTITIONED_COMPANIES))
-        expected_counts = {"京东": 3, "腾讯": 6, "美团": 3, "大疆创新": 2}
+        expected_counts = {
+            "京东": 3,
+            "腾讯": 6,
+            "美团": 3,
+            "大疆创新": 2,
+            "vivo": 4,
+        }
         for company in PARTITIONED_COMPANIES:
             with self.subTest(company=company):
                 row = rows[company]
@@ -56,10 +63,16 @@ class ProjectPartitionConfigurationTests(SimpleTestCase):
                     len({item["batch"]["identity_key"] for item in partitions}),
                     len(partitions),
                 )
-                self.assertEqual(
-                    {item["batch"]["official_page_url"] for item in partitions},
-                    {configured["batch"]["official_page_url"]},
-                )
+                partition_urls = {
+                    item["batch"]["official_page_url"] for item in partitions
+                }
+                if company == "vivo":
+                    self.assertEqual(partition_urls, set(VIVO_PROJECT_URLS.values()))
+                else:
+                    self.assertEqual(
+                        partition_urls,
+                        {configured["batch"]["official_page_url"]},
+                    )
                 source = SimpleNamespace(
                     adapter_name=row["adapter_name"],
                     parser_config=configured,
@@ -139,6 +152,7 @@ class ProjectPartitionConfigurationTests(SimpleTestCase):
                     "&page=1&anchorName=jobsList"
                 ),
             },
+            "vivo": dict(VIVO_PROJECT_URLS),
         }
         self.assertEqual(
             {
@@ -235,3 +249,28 @@ class ProjectPartitionConfigurationTests(SimpleTestCase):
         }
         self.assertEqual(len(identities), 6)
         self.assertFalse(any("overseas" in identity for identity in identities))
+
+    def test_vivo_fetches_all_projects_and_partitions_by_returned_project_label(self) -> None:
+        row = self.catalog_rows()["vivo"]
+        configured = partitioned_parser_config(
+            "vivo",
+            row["adapter_name"],
+            json.loads(row["parser_config"]),
+        )
+
+        self.assertEqual(configured["body"]["ClassificationOne"], [])
+        self.assertIn("ClassificationOne", configured["body"]["DisplayFields"])
+        self.assertEqual(
+            configured["partition_coverage"],
+            {
+                "request_path": "ClassificationOne",
+                "row_path": "ClassificationOne",
+            },
+        )
+        self.assertEqual(
+            [
+                item["row_filters"][0]["equals_any"][0]
+                for item in configured["batch_partitions"]
+            ],
+            ["蓝极星计划", "秋季校园招聘", "日常实习生", "暑期实习生"],
+        )

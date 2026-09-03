@@ -558,6 +558,52 @@ class JsonApiConfigurationTests(SimpleTestCase):
                 with self.assertRaisesRegex(ValueError, message):
                     JsonApiSourceAdapter.validate_source_config(make_source(config))
 
+    def test_partition_coverage_requires_unfiltered_disjoint_equality_partitions(self) -> None:
+        config = copy.deepcopy(BASE_CONFIG)
+        config["params"]["Project"] = []
+        config["partition_coverage"] = {
+            "request_path": "Project",
+            "row_path": "Plan",
+        }
+        config["batch_partitions"] = [
+            {
+                "batch": {
+                    **copy.deepcopy(BASE_CONFIG["batch"]),
+                    "identity_key": "plan-a",
+                },
+                "row_filters": [{"path": "Plan", "equals_any": ["a"]}],
+            },
+            {
+                "batch": {
+                    **copy.deepcopy(BASE_CONFIG["batch"]),
+                    "identity_key": "plan-b",
+                },
+                "row_filters": [{"path": "Plan", "equals_any": ["b"]}],
+            },
+        ]
+        self.assertIsNone(
+            JsonApiSourceAdapter.validate_source_config(make_source(config))
+        )
+
+        filtered = copy.deepcopy(config)
+        filtered["params"]["Project"] = ["a"]
+        with self.assertRaisesRegex(ValueError, "explicit empty list"):
+            JsonApiSourceAdapter.validate_source_config(make_source(filtered))
+
+        overlapping = copy.deepcopy(config)
+        overlapping["batch_partitions"][1]["row_filters"][0]["equals_any"] = [
+            "a"
+        ]
+        with self.assertRaisesRegex(ValueError, "disjoint"):
+            JsonApiSourceAdapter.validate_source_config(make_source(overlapping))
+
+        catch_all = copy.deepcopy(config)
+        catch_all["batch_partitions"][1]["row_filters"] = [
+            {"path": "Plan", "not_equals_any": ["a"]}
+        ]
+        with self.assertRaisesRegex(ValueError, "one equals_any filter"):
+            JsonApiSourceAdapter.validate_source_config(make_source(catch_all))
+
 
 def json_response(payload: dict, *, status_code: int = 200) -> Mock:
     response = Mock()

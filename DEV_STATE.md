@@ -180,6 +180,17 @@ Phase and status: Phase 02 公告驱动改造与对抗审查整改已完成。�
 - 美的日常实习是首个接入来源。配置前的无写入实时探测得到 `state=closed; position_counts=0`；接入后单源 UpdateRun 21 成功，未调用仍返回旧岗位的岗位接口，批次改为 `withdrawn`，可投岗位保持 0，并写入 `availability_probe_closed` 发布原因及字段证据。
 - 接入前数据库备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-availability-gate-20260903-170521.sqlite3`，SHA-256 为 `1E0164379746722EAEDDC5D169D415E1C18C3B83DA767E381BE13CDCFACD970C`。
 
+## Vivo exhaustive project coverage (2026-09-03)
+
+- vivo 原岗位请求固定使用 `ClassificationOne=["2"]`，只抓取秋季校园招聘；正式页因此只有一个批次，并非官网只有一个招聘项目。
+- 官方门户当前显示蓝极星计划、秋季校园招聘、日常实习生和暑期实习生；同 host 公开岗位接口的无预筛选回读分别得到 28、137、74、18 个岗位，合计 257 个。
+- ADR 0011 增加通用项目覆盖契约：请求必须从无项目预筛选的完整集合开始，各批次按同一稳定字段精确、互斥分组；任何岗位未覆盖或重复归属都会令来源更新失败，不能静默发布部分结果。
+- 未知新项目不会自动归入“其他”，必须先人工确认批次身份、招聘类型和招聘对象。官网筛选项只用于发现，不能单独视为正式批次证据。
+- `upgrade_vivo_project_coverage` 默认只预演，必须显式传入 `--apply` 才更新来源配置、追加准入审计并建立四个已核验项目批次；已有秋招批次身份保持 `phase-02:p13`，投递进度不会迁移或丢失。
+- 本地已执行升级；来源经过 `enabled → suspended → verified → enabled` 三段审计转换。UpdateRun 22 只更新 vivo 来源，HTTP 200、4 个批次更新、0 个来源失败、0 个批次拒绝；正式数据为蓝极星 28、秋招 137、日常实习 74、暑期实习 18 个当前岗位，四个批次均进入正式页。
+- 升级前数据库备份为 `C:\Users\Mayn\AppData\Local\Temp\official-campus-radar-before-vivo-project-coverage-20260903-190500.sqlite3`，SHA-256 为 `3FB455DC686F6A0C8AF0B1BD2B9B7B0CD0C7A24B78D8F04C934FFB4EC783A6BD`。迁移 `0035_exa_first_discovery_records` 仍未应用。
+- 修复后 Python 3.13 完整回归共 585 项测试通过；`manage.py check`、迁移漂移检查、来源目录确定性检查和 `git diff --check` 均通过。
+
 ## Candidate validation evidence
 
 - `py -3.13 manage.py makemigrations --check --dry-run`：No changes detected。

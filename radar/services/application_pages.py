@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from urllib.parse import urlparse
 
+from radar.services.project_partitions import VIVO_PROJECT_URLS
+
 
 # These are verified official job-selection pages, not generic career homepages.
 # The identity key keeps each application entry scoped to its recruitment batch.
@@ -13,11 +15,7 @@ BATCH_APPLICATION_URLS = {
         ),
     },
     "vivo": {
-        "phase-02:p13": (
-            "https://hr-campus.vivo.com/jobs?1=%5B%7B%22id%22%3A%222%22%2C"
-            "%22label%22%3A%22%E7%A7%8B%E5%AD%A3%E6%A0%A1%E5%9B%AD%E6%8B"
-            "%9B%E8%81%98%22%7D%5D"
-        ),
+        **VIVO_PROJECT_URLS,
     },
     "中国电信集团有限公司": {
         "phase-02:s03": (

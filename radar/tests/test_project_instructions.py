@@ -25,3 +25,16 @@ class ProjectInstructionTests(SimpleTestCase):
         self.assertIn("明确关闭：跳过岗位接口", decision)
         self.assertIn("信号缺失、冲突、页面异常或后续岗位采集失败", decision)
         self.assertIn("不保存页面全文", decision)
+
+    def test_exhaustive_project_coverage_decision_is_documented(self):
+        root = Path(__file__).resolve().parents[2]
+        context = (root / "CONTEXT.md").read_text(encoding="utf-8")
+        decision = (
+            root / "docs" / "adr" / "0011-exhaustive-project-partitions.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("**项目覆盖**", context)
+        self.assertIn("每个保留岗位都且只能归入一个已审核分组", context)
+        self.assertIn("一次无项目预筛选的完整抓取", decision)
+        self.assertIn("出现未覆盖值或重复归属时", decision)
+        self.assertIn("不得自动创建正式批次或归入“其他”", decision)

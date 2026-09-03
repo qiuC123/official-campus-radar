@@ -9,6 +9,7 @@ from radar.services.application_pages import (
     BATCH_APPLICATION_URLS,
     configured_batch_application_url,
 )
+from radar.services.project_partitions import VIVO_PROJECT_URLS
 
 
 class BatchApplicationPageTests(SimpleTestCase):
@@ -20,13 +21,7 @@ class BatchApplicationPageTests(SimpleTestCase):
                     "?recruitType=Graduate"
                 ),
             },
-            "vivo": {
-                "phase-02:p13": (
-                    "https://hr-campus.vivo.com/jobs?1=%5B%7B%22id%22%3A%222%22"
-                    "%2C%22label%22%3A%22%E7%A7%8B%E5%AD%A3%E6%A0%A1%E5%9B%AD"
-                    "%E6%8B%9B%E8%81%98%22%7D%5D"
-                ),
-            },
+            "vivo": dict(VIVO_PROJECT_URLS),
             "中国电信集团有限公司": {
                 "phase-02:s03": (
                     "https://job.chinatelecom.com.cn/wt/TELE/web/index"
@@ -116,8 +111,22 @@ class BatchApplicationPageTests(SimpleTestCase):
             for company_mapping in BATCH_APPLICATION_URLS.values()
             for identity in company_mapping
         ]
-        self.assertEqual(len(identities), 32)
-        self.assertEqual(len(set(identities)), 32)
+        self.assertEqual(len(identities), 35)
+        self.assertEqual(len(set(identities)), 35)
+
+    def test_vivo_project_urls_preserve_the_official_project_id_and_label(self):
+        expected = {
+            "official-project:vivo:blue-star": ("1", "蓝极星计划"),
+            "phase-02:p13": ("2", "秋季校园招聘"),
+            "official-project:vivo:daily-internship": ("7", "日常实习生"),
+            "official-project:vivo:summer-internship": ("8", "暑期实习生"),
+        }
+        for identity, (project_id, label) in expected.items():
+            with self.subTest(identity=identity):
+                selection = json.loads(
+                    parse_qs(urlparse(VIVO_PROJECT_URLS[identity]).query)["1"][0]
+                )
+                self.assertEqual(selection, [{"id": project_id, "label": label}])
 
     def test_telecom_job_page_preserves_the_beijing_company_context(self):
         url = BATCH_APPLICATION_URLS["中国电信集团有限公司"]["phase-02:s03"]

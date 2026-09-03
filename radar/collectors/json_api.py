@@ -460,6 +460,59 @@ class JsonApiSourceAdapter:
                         "JSON API batch partition row filter values must be non-empty"
                     )
 
+        partition_coverage = config.get("partition_coverage")
+        if partition_coverage is not None:
+            if (
+                not isinstance(partition_coverage, dict)
+                or set(partition_coverage) != {"request_path", "row_path"}
+            ):
+                raise ValueError(
+                    "JSON API partition_coverage requires exactly request_path and row_path"
+                )
+            if not batch_partitions:
+                raise ValueError(
+                    "JSON API partition_coverage requires batch_partitions"
+                )
+            request_path = str(partition_coverage["request_path"]).strip()
+            row_path = str(partition_coverage["row_path"]).strip()
+            if not request_path or not row_path:
+                raise ValueError(
+                    "JSON API partition_coverage paths must be non-empty"
+                )
+            request_template = (
+                params if method == "GET" else body if body is not None else params
+            )
+            missing = object()
+            if _path_value(request_template, request_path, missing) != []:
+                raise ValueError(
+                    "JSON API partition_coverage request path must be an explicit empty list"
+                )
+            covered_values: set[str] = set()
+            for partition in batch_partitions:
+                coverage_filters = [
+                    row_filter
+                    for row_filter in partition["row_filters"]
+                    if str(row_filter.get("path", "")).strip() == row_path
+                ]
+                if (
+                    len(coverage_filters) != 1
+                    or set(coverage_filters[0]) != {"path", "equals_any"}
+                ):
+                    raise ValueError(
+                        "JSON API partition_coverage requires one equals_any filter "
+                        "for its row path in every partition"
+                    )
+                values = {
+                    str(value).strip()
+                    for value in coverage_filters[0]["equals_any"]
+                    if str(value).strip()
+                }
+                if not values or covered_values & values:
+                    raise ValueError(
+                        "JSON API partition_coverage values must be non-empty and disjoint"
+                    )
+                covered_values.update(values)
+
         for name in ("published_on", "deadline"):
             has_fixed_provenance = name in batch
             fixed_value = str(batch.get(name, "")).strip()

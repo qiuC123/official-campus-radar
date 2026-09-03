@@ -1,9 +1,62 @@
 from __future__ import annotations
 
 import copy
+import json
+from urllib.parse import quote
 
 
-PARTITIONED_COMPANIES = ("京东", "大疆创新", "美团", "腾讯")
+PARTITIONED_COMPANIES = ("京东", "大疆创新", "美团", "腾讯", "vivo")
+
+VIVO_PORTAL = "https://hr-campus.vivo.com/jobs"
+VIVO_PROJECTS = (
+    (
+        "1",
+        "蓝极星计划",
+        "official-project:vivo:blue-star",
+        "vivo 2027 届蓝极星计划",
+        "autumn",
+        "2027届",
+    ),
+    (
+        "2",
+        "秋季校园招聘",
+        "phase-02:p13",
+        "vivo 2027 届秋季校园招聘",
+        "autumn",
+        "2027届",
+    ),
+    (
+        "7",
+        "日常实习生",
+        "official-project:vivo:daily-internship",
+        "vivo 日常实习生招聘",
+        "internship",
+        "在校生",
+    ),
+    (
+        "8",
+        "暑期实习生",
+        "official-project:vivo:summer-internship",
+        "vivo 暑期实习生招聘",
+        "internship",
+        "在校生",
+    ),
+)
+
+
+def _vivo_project_url(project_id: str, label: str) -> str:
+    selection = json.dumps(
+        [{"id": project_id, "label": label}],
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    return f"{VIVO_PORTAL}?1={quote(selection, safe='')}"
+
+
+VIVO_PROJECT_URLS = {
+    identity_key: _vivo_project_url(project_id, label)
+    for project_id, label, identity_key, _, _, _ in VIVO_PROJECTS
+}
 
 
 def _batch(
@@ -225,6 +278,26 @@ def _geely_partitions(portal: str) -> list[dict]:
     ]
 
 
+def _vivo_partitions(portal: str) -> list[dict]:
+    del portal
+    return [
+        {
+            "batch": _batch(
+                identity_key=identity_key,
+                title=title,
+                official_page_url=VIVO_PROJECT_URLS[identity_key],
+                recruitment_type=recruitment_type,
+                target_audience=target_audience,
+            ),
+            "row_filters": [
+                {"path": "ClassificationOne", "equals_any": [label]}
+            ],
+        }
+        for _, label, identity_key, title, recruitment_type, target_audience
+        in VIVO_PROJECTS
+    ]
+
+
 SOURCE_CONTRACTS = {
     "京东": {
         "adapter": "json_api",
@@ -258,6 +331,12 @@ SOURCE_CONTRACTS = {
         "legacy_site_ids": (98148,),
         "base_identity": "phase-02:p16",
         "factory": _geely_partitions,
+    },
+    "vivo": {
+        "adapter": "json_api",
+        "endpoint": "https://hr-campus.vivo.com/api/Jobad/GetJobAdPageList",
+        "base_identity": "phase-02:p13",
+        "factory": _vivo_partitions,
     },
 }
 
@@ -315,6 +394,21 @@ def partitioned_parser_config(
             recruitment_type="autumn",
             target_audience="2027届及在校生",
         )
+    if company == "vivo":
+        body = result.get("body")
+        if not isinstance(body, dict):
+            raise ValueError("missing JSON request body for vivo")
+        body["ClassificationOne"] = []
+        display_fields = body.get("DisplayFields")
+        if not isinstance(display_fields, list):
+            raise ValueError("missing DisplayFields for vivo")
+        if "ClassificationOne" not in display_fields:
+            display_fields.append("ClassificationOne")
+        result["row_filters"] = []
+        result["partition_coverage"] = {
+            "request_path": "ClassificationOne",
+            "row_path": "ClassificationOne",
+        }
     result["batch_partitions"] = contract["factory"](portal)
     if company == "腾讯":
         body = result.get("body")

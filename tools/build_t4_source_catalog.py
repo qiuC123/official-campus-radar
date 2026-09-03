@@ -298,7 +298,11 @@ def build_rows() -> list[dict[str, str]]:
                 "industry": industry,
                 "official_domain": official_domain,
                 "source_type": source_type,
-                "source_url": target["official_page_url"],
+                "source_url": (
+                    "https://hr-campus.vivo.com/jobs"
+                    if company == "vivo"
+                    else target["official_page_url"]
+                ),
                 "official_entrypoint_url": entrypoint,
                 "admission_evidence": evidence,
                 "adapter_name": adapter,
