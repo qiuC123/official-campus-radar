@@ -58,6 +58,18 @@ VIVO_PROJECT_URLS = {
     for project_id, label, identity_key, _, _, _ in VIVO_PROJECTS
 }
 
+TENCENT_PARTITION_AVAILABILITY_PROBES = [
+    {
+        "identity_key": "official-project:tencent:project:9",
+        "mode": "browser_text",
+        "url": "https://join.qq.com/post.html?query=p_9",
+        "timeout_seconds": 30,
+        "ready_text_any": ["AI产品经理培训生", "已截止简历投递"],
+        "closed_text_any": ["AI产品经理培训生项目已截止简历投递"],
+        "open_text_any": [],
+    }
+]
+
 
 def _batch(
     *,
@@ -415,4 +427,7 @@ def partitioned_parser_config(
         if not isinstance(body, dict):
             raise ValueError("missing JSON request body for 腾讯")
         body["projectMappingIdList"] = [1, 2, 104, 14, 20, 9]
+        result["partition_availability_probes"] = copy.deepcopy(
+            TENCENT_PARTITION_AVAILABILITY_PROBES
+        )
     return result

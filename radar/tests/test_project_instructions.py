@@ -22,7 +22,10 @@ class ProjectInstructionTests(SimpleTestCase):
 
         self.assertIn("**可投递状态**", context)
         self.assertIn("岗位接口返回非空库存只能说明存在岗位记录", context)
-        self.assertIn("明确关闭：跳过岗位接口", decision)
+        self.assertIn("各项目的可投递状态可以不同", context)
+        self.assertIn("来源级明确关闭：跳过岗位接口", decision)
+        self.assertIn("分项目明确关闭", decision)
+        self.assertIn("不能单独解释为该项目已截止", decision)
         self.assertIn("信号缺失、冲突、页面异常或后续岗位采集失败", decision)
         self.assertIn("不保存页面全文", decision)
 

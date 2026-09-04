@@ -1,17 +1,24 @@
 import csv
 import json
+from io import StringIO
 from pathlib import Path
 from types import SimpleNamespace
 
-from django.test import SimpleTestCase
+from django.core.management import call_command
+from django.test import SimpleTestCase, TestCase
 
 from radar.collectors.registry import AdapterRegistry
+from radar.management.commands.configure_recruitment_batch_partitions import (
+    PROBE_PENDING_ERROR,
+)
+from radar.models import OfficialSource, SourceAdmissionEvent
 from radar.services.application_pages import (
     BATCH_APPLICATION_URLS,
     configured_batch_application_url,
 )
 from radar.services.project_partitions import (
     PARTITIONED_COMPANIES,
+    TENCENT_PARTITION_AVAILABILITY_PROBES,
     VIVO_PROJECT_URLS,
     partitioned_parser_config,
 )
@@ -249,6 +256,14 @@ class ProjectPartitionConfigurationTests(SimpleTestCase):
         }
         self.assertEqual(len(identities), 6)
         self.assertFalse(any("overseas" in identity for identity in identities))
+        self.assertEqual(
+            configured["partition_availability_probes"],
+            TENCENT_PARTITION_AVAILABILITY_PROBES,
+        )
+        self.assertEqual(
+            configured["partition_availability_probes"][0]["identity_key"],
+            "official-project:tencent:project:9",
+        )
 
     def test_vivo_fetches_all_projects_and_partitions_by_returned_project_label(self) -> None:
         row = self.catalog_rows()["vivo"]
@@ -274,3 +289,37 @@ class ProjectPartitionConfigurationTests(SimpleTestCase):
             ],
             ["蓝极星计划", "秋季校园招聘", "日常实习生", "暑期实习生"],
         )
+
+
+class ProjectPartitionCommandTests(TestCase):
+    def test_new_partition_probe_is_fail_closed_until_first_successful_update(self) -> None:
+        output = StringIO()
+        call_command(
+            "import_source_catalog",
+            "--path",
+            str(ROOT / "data" / "source_catalog.csv"),
+            stdout=output,
+        )
+        report = ROOT / "work" / "phase-02-t4-offline-validation-cycle-02.json"
+        call_command("verify_t4_sources", "--report", str(report), stdout=output)
+        call_command("enable_t4_sources", "--report", str(report), stdout=output)
+        tencent = OfficialSource.objects.get(organization__name="腾讯")
+        legacy_config = dict(tencent.parser_config)
+        legacy_config.pop("partition_availability_probes")
+        tencent.parser_config = legacy_config
+        tencent.save(update_fields=["parser_config"])
+        event_count = SourceAdmissionEvent.objects.count()
+
+        call_command(
+            "configure_recruitment_batch_partitions",
+            "--apply",
+            stdout=output,
+        )
+
+        tencent.refresh_from_db()
+        self.assertEqual(tencent.last_error, PROBE_PENDING_ERROR)
+        self.assertEqual(
+            tencent.parser_config["partition_availability_probes"],
+            TENCENT_PARTITION_AVAILABILITY_PROBES,
+        )
+        self.assertEqual(SourceAdmissionEvent.objects.count(), event_count + 3)

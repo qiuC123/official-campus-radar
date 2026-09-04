@@ -21,8 +21,10 @@ from radar.models import (
 )
 from radar.services.admission import source_is_admitted
 from radar.services.availability import (
+    apply_partition_availability,
     closed_availability_candidate,
     closed_availability_page,
+    probe_partition_availability,
     probe_source_availability,
 )
 from radar.services.publication import PublicationResult, publish_candidates
@@ -216,6 +218,13 @@ def run_update(
                 page = adapter.fetch(source)
                 candidates = (
                     [] if page.not_modified else list(adapter.extract(source, page))
+                )
+                partition_availability = probe_partition_availability(source)
+                page, candidates = apply_partition_availability(
+                    source,
+                    page,
+                    candidates,
+                    partition_availability,
                 )
             if not page.not_modified and not candidates:
                 raise ValueError("source returned no recruitment batches")

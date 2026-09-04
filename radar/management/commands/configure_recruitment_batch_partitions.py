@@ -15,6 +15,9 @@ from radar.services.project_partitions import (
 )
 
 
+PROBE_PENDING_ERROR = "partition availability probe has not completed"
+
+
 def _config_hash(config: dict) -> str:
     payload = json.dumps(
         config,
@@ -110,7 +113,12 @@ class Command(BaseCommand):
                 )
                 source.refresh_from_db()
                 source.parser_config = configured
-                source.save(update_fields=["parser_config"])
+                update_fields = ["parser_config"]
+                if configured.get("partition_availability_probes"):
+                    source.last_etag = ""
+                    source.last_error = PROBE_PENDING_ERROR
+                    update_fields.extend(["last_etag", "last_error"])
+                source.save(update_fields=update_fields)
                 transition_source(
                     source,
                     to_state=OfficialSource.AdmissionState.VERIFIED,

@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Callable, Literal
 from urllib.parse import urlsplit
 
@@ -32,6 +32,8 @@ ALLOWED_PROBE_KEYS = {
     "open_text_any",
     "position_count_pattern",
 }
+ALLOWED_PARTITION_PROBE_KEYS = ALLOWED_PROBE_KEYS | {"identity_key"}
+MAX_PARTITION_PROBE_COUNT = 20
 
 
 class AvailabilityProbeError(ValueError):
@@ -46,40 +48,46 @@ class AvailabilityObservation:
     evidence_excerpt: str
 
 
-def _text_list(config: dict, name: str, *, required: bool = False) -> tuple[str, ...]:
+def _text_list(
+    config: dict,
+    name: str,
+    *,
+    required: bool = False,
+    config_path: str = "availability_probe",
+) -> tuple[str, ...]:
     raw_values = config.get(name, [])
     if not isinstance(raw_values, list):
-        raise ValueError(f"availability_probe.{name} must be a list")
+        raise ValueError(f"{config_path}.{name} must be a list")
     values = tuple(str(value).strip() for value in raw_values)
     if required and not values:
-        raise ValueError(f"availability_probe.{name} must not be empty")
+        raise ValueError(f"{config_path}.{name} must not be empty")
     if len(values) > MAX_SIGNAL_COUNT or any(
         not value or len(value) > MAX_SIGNAL_LENGTH for value in values
     ):
         raise ValueError(
-            f"availability_probe.{name} must contain 1..{MAX_SIGNAL_COUNT} "
+            f"{config_path}.{name} must contain 1..{MAX_SIGNAL_COUNT} "
             f"non-empty values up to {MAX_SIGNAL_LENGTH} characters"
         )
     return values
 
 
-def validate_availability_probe_config(source: OfficialSource) -> None:
-    source_config = source.parser_config
-    if not isinstance(source_config, dict):
-        return
-    config = source_config.get("availability_probe")
-    if config is None:
-        return
+def _validate_probe_config(
+    source: OfficialSource,
+    config: dict,
+    *,
+    config_path: str,
+    allowed_keys: set[str],
+) -> None:
     if not isinstance(config, dict):
-        raise ValueError("availability_probe must be an object")
-    unexpected = set(config) - ALLOWED_PROBE_KEYS
+        raise ValueError(f"{config_path} must be an object")
+    unexpected = set(config) - allowed_keys
     if unexpected:
         raise ValueError(
-            "availability_probe contains unsupported settings: "
+            f"{config_path} contains unsupported settings: "
             + ", ".join(sorted(unexpected))
         )
     if config.get("mode") != "browser_text":
-        raise ValueError("availability_probe.mode must be browser_text")
+        raise ValueError(f"{config_path}.mode must be browser_text")
 
     probe_url = urlsplit(str(config.get("url", "")).strip())
     source_url = urlsplit(source.source_url)
@@ -92,7 +100,7 @@ def validate_availability_probe_config(source: OfficialSource) -> None:
         != (source_url.hostname or "").casefold()
     ):
         raise ValueError(
-            "availability_probe.url must use HTTPS on the exact source host"
+            f"{config_path}.url must use HTTPS on the exact source host"
         )
 
     timeout = config.get("timeout_seconds", 30)
@@ -102,30 +110,102 @@ def validate_availability_probe_config(source: OfficialSource) -> None:
         or timeout < 5
         or timeout > 60
     ):
-        raise ValueError("availability_probe.timeout_seconds must be 5..60")
-    _text_list(config, "ready_text_any", required=True)
-    closed_text = _text_list(config, "closed_text_any")
-    open_text = _text_list(config, "open_text_any")
+        raise ValueError(f"{config_path}.timeout_seconds must be 5..60")
+    _text_list(
+        config,
+        "ready_text_any",
+        required=True,
+        config_path=config_path,
+    )
+    closed_text = _text_list(
+        config,
+        "closed_text_any",
+        config_path=config_path,
+    )
+    open_text = _text_list(
+        config,
+        "open_text_any",
+        config_path=config_path,
+    )
     pattern_text = str(config.get("position_count_pattern", "")).strip()
     if not closed_text and not open_text and not pattern_text:
-        raise ValueError("availability_probe requires an open or closed signal")
+        raise ValueError(f"{config_path} requires an open or closed signal")
     if pattern_text:
         if len(pattern_text) > MAX_SIGNAL_LENGTH:
-            raise ValueError("availability_probe.position_count_pattern is too long")
+            raise ValueError(f"{config_path}.position_count_pattern is too long")
         try:
             pattern = re.compile(pattern_text)
         except re.error as error:
             raise ValueError(
-                "availability_probe.position_count_pattern is invalid"
+                f"{config_path}.position_count_pattern is invalid"
             ) from error
         if pattern.groups != 1:
             raise ValueError(
-                "availability_probe.position_count_pattern requires one capture group"
+                f"{config_path}.position_count_pattern requires one capture group"
             )
-    if source_config.get("batch_partitions"):
+
+
+def validate_availability_probe_config(source: OfficialSource) -> None:
+    source_config = source.parser_config
+    if not isinstance(source_config, dict):
+        return
+    config = source_config.get("availability_probe")
+    partition_configs = source_config.get("partition_availability_probes")
+    if config is not None and partition_configs is not None:
+        raise ValueError(
+            "availability_probe and partition_availability_probes are mutually exclusive"
+        )
+    if config is not None:
+        _validate_probe_config(
+            source,
+            config,
+            config_path="availability_probe",
+            allowed_keys=ALLOWED_PROBE_KEYS,
+        )
+    if config is not None and source_config.get("batch_partitions"):
         raise ValueError(
             "source-level availability_probe cannot be used with batch_partitions"
         )
+    if partition_configs is None:
+        return
+    if not isinstance(partition_configs, list):
+        raise ValueError("partition_availability_probes must be a list")
+    if not 1 <= len(partition_configs) <= MAX_PARTITION_PROBE_COUNT:
+        raise ValueError(
+            "partition_availability_probes must contain 1..20 entries"
+        )
+    partitions = source_config.get("batch_partitions")
+    if not isinstance(partitions, list) or not partitions:
+        raise ValueError(
+            "partition_availability_probes requires batch_partitions"
+        )
+    partition_identities = {
+        str(partition.get("batch", {}).get("identity_key", "")).strip()
+        for partition in partitions
+        if isinstance(partition, dict)
+        and isinstance(partition.get("batch"), dict)
+    }
+    identities: set[str] = set()
+    for index, partition_config in enumerate(partition_configs):
+        config_path = f"partition_availability_probes[{index}]"
+        _validate_probe_config(
+            source,
+            partition_config,
+            config_path=config_path,
+            allowed_keys=ALLOWED_PARTITION_PROBE_KEYS,
+        )
+        identity_key = str(partition_config.get("identity_key", "")).strip()
+        if not identity_key:
+            raise ValueError(f"{config_path}.identity_key is required")
+        if identity_key in identities:
+            raise ValueError(
+                "partition_availability_probes identity_key values must be unique"
+            )
+        if identity_key not in partition_identities:
+            raise ValueError(
+                f"{config_path}.identity_key must match a configured batch partition"
+            )
+        identities.add(identity_key)
 
 
 def _matched_values(body_text: str, values: tuple[str, ...]) -> tuple[str, ...]:
@@ -133,17 +213,19 @@ def _matched_values(body_text: str, values: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(value for value in values if value.casefold() in folded)
 
 
-def probe_source_availability(
+def _probe_availability(
     source: OfficialSource,
+    config: dict,
     *,
     renderer: Callable[..., RenderedOfficialPage] = playwright_render_official_page,
-) -> AvailabilityObservation | None:
-    source_config = source.parser_config
-    if not isinstance(source_config, dict) or "availability_probe" not in source_config:
-        return None
-    validate_availability_probe_config(source)
-    config = source_config["availability_probe"]
-    ready_text = _text_list(config, "ready_text_any", required=True)
+    config_path: str = "availability_probe",
+) -> AvailabilityObservation:
+    ready_text = _text_list(
+        config,
+        "ready_text_any",
+        required=True,
+        config_path=config_path,
+    )
     rendered = renderer(
         str(config["url"]).strip(),
         timeout_seconds=int(config.get("timeout_seconds", 30)),
@@ -166,11 +248,11 @@ def probe_source_availability(
 
     closed_matches = _matched_values(
         rendered.body_text,
-        _text_list(config, "closed_text_any"),
+        _text_list(config, "closed_text_any", config_path=config_path),
     )
     open_matches = _matched_values(
         rendered.body_text,
-        _text_list(config, "open_text_any"),
+        _text_list(config, "open_text_any", config_path=config_path),
     )
     counts: set[int] = set()
     pattern_text = str(config.get("position_count_pattern", "")).strip()
@@ -215,6 +297,47 @@ def probe_source_availability(
         content_hash=hashlib.sha256(content_payload.encode("utf-8")).hexdigest(),
         evidence_excerpt=evidence_excerpt,
     )
+
+
+def probe_source_availability(
+    source: OfficialSource,
+    *,
+    renderer: Callable[..., RenderedOfficialPage] = playwright_render_official_page,
+) -> AvailabilityObservation | None:
+    source_config = source.parser_config
+    if not isinstance(source_config, dict) or "availability_probe" not in source_config:
+        return None
+    validate_availability_probe_config(source)
+    return _probe_availability(
+        source,
+        source_config["availability_probe"],
+        renderer=renderer,
+    )
+
+
+def probe_partition_availability(
+    source: OfficialSource,
+    *,
+    renderer: Callable[..., RenderedOfficialPage] = playwright_render_official_page,
+) -> dict[str, AvailabilityObservation]:
+    source_config = source.parser_config
+    if (
+        not isinstance(source_config, dict)
+        or "partition_availability_probes" not in source_config
+    ):
+        return {}
+    validate_availability_probe_config(source)
+    return {
+        str(config["identity_key"]).strip(): _probe_availability(
+            source,
+            config,
+            renderer=renderer,
+            config_path=f"partition_availability_probes[{index}]",
+        )
+        for index, config in enumerate(
+            source_config["partition_availability_probes"]
+        )
+    }
 
 
 def closed_availability_page(observation: AvailabilityObservation) -> FetchedPage:
@@ -262,8 +385,95 @@ def closed_availability_candidate(
     )
 
 
+def apply_partition_availability(
+    source: OfficialSource,
+    page: FetchedPage,
+    candidates: list[RecruitmentBatchCandidate],
+    observations: dict[str, AvailabilityObservation],
+) -> tuple[FetchedPage, list[RecruitmentBatchCandidate]]:
+    if not observations:
+        return page, candidates
+    config = source.parser_config
+    partitions = config.get("batch_partitions", [])
+    batch_by_identity = {
+        str(partition["batch"]["identity_key"]): partition["batch"]
+        for partition in partitions
+    }
+    result_candidates = list(candidates)
+    candidate_index_by_identity = {
+        candidate.identity_key: index
+        for index, candidate in enumerate(result_candidates)
+    }
+    for identity_key, observation in observations.items():
+        candidate_index = candidate_index_by_identity.get(identity_key)
+        candidate = (
+            None if candidate_index is None else result_candidates[candidate_index]
+        )
+        if observation.state == "open":
+            if candidate is None:
+                raise AvailabilityProbeError(
+                    "open partition is missing from the complete position inventory"
+                )
+            continue
+        batch = batch_by_identity[identity_key]
+        evidence = FieldEvidenceValue(
+            raw_value=observation.evidence_excerpt,
+            locator="browser:body-text",
+            parsed_value=RecruitmentBatch.Status.WITHDRAWN,
+        )
+        if candidate is None:
+            candidate = RecruitmentBatchCandidate(
+                title=str(batch["title"]),
+                official_page_url=str(batch["official_page_url"]),
+                recruitment_type=str(batch["recruitment_type"]),
+                target_audience=str(batch["target_audience"]),
+                published_on=None,
+                deadline=None,
+                withdrawn=True,
+                evidence_excerpt=observation.evidence_excerpt,
+                positions=(),
+                identity_key=identity_key,
+                field_evidence={"availability": evidence},
+                positions_complete=True,
+            )
+            candidate_index_by_identity[identity_key] = len(result_candidates)
+            result_candidates.append(candidate)
+        else:
+            candidate = replace(
+                candidate,
+                withdrawn=True,
+                evidence_excerpt=observation.evidence_excerpt,
+                positions=(),
+                field_evidence={"availability": evidence},
+                positions_complete=True,
+            )
+            result_candidates[candidate_index] = candidate
+
+    content_payload = json.dumps(
+        {
+            "inventory_content_hash": page.content_hash,
+            "partition_availability": {
+                identity_key: observation.content_hash
+                for identity_key, observation in sorted(observations.items())
+            },
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    combined_page = replace(
+        page,
+        content_hash=hashlib.sha256(content_payload.encode("utf-8")).hexdigest(),
+        not_modified=False,
+    )
+    return combined_page, result_candidates
+
+
 def source_availability_gate_passes(source: OfficialSource) -> bool:
     config = source.parser_config
-    if not isinstance(config, dict) or "availability_probe" not in config:
+    if not isinstance(config, dict) or not (
+        "availability_probe" in config
+        or "partition_availability_probes" in config
+    ):
         return True
     return not bool(source.last_error.strip())
