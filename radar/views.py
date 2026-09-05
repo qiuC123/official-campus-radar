@@ -49,11 +49,16 @@ def _render_dashboard(request: HttpRequest, *, history: bool = False) -> HttpRes
     if not show_progress:
         params.pop("progress", None)
     request.GET = params
-    page, summary, city_choices, available_audiences = build_orm_dashboard(
-        params,
-        history=history,
-        include_progress=show_progress,
-    )
+    snapshot_path = getattr(settings, "RADAR_DISPLAY_SNAPSHOT", None)
+    if snapshot_path:
+        from radar.services.public_snapshot import build_snapshot_dashboard
+        page, summary, city_choices, available_audiences = build_snapshot_dashboard(
+            params, path=snapshot_path, history=history,
+        )
+    else:
+        page, summary, city_choices, available_audiences = build_orm_dashboard(
+            params, history=history, include_progress=show_progress,
+        )
     preserved_query = request.GET.copy()
     preserved_query.pop("page", None)
     pagination_query_fields = tuple(
@@ -68,6 +73,7 @@ def _render_dashboard(request: HttpRequest, *, history: bool = False) -> HttpRes
         "summary": summary,
         "history": history,
         "is_preview": False,
+        "snapshot_preview": bool(snapshot_path),
         "progress_choices": ApplicationProgress.Status.choices if show_progress else (),
         "show_progress": show_progress,
         "city_choices": tuple(dict.fromkeys((
@@ -150,6 +156,16 @@ def phase02_preview(request: HttpRequest) -> HttpResponse:
 
 @require_GET
 def batch_positions(request: HttpRequest, batch_id: int) -> HttpResponse:
+    snapshot_path = getattr(settings, "RADAR_DISPLAY_SNAPSHOT", None)
+    if snapshot_path:
+        from radar.services.public_snapshot import read_snapshot
+        _, rows = read_snapshot(snapshot_path)
+        batch = next((batch for identity, _, batch in rows if identity == batch_id), None)
+        if batch is None:
+            raise Http404
+        return render(request, "radar/position_rows.html", {
+            "positions": filter_position_vms(batch.positions, request.GET), "is_preview": False,
+        })
     batch = get_object_or_404(RecruitmentBatch, pk=batch_id)
     projection = None
     if batch.status == RecruitmentBatch.Status.ACTIVE:
