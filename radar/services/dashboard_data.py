@@ -182,16 +182,18 @@ def _summary(batches: list[RecruitmentBatchVM], today: date) -> DashboardSummary
     )
 
 
-def build_orm_dashboard(params, *, history: bool = False):
+def build_orm_dashboard(params, *, history: bool = False, include_progress: bool = True):
     queryset = RecruitmentBatch.objects.historical() if history else RecruitmentBatch.objects.formal()
     queryset = queryset.filter(
         status__in=(RecruitmentBatch.Status.EXPIRED, RecruitmentBatch.Status.WITHDRAWN)
         if history else (RecruitmentBatch.Status.ACTIVE,)
     ).select_related(
-        "organization", "source", "application_progress", "primary_announcement"
+        "organization", "source", "primary_announcement"
     ).prefetch_related(
         "positions__application_links", "application_links"
     )
+    if include_progress:
+        queryset = queryset.select_related("application_progress")
     if params.get("company"):
         queryset = queryset.filter(organization__name__icontains=params["company"])
     for key, lookup in (("company_type", "organization__company_type"),):
@@ -213,12 +215,16 @@ def build_orm_dashboard(params, *, history: bool = False):
             )
         ):
             continue
-        try:
-            progress = batch.application_progress
-        except ApplicationProgress.DoesNotExist:
-            progress = None
-        progress_value = progress.status if progress else ApplicationProgress.Status.NOT_APPLIED
-        selected_progress = set(params.getlist("progress"))
+        progress = None
+        if include_progress:
+            try:
+                progress = batch.application_progress
+            except ApplicationProgress.DoesNotExist:
+                pass
+        progress_value = (
+            progress.status if progress else ApplicationProgress.Status.NOT_APPLIED
+        ) if include_progress else ""
+        selected_progress = set(params.getlist("progress")) if include_progress else set()
         if selected_progress and progress_value not in selected_progress:
             continue
         projection = trusted_historical_projection(batch) if history else None
@@ -306,7 +312,7 @@ def build_orm_dashboard(params, *, history: bool = False):
             status=batch.get_status_display(),
             official_page_url=batch.official_page_url,
             progress_value=progress_value,
-            progress_label=progress.get_status_display() if progress else "未投递",
+            progress_label=(progress.get_status_display() if progress else "未投递") if include_progress else "",
             positions=tuple(position_vms),
             announcement_url=(announcement.url if announcement else batch.official_page_url),
             announcement_label=(announcement.get_source_kind_display() if announcement else "旧批次页"),

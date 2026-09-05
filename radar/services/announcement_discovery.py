@@ -787,7 +787,18 @@ def refetch_official_candidate(
     body = response.content
     if len(body) > MAX_DOCUMENT_BYTES:
         raise DiscoveryContractError("official page exceeds the 2 MiB evidence limit")
-    soup = BeautifulSoup(body, "html.parser")
+    from radar.services.html_encoding import decode_html
+
+    headers = getattr(response, "headers", {})
+    content_type = next(
+        (str(value) for key, value in headers.items() if key.lower() == "content-type"),
+        "",
+    )
+    try:
+        markup = decode_html(body, content_type)
+    except (ValueError, UnicodeError) as exc:
+        raise DiscoveryContractError("official HTML encoding could not be verified") from exc
+    soup = BeautifulSoup(markup, "html.parser")
     title = (soup.title.get_text(" ", strip=True) if soup.title else "").strip()
     text = soup.get_text(" ", strip=True).casefold()
     return RefetchedOfficialCandidate(

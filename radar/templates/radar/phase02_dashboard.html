@@ -4,20 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>校招岗位工作台</title>
-  <link rel="stylesheet" href="{% static 'radar/phase02.css' %}?v=20260831-10">
+  <link rel="stylesheet" href="{% static 'radar/phase02.css' %}?v=20260905-1">
 </head>
-<body>
+<body{% if not show_progress %} class="public-readonly"{% endif %}>
 <main class="shell">
   <header class="hero">
     <div>
       <p class="eyebrow">OFFICIAL CAMPUS RADAR</p>
       <h1>校招岗位工作台</h1>
-      <p class="subtitle">一行看完一家公司的招聘批次、代表岗位、地点、进度和官方入口。</p>
+      <p class="subtitle">一行看完一家公司的招聘批次、代表岗位、地点、{% if show_progress %}进度和{% endif %}官方入口。</p>
     </div>
     <nav aria-label="页面视图">
       <a class="nav-button {% if not history %}active{% endif %}" href="{% if is_preview %}{% url 'phase02_preview' %}?view=active{% else %}/{% endif %}">招聘中</a>
       <a class="nav-button {% if history %}active{% endif %}" href="{% if is_preview %}{% url 'phase02_preview' %}?view=history{% else %}/history/{% endif %}">历史</a>
-      {% if not is_preview %}<a class="nav-button" href="{% url 'application_progress_list' %}">我的进度</a>{% endif %}
+      {% if not is_preview and show_progress %}<a class="nav-button" href="{% url 'application_progress_list' %}">我的进度</a>{% endif %}
     </nav>
   </header>
 
@@ -76,13 +76,14 @@
       <select name="audience" aria-label="招聘对象"><option value="">招聘对象</option>{% for value,label in audience_choices %}<option value="{{ value }}" {% if selected_audience == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
       <input name="position" aria-label="岗位" placeholder="岗位（多个用逗号隔开）" value="{{ position_value }}">
 
-      <div class="multi-filter" data-label="投递进度">
+      {% if show_progress %}<div class="multi-filter" data-label="投递进度">
         <button class="multi-trigger" type="button" aria-expanded="false">投递进度</button>
         <div class="multi-menu" hidden><div class="multi-options">
           {% for value,label in progress_choices %}<label><input type="checkbox" name="progress" value="{{ value }}" {% if value in selected_progress %}checked{% endif %}><span>{% if label == '已挂' %}未通过{% else %}{{ label }}{% endif %}</span></label>{% endfor %}
         </div><div class="multi-message"></div><footer><button type="button" class="multi-cancel">取消</button><button type="button" class="multi-confirm">确定</button></footer></div>
       </div>
 
+      {% endif %}
       {% if is_preview %}<input type="hidden" name="view" value="{% if history %}history{% else %}active{% endif %}"><input type="hidden" name="health" value="{{ preview_health }}">{% endif %}
       <div class="form-actions wide">
         <button class="primary-button" type="submit">查询</button>
@@ -102,7 +103,7 @@
     <table class="recruitment-table">
       <thead><tr>
         <th>公司名称</th><th>公司类型</th><th>所属行业</th><th>招聘类型</th><th>招聘对象</th><th>工作地点</th>
-        <th>岗位 <small>（悬停查看）</small></th><th>投递进度</th><th>更新时间</th><th>相关链接</th><th>招聘公告</th>
+        <th>岗位 <small>（悬停查看）</small></th>{% if show_progress %}<th>投递进度</th>{% endif %}<th>更新时间</th><th>相关链接</th><th>招聘公告</th>
       </tr></thead>
       <tbody>
       {% for batch in batches %}
@@ -114,7 +115,7 @@
           <td><span class="audience-tags" title="官方招聘对象：{{ batch.target_audience_source|default:batch.target_audience }}">{% for label in batch.audience_labels %}<span class="badge audience-badge">{{ label }}</span>{% endfor %}</span></td>
           <td class="locations-cell">{{ batch.location_summary }}</td>
           <td><div class="positions-preview" tabindex="0" aria-label="代表岗位：{{ batch.position_summary }}"><span class="positions-summary">{% for position in batch.preview_positions %}<span class="positions-summary-line">{{ position.title }}</span>{% if not forloop.last %}，{% elif batch.remaining_count %}<small>，另有 {{ batch.remaining_count }} 个岗位</small>{% endif %}{% endfor %}</span><span class="positions-tooltip" role="tooltip">{% for position in batch.hover_positions %}{{ position.title }}{% if not forloop.last %}、{% endif %}{% endfor %}{% if batch.hover_remaining_count %}<br>另有 {{ batch.hover_remaining_count }} 个岗位未在提示中列出{% endif %}</span></div></td>
-          <td><select class="batch-progress" aria-label="{{ batch.title }}投递进度" data-current-value="{{ batch.progress_value }}" data-save-url="{% if not is_preview %}{% url 'update_progress' batch.id %}{% endif %}">{% for value,label in progress_choices %}<option value="{{ value }}" {% if value == batch.progress_value %}selected{% endif %}>{% if label == '已挂' %}未通过{% else %}{{ label }}{% endif %}</option>{% endfor %}</select></td>
+          {% if show_progress %}<td><select class="batch-progress" aria-label="{{ batch.title }}投递进度" data-current-value="{{ batch.progress_value }}" data-save-url="{% if not is_preview %}{% url 'update_progress' batch.id %}{% endif %}">{% for value,label in progress_choices %}<option value="{{ value }}" {% if value == batch.progress_value %}selected{% endif %}>{% if label == '已挂' %}未通过{% else %}{{ label }}{% endif %}</option>{% endfor %}</select></td>{% endif %}
           <td class="date-cell">{{ batch.effective_updated_on|date:'Y-m-d' }}</td>
           <td>{% if batch.primary_application_url %}<a class="action-link apply{% if is_preview %} preview-external{% endif %}" href="{% if is_preview %}#{% else %}{{ batch.primary_application_url }}{% endif %}" {% if not is_preview %}target="_blank" rel="noopener"{% endif %}>投递</a>{% elif batch.primary_application_note %}<span class="action-link apply instructions" title="{{ batch.primary_application_note }}">小程序投递</span>{% else %}<span class="action-link unavailable" title="公告与岗位来源都没有给出可核验的投递入口">投递待确认</span>{% endif %}</td>
           <td>{% if batch.announcement_url %}<a class="action-link notice{% if is_preview %} preview-external{% endif %}" href="{% if is_preview %}#{% else %}{{ batch.announcement_url }}{% endif %}" {% if not is_preview %}target="_blank" rel="noopener"{% endif %} title="{{ batch.announcement_label }}">公告</a>{% else %}<span class="action-link unavailable" title="{{ batch.announcement_instructions }}">小程序公告</span>{% endif %}</td>

@@ -73,6 +73,8 @@ input, select { width: 100%; padding: 11px 12px; border: 1px solid #cbd5e1; bord
 .recruitment-table th:nth-child(7) { width: 520px; } .recruitment-table th:nth-child(8) { width: 120px; }
 .recruitment-table th:nth-child(9) { width: 100px; }
 .recruitment-table th:nth-child(10), .recruitment-table th:nth-child(11) { width: 84px; }
+.public-readonly .recruitment-table th:nth-child(8) { width: 100px; }
+.public-readonly .recruitment-table th:nth-child(9), .public-readonly .recruitment-table th:nth-child(10) { width: 84px; }
 .company-cell strong { display: block; color: #223148; font-size: 15px; }
 .company-cell small { display: block; overflow: hidden; margin-top: 7px; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .badge { display: inline-block; padding: 6px 9px; border-radius: var(--radius-control); font-size: 12px; white-space: nowrap; }

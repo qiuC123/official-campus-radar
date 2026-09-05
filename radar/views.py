@@ -44,9 +44,15 @@ def _filter_context(request: HttpRequest, *, preview: bool) -> dict:
     }
 
 def _render_dashboard(request: HttpRequest, *, history: bool = False) -> HttpResponse:
+    show_progress = not settings.RADAR_PUBLIC_READONLY
+    params = request.GET.copy()
+    if not show_progress:
+        params.pop("progress", None)
+    request.GET = params
     page, summary, city_choices, available_audiences = build_orm_dashboard(
-        request.GET,
+        params,
         history=history,
+        include_progress=show_progress,
     )
     preserved_query = request.GET.copy()
     preserved_query.pop("page", None)
@@ -62,14 +68,15 @@ def _render_dashboard(request: HttpRequest, *, history: bool = False) -> HttpRes
         "summary": summary,
         "history": history,
         "is_preview": False,
-        "progress_choices": ApplicationProgress.Status.choices,
+        "progress_choices": ApplicationProgress.Status.choices if show_progress else (),
+        "show_progress": show_progress,
         "city_choices": tuple(dict.fromkeys((
             *city_choices,
             *request.GET.getlist("city")[:MAX_SELECTED_PROVINCES],
         ))),
-        "scheduled_run_missing": scheduled_run_is_missing(timezone.now()),
-        "last_successful_update": latest_successful_update(),
-        "source_failures": latest_source_failures(),
+        "scheduled_run_missing": scheduled_run_is_missing(timezone.now()) if show_progress else False,
+        "last_successful_update": latest_successful_update() if show_progress else None,
+        "source_failures": latest_source_failures() if show_progress else (),
         "query_without_page": preserved_query.urlencode(),
         "pagination_items": tuple(
             page.paginator.get_elided_page_range(
@@ -80,7 +87,7 @@ def _render_dashboard(request: HttpRequest, *, history: bool = False) -> HttpRes
         ),
         "pagination_query_fields": pagination_query_fields,
         "current_query": request.GET.urlencode(),
-        "show_operations": request.user.is_staff,
+        "show_operations": show_progress and request.user.is_staff,
     }
     context.update(_filter_context(request, preview=False))
     standard_audiences = [value for value, _label in AUDIENCE_CHOICES]
@@ -106,6 +113,8 @@ def history(request: HttpRequest) -> HttpResponse:
 
 @ensure_csrf_cookie
 def application_progress_list(request: HttpRequest) -> HttpResponse:
+    if settings.RADAR_PUBLIC_READONLY:
+        raise Http404
     progress_rows = list(
         ApplicationProgress.objects.select_related("batch__organization").order_by(
             "batch__organization__name", "batch__title"
@@ -118,7 +127,7 @@ def application_progress_list(request: HttpRequest) -> HttpResponse:
 
 
 def phase02_preview(request: HttpRequest) -> HttpResponse:
-    if not settings.DEBUG:
+    if not settings.DEBUG or settings.RADAR_PUBLIC_READONLY:
         raise Http404
     history = request.GET.get("view") == "history"
     batches, summary = mock_dashboard(request.GET, history=history)
@@ -133,6 +142,7 @@ def phase02_preview(request: HttpRequest) -> HttpResponse:
         "scheduled_run_missing": False,
         "source_failures": (),
         "show_operations": True,
+        "show_progress": True,
     }
     context.update(_filter_context(request, preview=True))
     return render(request, "radar/phase02_dashboard.html", context)
@@ -176,6 +186,8 @@ def batch_positions(request: HttpRequest, batch_id: int) -> HttpResponse:
 
 @require_POST
 def update_progress(request: HttpRequest, batch_id: int) -> JsonResponse:
+    if settings.RADAR_PUBLIC_READONLY:
+        raise Http404
     batch = get_object_or_404(RecruitmentBatch, pk=batch_id)
     existing_progress = ApplicationProgress.objects.filter(batch=batch).exists()
     if batch.status == RecruitmentBatch.Status.ACTIVE:

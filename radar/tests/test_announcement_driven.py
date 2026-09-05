@@ -888,6 +888,32 @@ class OfficialDiscoveryContractTests(TestCase):
         self.assertEqual(probed[0].state, AnnouncementDiscoveryCandidate.State.NEW)
         self.assertFalse(RecruitmentAnnouncement.objects.exists())
 
+    def test_http_refetch_respects_legacy_header_charset(self):
+        candidate = parse_official_candidate_batch(self.payload()).candidates[0]
+        response = SimpleNamespace(
+            url=candidate.url,
+            content="<title>2027校园招聘</title><p>秋招岗位</p>".encode("gbk"),
+            headers={"content-type": "text/html; charset=GBK"},
+            raise_for_status=lambda: None,
+        )
+        result = refetch_official_candidate(
+            self.source.organization, candidate,
+            session=SimpleNamespace(get=lambda *args, **kwargs: response),
+            resolver=lambda _host: ("8.8.8.8",),
+        )
+        self.assertEqual(result.title, "2027校园招聘")
+        self.assertTrue(result.recruitment_signal_found)
+
+    def test_http_refetch_rejects_undecodable_bytes(self):
+        candidate = parse_official_candidate_batch(self.payload()).candidates[0]
+        response = SimpleNamespace(url=candidate.url, content=b"\xff", raise_for_status=lambda: None)
+        with self.assertRaises(DiscoveryContractError):
+            refetch_official_candidate(
+                self.source.organization, candidate,
+                session=SimpleNamespace(get=lambda *args, **kwargs: response),
+                resolver=lambda _host: ("8.8.8.8",),
+            )
+
     def test_http_refetch_rejects_redirect_before_private_target_request(self):
         candidate = OfficialSiteCandidate(
             url="https://official-discovery.test/campus/2027",
