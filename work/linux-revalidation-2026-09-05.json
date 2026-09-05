@@ -1,0 +1,808 @@
+{
+  "date": "2026-09-05",
+  "timezone": "Asia/Shanghai",
+  "tested_commit": "31f7af2",
+  "conclusion": "live_linux_revalidation_passed_with_single_worker_capacity_preference; clean_dependency_regression_has_one_encoding_failure",
+  "environment": {
+    "os": "WSL2 Ubuntu",
+    "python": "3.13.15",
+    "django": "5.2.17",
+    "gunicorn": "26.2.0",
+    "database": "SQLite independent snapshots",
+    "memory_max_bytes": 1610612736,
+    "swap_max_bytes": 0,
+    "cpu_quota": "200000 100000",
+    "visitors": 2,
+    "think_time_seconds": 2,
+    "production_database_sha256_before_after": "2F72694BD581D2D7FEFC4F2D66C29842AAB6089318647D4D9576A738AD70110C",
+    "production_last_update_run": 28
+  },
+  "network": {
+    "status": "direct official requests succeeded at initial inspection; DNS returned public addresses",
+    "global_changes": false,
+    "safety_validation_weakened": false,
+    "proxy_added_to_collector": false,
+    "prior_recovery_cause": "not determined"
+  },
+  "timer": {
+    "kind": "temporary user systemd one-shot",
+    "on_active_seconds": 5,
+    "actual_trigger_cst": "2026-09-05 10:30:55",
+    "recorded_trigger": "scheduled",
+    "configured_production_timer": false,
+    "calendar_expressions_validated": [
+      "*-*-* 12:00:00 Asia/Shanghai",
+      "*-*-* 20:00:00 Asia/Shanghai"
+    ],
+    "no_test_timer_remaining": true
+  },
+  "dual_worker": {
+    "elapsed_s": 308,
+    "limits_initial": {
+      "memory.max": "1610612736",
+      "memory.swap.max": "0",
+      "cpu.max": "200000 100000",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.peak": "44879872",
+      "cpu.stat": "usage_usec 86285\nuser_usec 62752\nsystem_usec 23532\nnice_usec 0\nnr_periods 2\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0"
+    },
+    "limits_final": {
+      "memory.max": "1610612736",
+      "memory.swap.max": "0",
+      "cpu.max": "200000 100000",
+      "memory.events": "low 0\nhigh 0\nmax 1990\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.peak": "1610747904",
+      "cpu.stat": "usage_usec 317748506\nuser_usec 306197707\nsystem_usec 11550799\nnice_usec 0\nnr_periods 2784\nnr_throttled 362\nthrottled_usec 18407479\nnr_bursts 0\nburst_usec 0"
+    },
+    "updater_exit_code": 0,
+    "baseline": {
+      "count": 8,
+      "errors": 0,
+      "p50_s": 1.6608,
+      "p95_s": 3.1276,
+      "max_s": 3.1276
+    },
+    "during_update": {
+      "count": 153,
+      "errors": 0,
+      "p50_s": 2.2494,
+      "p95_s": 3.3672,
+      "max_s": 6.2407
+    },
+    "by_route": {
+      "/": {
+        "count": 39,
+        "errors": 0,
+        "p50_s": 2.5527,
+        "p95_s": 5.1765,
+        "max_s": 6.2407
+      },
+      "/?company=vivo": {
+        "count": 38,
+        "errors": 0,
+        "p50_s": 1.801,
+        "p95_s": 2.3053,
+        "max_s": 3.0009
+      },
+      "/?page=2": {
+        "count": 38,
+        "errors": 0,
+        "p50_s": 2.3974,
+        "p95_s": 3.8887,
+        "max_s": 4.645
+      },
+      "/history/": {
+        "count": 38,
+        "errors": 0,
+        "p50_s": 0.0689,
+        "p95_s": 0.2359,
+        "max_s": 0.4202
+      }
+    },
+    "update": {
+      "update_run_id": 29,
+      "sources_checked": 29,
+      "sources_failed": 0,
+      "batches_created": 0,
+      "batches_updated": 28,
+      "batches_rejected": 0,
+      "status": "success",
+      "error_message": "",
+      "fetches": [
+        {
+          "source_id": 1,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 2,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 3,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 4,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 5,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 6,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 7,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 8,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 9,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 10,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 11,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 12,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 13,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 14,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 15,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 16,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 17,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 18,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 19,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 20,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 21,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 22,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 23,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 24,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 25,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 30,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 31,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 32,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 33,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        }
+      ],
+      "publication_events": [
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "withdrawn",
+          "reason_codes": [
+            "explicit_source_withdrawal",
+            "availability_probe_closed"
+          ]
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        }
+      ]
+    }
+  },
+  "single_worker": {
+    "elapsed_s": 308.33,
+    "limits_initial": {
+      "memory.max": "1610612736",
+      "memory.swap.max": "0",
+      "cpu.max": "200000 100000",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.peak": "44888064",
+      "cpu.stat": "usage_usec 76693\nuser_usec 48438\nsystem_usec 28255\nnice_usec 0\nnr_periods 1\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0"
+    },
+    "limits_final": {
+      "memory.max": "1610612736",
+      "memory.swap.max": "0",
+      "cpu.max": "200000 100000",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.peak": "1453400064",
+      "cpu.stat": "usage_usec 299571264\nuser_usec 289557573\nsystem_usec 10013691\nnice_usec 0\nnr_periods 2923\nnr_throttled 67\nthrottled_usec 4561329\nnr_bursts 0\nburst_usec 0"
+    },
+    "updater_exit_code": 0,
+    "baseline": {
+      "count": 8,
+      "errors": 0,
+      "p50_s": 1.6564,
+      "p95_s": 3.1483,
+      "max_s": 3.1483
+    },
+    "during_update": {
+      "count": 146,
+      "errors": 0,
+      "p50_s": 2.3512,
+      "p95_s": 3.7092,
+      "max_s": 6.5264
+    },
+    "by_route": {
+      "/": {
+        "count": 37,
+        "errors": 0,
+        "p50_s": 2.6021,
+        "p95_s": 3.7092,
+        "max_s": 4.0265
+      },
+      "/?company=vivo": {
+        "count": 36,
+        "errors": 0,
+        "p50_s": 1.9246,
+        "p95_s": 3.0635,
+        "max_s": 3.1828
+      },
+      "/?page=2": {
+        "count": 37,
+        "errors": 0,
+        "p50_s": 2.7257,
+        "p95_s": 6.4231,
+        "max_s": 6.5264
+      },
+      "/history/": {
+        "count": 36,
+        "errors": 0,
+        "p50_s": 0.0775,
+        "p95_s": 0.4405,
+        "max_s": 0.6073
+      }
+    },
+    "update": {
+      "update_run_id": 29,
+      "sources_checked": 29,
+      "sources_failed": 0,
+      "batches_created": 0,
+      "batches_updated": 28,
+      "batches_rejected": 0,
+      "status": "success",
+      "error_message": "",
+      "fetches": [
+        {
+          "source_id": 1,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 2,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 3,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 4,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 5,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 6,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 7,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 8,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 9,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 10,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 11,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 12,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 13,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 14,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 15,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 16,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 17,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 18,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 19,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 20,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 21,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 22,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 23,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 24,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 25,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 30,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 31,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 32,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 33,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        }
+      ],
+      "publication_events": [
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "withdrawn",
+          "reason_codes": [
+            "explicit_source_withdrawal",
+            "availability_probe_closed"
+          ]
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        }
+      ]
+    }
+  },
+  "regression": {
+    "windows_python313": {
+      "total": 594,
+      "passed": 594
+    },
+    "linux_clean_dependencies": {
+      "total": 594,
+      "passed": 593,
+      "failed": 1
+    },
+    "failed_test": "radar.tests.test_announcement_driven.OfficialDiscoveryContractTests.test_probe_refetches_known_source_but_keeps_it_as_candidate",
+    "system_check_windows_linux": "passed",
+    "migration_drift_windows_linux": "none; production migration 0035 not applied"
+  },
+  "encoding_control": {
+    "network_requests": 0,
+    "html_fixture": "<html><title>2027校园招聘</title><body>秋招岗位</body></html>",
+    "input_encoding": "utf-8",
+    "windows_auto_encoding": "utf-8",
+    "linux_without_chardet_auto_encoding": "mac_latin2",
+    "linux_with_isolated_chardet_5_1_0_auto_encoding": "utf-8",
+    "explicit_utf8_also_correct": true,
+    "targeted_test_with_isolated_chardet": "1 passed",
+    "production_code_or_requirements_changed": false,
+    "entire_linux_suite_rerun_with_extra_chardet": false
+  },
+  "limitations": [
+    "Local WSL Linux, not a purchased cloud VM.",
+    "One full update per configuration; no long soak/high-concurrency test.",
+    "Sequential runs may differ in cache warmth, network and source content; differences are not attributed solely to worker count.",
+    "1.5 GiB is an application budget reserving about 0.5 GiB for a nominal 2 GiB machine, not an actual full 2 GiB VM.",
+    "Kernel cgroup peak can slightly exceed configured max during accounting/reclaim; dual-worker max events are pressure, not OOM kills.",
+    "No PostgreSQL, TLS/reverse proxy, backup workload, cloud disk/bandwidth limits or reboot/missed-timer tests.",
+    "Current published dependencies still have one Linux regression; isolated detector injection is diagnostic evidence, not a delivered fix."
+  ]
+}
