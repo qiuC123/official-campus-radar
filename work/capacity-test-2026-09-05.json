@@ -1,0 +1,434 @@
+{
+  "date": "2026-09-05",
+  "timezone": "Asia/Shanghai",
+  "tested_commit": "7aa302f",
+  "conclusion": "inconclusive_for_2gb_linux_deployment",
+  "scope": {
+    "live_sources": "29 admitted official website/ATS sources",
+    "database": "isolated snapshots; production UpdateRun remains 28",
+    "concurrent_visitors": 2,
+    "think_time_seconds": 2,
+    "paths": [
+      "/",
+      "/?page=2",
+      "/?company=vivo",
+      "/history/"
+    ],
+    "public_listener": false
+  },
+  "linux": {
+    "platform": "WSL2 Ubuntu; Python 3.13.15; Django 5.2.17; Gunicorn 26.2.0, 2 sync workers",
+    "limits": {
+      "memory.max": "1610612736",
+      "memory.swap.max": "0",
+      "cpu.max": "200000 100000",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.peak": "48521216"
+    },
+    "final_limits": {
+      "memory.max": "1610612736",
+      "memory.swap.max": "0",
+      "cpu.max": "200000 100000",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.peak": "941125632"
+    },
+    "elapsed_s": 124.3,
+    "baseline": {
+      "count": 8,
+      "errors": 0,
+      "p50_s": 1.7113,
+      "p95_s": 3.4382,
+      "max_s": 3.4382
+    },
+    "during_update": {
+      "count": 60,
+      "errors": 0,
+      "p50_s": 2.2499,
+      "p95_s": 2.5395,
+      "max_s": 3.4305
+    },
+    "updater_exit_code": -15,
+    "collection_completed": false,
+    "reason": "Stopped after consecutive official-source connection timeouts; WSL Fake-IP DNS/network unsuitable. Isolated DNS/hosts checks did not restore PDD connectivity. No safety checks weakened."
+  },
+  "windows": {
+    "platform": "Windows Python 3.13; Django 5.2.17; two single-process wsgiref servers (not production hosting)",
+    "accounting": "Job Object hard limit on aggregate private committed memory, not Linux RSS or whole-machine RAM",
+    "limit_bytes": 1610612736,
+    "peak_job_commit_bytes": 1179922432,
+    "logical_processor_affinity": [
+      0,
+      1
+    ],
+    "process_exit_code": 0,
+    "elapsed_s": 361.67,
+    "baseline": {
+      "count": 8,
+      "errors": 0,
+      "p50_s": 2.2058,
+      "p95_s": 3.1809,
+      "max_s": 3.1809
+    },
+    "during_update": {
+      "count": 130,
+      "errors": 0,
+      "p50_s": 3.9477,
+      "p95_s": 5.2924,
+      "max_s": 10.6716
+    },
+    "by_route": {
+      "/": {
+        "count": 33,
+        "errors": 0,
+        "p50_s": 4.5639,
+        "p95_s": 5.9111,
+        "max_s": 10.1638
+      },
+      "/?page=2": {
+        "count": 33,
+        "errors": 0,
+        "p50_s": 4.5225,
+        "p95_s": 5.9465,
+        "max_s": 10.6716
+      },
+      "/?company=vivo": {
+        "count": 32,
+        "errors": 0,
+        "p50_s": 3.5249,
+        "p95_s": 5.0516,
+        "max_s": 5.2515
+      },
+      "/history/": {
+        "count": 32,
+        "errors": 0,
+        "p50_s": 0.0974,
+        "p95_s": 0.1975,
+        "max_s": 0.2169
+      }
+    },
+    "update": {
+      "update_run_id": 29,
+      "sources_checked": 29,
+      "sources_failed": 1,
+      "batches_created": 0,
+      "batches_updated": 27,
+      "batches_rejected": 0,
+      "status": "partial_failure",
+      "error_message": "partial update: sources_failed=1",
+      "fetches": [
+        {
+          "source_id": 1,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 2,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 3,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 4,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 5,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 6,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 7,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 8,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 9,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 10,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 11,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 12,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 13,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 14,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 15,
+          "status": "failed",
+          "http_status": null,
+          "error_message": "ValueError: isolated browser timed out"
+        },
+        {
+          "source_id": 16,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 17,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 18,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 19,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 20,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 21,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 22,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 23,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 24,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 25,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 30,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 31,
+          "status": "success",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 32,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        },
+        {
+          "source_id": 33,
+          "status": "unchanged",
+          "http_status": 200,
+          "error_message": ""
+        }
+      ],
+      "publication_events": [
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "withdrawn",
+          "reason_codes": [
+            "explicit_source_withdrawal",
+            "availability_probe_closed"
+          ]
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        },
+        {
+          "event_type": "updated",
+          "reason_codes": []
+        }
+      ]
+    }
+  },
+  "unicom_uncapped_control": {
+    "source_id": 15,
+    "status": "success",
+    "http_status": 200,
+    "batches": 1,
+    "elapsed_s": 42.41,
+    "limited": false,
+    "concurrent_web_load": false,
+    "database_query_only": true
+  },
+  "caveats": [
+    "One real full update, not a long-duration/high-concurrency test.",
+    "Windows commit accounting differs from Linux cgroup memory accounting.",
+    "The Linux live collection did not complete; no cloud acceptance.",
+    "No reverse proxy, TLS, production database service, backup process or cloud disk/network throttling included.",
+    "A successful uncapped control cannot alone separate CPU contention from transient upstream/network effects.",
+    "CPU affinity to 2 logical processors is not a cloud CPU performance equivalence."
+  ],
+  "verification": {
+    "python313_tests": 594,
+    "check": "passed",
+    "makemigrations_check_dry_run": "No changes detected",
+    "diff_check": "passed before report",
+    "production_sha256_during_and_after_test": "2F72694BD581D2D7FEFC4F2D66C29842AAB6089318647D4D9576A738AD70110C"
+  }
+}
