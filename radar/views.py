@@ -74,6 +74,7 @@ def _render_dashboard(request: HttpRequest, *, history: bool = False) -> HttpRes
         "history": history,
         "is_preview": False,
         "snapshot_preview": bool(snapshot_path),
+        "snapshot_generated_at": getattr(page, "snapshot_generated_at", None),
         "progress_choices": ApplicationProgress.Status.choices if show_progress else (),
         "show_progress": show_progress,
         "city_choices": tuple(dict.fromkeys((

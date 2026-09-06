@@ -63,6 +63,8 @@ class PublicSnapshotTests(TestCase):
         with override_settings(RADAR_PUBLIC_READONLY=True, RADAR_DISPLAY_SNAPSHOT=str(self.path)):
             with self.assertNumQueries(0):
                 self.assertContains(self.client.get("/"), "内部预览")
+                self.assertContains(self.client.get("/"), "快照生成：")
+                self.assertNotContains(self.client.get("/"), "尚未启用云端自动更新")
                 self.assertEqual(self.client.get("/history/").status_code, 200)
                 self.assertEqual(self.client.get(f"/batches/{self.batch.pk}/positions/").status_code, 200)
                 self.assertEqual(self.client.get("/batches/999999/positions/").status_code, 404)

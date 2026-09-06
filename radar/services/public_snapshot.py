@@ -2,7 +2,7 @@
 
 from contextlib import closing
 from dataclasses import replace
-from datetime import date
+from datetime import date, datetime
 import json
 from pathlib import Path
 import re
@@ -135,7 +135,7 @@ def read_snapshot(path):
 
 
 def build_snapshot_dashboard(params, *, path, history=False):
-    _, rows = read_snapshot(path)
+    generated_at, rows = read_snapshot(path)
     company_types = {dict(PREVIEW_COMPANY_TYPE_CHOICES).get(key, key) for key in params.getlist("company_type")}
     recruitment_types = {dict(RECRUITMENT_TYPE_CHOICES).get(key, key) for key in params.getlist("recruitment_type")}
     audience = params.get("audience") or params.get("target_audience")
@@ -158,5 +158,7 @@ def build_snapshot_dashboard(params, *, path, history=False):
         if positions:
             batches.append(replace(batch, positions=tuple(positions)))
     batches.sort(key=lambda item: item.effective_updated_on, reverse=True)
-    return (Paginator(batches, 20).get_page(params.get("page", 1)),
+    page = Paginator(batches, 20).get_page(params.get("page", 1))
+    page.snapshot_generated_at = datetime.fromisoformat(generated_at)
+    return (page,
             _summary(batches, date.today()), available_city_choices(batches), tuple(sorted(audiences)))
