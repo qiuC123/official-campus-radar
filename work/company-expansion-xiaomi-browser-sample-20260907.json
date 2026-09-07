@@ -1,0 +1,485 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-09-07T03:44:05.463227+00:00",
+  "plan": {
+    "seeds": [
+      "https://xiaomi.jobs.f.mioffice.cn/campus/",
+      "https://xiaomi.jobs.f.mioffice.cn/newretailing/",
+      "https://xiaomi.jobs.f.mioffice.cn/internship/"
+    ],
+    "navigation_limit": 3,
+    "campus_next_click_limit": 1,
+    "endpoint_cumulative_limit": 6,
+    "job_endpoint_previous_requests": 1,
+    "job_endpoint_new_request_limit": 5,
+    "deadline_seconds": 180,
+    "replays": 0,
+    "retries": 0
+  },
+  "pages": [
+    {
+      "stage": "campus:first",
+      "url": "https://xiaomi.jobs.f.mioffice.cn/campus/",
+      "http_status": 200,
+      "visible_text_excerpt": "\u804c\u4f4d\n\u5c0f\u7c73\u62db\u8058\n\u6295\u9012\u987b\u77e5\n\u767b\u5f55\n\u641c\u7d22\n\u7b5b\u9009\n\u6e05\u9664\n\u62db\u8058\u9879\u76ee\n2027\u5c4a\u5883\u5916\u62db\u8058\u8ba1\u5212\n2027\u5c4a\u6821\u56ed\u62db\u8058\u8ba1\u5212\n\u5b9e\u4e60\u751f\u62db\u8058\u8ba1\u5212\n\u57ce\u5e02\n\u5317\u4eac\n\u5357\u4eac\n\u4e0a\u6d77\n\u6b66\u6c49\n\u897f\u5b89\n\u6df1\u5733\n\u65b0\u52a0\u5761\n\u66f4\u591a\n\u804c\u80fd\u5206\u7c7b\n\u8f6f\u4ef6\u7814\u53d1\u7c7b\n\u786c\u4ef6\u7814\u53d1\u7c7b\n\u7b97\u6cd5\u7c7b\n\u6d4b\u8bd5\u7c7b\n\u8fd0\u7ef4\u7c7b\n\u4ea7\u54c1\u7c7b\n\u6574\u8f66\u4e0e\u7cfb\u7edf\u5de5\u7a0b\u7c7b\n\u8bbe\u8ba1\u7c7b\n\u5916\u8bed\u5916\u6d3e\u7c7b\n\u670d\u52a1\u7c7b\n\u8fd0\u8425\u7c7b\n\u5e02\u573a\u7c7b\n\u804c\u80fd\u7c7b\n\u9500\u552e\u7c7b\n\u7ba1\u7406\u7c7b\n\u4f9b\u5e94\u94fe\u7c7b\n\u5546\u52a1\u7c7b\n\u751f\u4ea7\u5236\u9020\u7c7b\n\u4ea4\u4ed8\u7c7b\n\u5f00\u542f\u65b0\u7684\u5de5\u4f5c\uff08767\uff09\n\u4ea4\u4ed8\u4f53\u9a8c\u52a9\u7406\n\u73e0\u6d77\u6821\u62db\u5b9e\u4e60\u4ea4\u4ed8\u7c7b\u5b9e\u4e60\u751f\u62db\u8058\u8ba1\u5212\n- \u5230\u5e97\u63a5\u5f85\u5f15\u5bfc\uff1a\u4e3b\u52a8\u8fce\u63a5\u5230\u5e97\u7528\u6237\uff0c\u5f15\u5bfc\u7b7e\u5230\u3001\u6307\u5f15\u4f11\u606f\u533a\uff0c\u8425\u9020\u70ed\u60c5\u53cb\u597d\u7684\u7b2c\u4e00\u5370\u8c61\uff1b\n- \u57fa\u7840\u8f66\u8f86\u8bb2\u89e3\uff1a\u4e3a\u7528\u6237\u4ecb\u7ecdSU7/YU7\u8f66\u8f86\u57fa\u672c\u529f\u80fd\u548c\u4f7f\u7528\u64cd\u4f5c\uff08\u4f1a\u63d0\u4f9b\u5c97\u524d\u57f9\u8bad\uff09\uff1b\n- \u4ea4\u4ed8\u8f85\u52a9\u914d\u5408\uff1a\u534f\u52a9\u4ea4\u4ed8\u987e\u95ee\u5b8c\u6210\u8d44\u6599\u51c6\u5907\u3001\u94a5\u5319\u4ea4\u4ed8\u3001\u5145\u7535\u6869\u64cd\u4f5c\u6307\u5f15\u3001\u8f66\u5468\u8fb9\u5b89\u88c5\u3001\u8f66\u8863\u65bd\u5de5\u9080\u7ea6\u7b49\u5de5\u4f5c\uff1b\n- \u73b0\u573a\u79e9\u5e8f\u7ef4\u62a4\uff1a\u5173\u6ce8\u95e8\u5e97\u4eba\u6d41\u72b6\u6001\uff0c\u534f\u52a9\u7ef4\u6301\u4ea4\u4ed8\u533a\u79e9\u5e8f\uff0c\u9047\u5f02\u5e38\u60c5\u51b5\u53ca\u65f6\u4e0a\u62a5\uff1b\n- \u7528\u6237\u9700\u6c42\u53cd\u9988\uff1a\u6536\u96c6\u7528\u6237\u5728\u7b49\u5f85\u548c\u4ea4\u4ed8\u8fc7\u7a0b\u4e2d\u7684\u610f\u89c1\u611f\u53d7\uff0c\u53ca\u65f6\u53cd\u9988\u7ed9\u6b63\u5f0f\u5458\u5de5\u3002\n\u4ea4\u4ed8\u4f53\u9a8c\u52a9\u7406\n\u6d77\u53e3\u6821\u62db\u5b9e\u4e60\u670d\u52a1\u7c7b\u5b9e\u4e60\u751f\u62db\u8058\u8ba1\u5212\n\u5de5\u4f5c\u5185\u5bb9\uff1a\n1. \u534f\u52a9\u63d0\u8f66\u7528\u6237\u5230\u5e97\u63a5\u5f85\u3001\u7b7e\u5230\u3001\u6d41\u7a0b\u5f15\u5bfc\uff0c\u89e3\u7b54\u7528\u6237\u63d0\u8f66\u7591\u95ee\uff0c\u786e\u4fdd\u5ba2\u6237\u5728\u63d0\u8f66\u65f6\u80fd\u591f\u5f97\u5230\u826f\u597d\u7684\u4f53\u9a8c\u548c\u670d\u52a1\uff1b\n2. \u534f\u52a9\u7528\u6237\u586b\u5199\u76f8\u5173\u4ea4\u4ed8\u6587\u4ef6\u548c\u624b\u7eed\u7b49\uff0c\u5e76\u786e\u4fdd\u6240\u6709\u6587\u4ef6\u7684\u51c6\u786e\u6027\u548c\u5b8c\u6574\u6027\uff1b\n3. \u5411\u5ba2\u6237\u4ecb\u7ecd\u4ea7\u54c1\u7684\u529f\u80fd\u3001\u64cd\u4f5c\u65b9\u6cd5\u3001\u7528\u8f66\u573a\u666f\u7b49\u76f8\u5173\u4fe1\u606f\uff0c\u89e3\u7b54\u5ba2\u6237\u7684\u7591\u95ee\uff1b\n4. \u7ef4\u62a4\u4ea4\u4ed8\u63a5\u5f85\u533a\u7684\u6574\u6d01\u548c\u6709\u5e8f\uff0c\u786e\u4fdd\u73af\u5883\u7b26\u5408\u516c\u53f8\u5f62\u8c61\u548c\u6807\u51c6\uff1b\n5. \u534f\u52a9\u4e0a\u7ea7\u5b8c\u6210\u5176\u4ed6\u76f8\u5173\u7684\u884c\u653f\u548c\u63a5\u5f85\u5de5\u4f5c\u3002\n\u4ea4\u4ed8\u4f53\u9a8c\u52a9\u7406\n\u4f5b\u5c71\u6821\u62db\u5b9e\u4e60\u4ea4\u4ed8\u7c7b\u5b9e\u4e60\u751f\u62db\u8058\u8ba1\u5212\n1\u3001\u4ea4\u8f66\u524d\u51c6\u5907\uff1a\u534f\u52a9\u4ea4\u4ed8\u987e\u95ee\u5b8c\u6210\u8f66\u8f86\u68c0\u67e5\uff0c\u5f15\u5bfc\u5ba2\u6237\u5b8c\u6210\u9a8c\u8f66\u3002\n2\u3001\u5ba2\u6237\u63a5\u5f85\uff1a\u8d1f\u8d23\u4ea4\u4ed8\u5f53\u5929\u7684\u5ba2\u6237\u8fce\u63a5\u4e0e\u5f15\u5bfc\uff0c\u63d0\u4f9b\u8336\u6c34\u670d\u52a1\uff0c\u8425\u9020\u4e13\u4e1a\u3001\u6e29\u99a8\u7684\u4ea4\u4ed8\u6c1b\u56f4\u3002\n3\u3001\u529f\u80fd\u8bb2\u89e3\uff1a\u534f\u52a9\u5411\u8f66\u4e3b\u8be6\u7ec6\u8bb2\u89e3\u8f66\u8f86\u57fa\u7840\u64cd\u4f5c\u3001\u667a\u80fd\u5ea7\u8231\u529f\u80fd\u53ca\u65e5\u5e38\u5145\u7535\u6ce8\u610f\u4e8b\u9879\u3002\n4\u3001\u624b\u7eed\u529e\u7406\uff1a\u534f\u52a9\u4ea4\u4ed8\u987e\u95ee\u529e\u7406\u5c3e\u6b3e\u652f\u4ed8\u3001\u4fdd\u9669\u529e\u7406\u3001\u4e34\u724c\u7533\u9886\u3001\u4e0a\u724c\u8d44\u6599\u6536\u96c6\u7b49\u4ea4\u4ed8\u76f8\u5173\u624b\u7eed\u3002\n5\u3001\u4ea4\u8f66\u4eea\u5f0f\uff1a\u6267\u884c\u4ea4\u8f66\u4eea\u5f0f\u9c9c\u82b1\u3001\u5408\u5f71\u3001\u4ea4\u8f66\u793c\u7b49\uff0c\u63d0\u5347\u5ba2\u6237\u5c0a\u4eab\u611f\u4e0e\u6ee1\u610f\u5ea6\u3002\n\u4ea4\u4ed8\u4f53\u9a8c\u52a9\u7406\n\u6c55\u5934\u6821\u62db\u5b9e\u4e60\u4ea4\u4ed8\u7c7b\u5b9e\u4e60\u751f\u62db\u8058\u8ba1\u5212\n1\u3001\u5230\u5e97\u63a5\u5f85\u5f15\u5bfc\uff1a\u4e3b\u52a8\u8fce\u63a5\u5230\u5e97\u7528\u6237\uff0c\u5f15\u5bfc\u7b7e\u5230\u3001\u6307\u5f15\u4f11\u606f\u533a\uff0c\u8425\u9020\u70ed\u60c5\u53cb\u597d\u7684\u7b2c\u4e00\u5370\u8c61\uff1b\n2\u3001\u57fa\u7840\u8f66\u8f86\u8bb2\u89e3\uff1a\u4e3a\u7528\u6237\u4ecb\u7ecdSU7/YU7\u8f66\u8f86\u57fa\u672c\u529f\u80fd\u548c\u4f7f\u7528\u64cd\u4f5c\uff08\u4f1a\u63d0\u4f9b\u5c97\u524d\u57f9\u8bad\uff09\uff1b\n3\u3001\u4ea4\u4ed8\u8f85\u52a9\u914d\u5408\uff1a\u534f\u52a9\u4ea4\u4ed8\u987e\u95ee\u5b8c\u6210\u8d44\u6599\u51c6\u5907\u3001\u94a5\u5319\u4ea4\u4ed8\u3001\u5145\u7535\u6869\u64cd\u4f5c\u6307\u5f15\u3001\u8f66\u5468\u8fb9\u5b89\u88c5\u3001\u8f66\u8863\u65bd\u5de5\u9080\u7ea6\u7b49\u5de5\u4f5c\uff1b\n4\u3001\u73b0\u573a\u79e9\u5e8f\u7ef4\u62a4\uff1a\u5173\u6ce8\u95e8\u5e97\u4eba\u6d41\u72b6\u6001\uff0c\u534f\u52a9\u7ef4\u6301\u4ea4\u4ed8\u533a\u79e9\u5e8f\uff0c\u9047\u5f02\u5e38\u60c5\u51b5\u53ca\u65f6\u4e0a\u62a5\uff1b\n5\u3001\u7528\u6237\u9700\u6c42\u53cd\u9988\uff1a\u6536\u96c6\u7528\u6237\u5728\u7b49\u5f85\u548c\u4ea4\u4ed8\u8fc7\u7a0b\u4e2d\u7684\u610f\u89c1\u611f\u53d7\uff0c\u53ca\u65f6\u53cd\u9988\u7ed9\u6b63\u5f0f\u5458\u5de5\u3002\nAI\u80fd\u8017\u4f18\u5316\u7b97\u6cd5\u5de5\u7a0b\u5e08\n\u6b66\u6c49\u6821\u62db\u6b63\u5f0f\u7b97\u6cd5\u7c7b2027\u5c4a\u6821\u56ed\u62db\u8058\u8ba1\u5212\n1\u3001\u805a\u7126AI+\u79d1\u6280\u5bb6\u7535\u65b9\u5411\uff1a\u8d1f\u8d23\u7a7a\u8c03\u3001\u51b0\u7bb1\u3001\u6d17\u8863\u673a\u6216\u751f\u6001\u94fe\u4ea7\u54c1\u7684AI\u7b97\u6cd5\u8bbe\u8ba1\uff0c\u901a\u8fc7\u667a\u80fd\u5316\u5b9e\u73b0\u4ea7\u54c1\u5728\u8282\u80fd\u3001\u4fdd\u9c9c\u3001\u6d17\u70d8\u3001\u8d28\u91cf\u7b49\u65b9\u9762\u7684\u6548\u679c\u63d0\u5347\uff1b\n2\u3001\u8d1f\u8d23AI\u8282\u80fd\u3001\u667a\u80fd\u8bca\u65ad\u3001\u4e2a\u6027\u5316\u7b49\u7b97\u6cd5\u95ee\u9898\u7684\u5efa\u6a21\u3001\u8bbe\u8ba1\u4e0e\u4f18\u5316\uff0c\u524d\u6cbf\u6280\u672f\u9884\u7814\u4e0e\u5e94\u7528\uff1b\n3\u3001\u8d1f\u8d23\u4e0a\u8ff0\u76f8\u5173\u7b97\u6cd5\u7684\u7aef\u4fa7\u90e8\u7f72\u3001\u6d4b\u8bd5\uff0c\u652f\u6301\u91cf\u4ea7\u4ea4\u4ed8\u3002\n\u5927\u6a21\u578b\u5e73\u53f0\u4ea7\u54c1\u7ecf\u7406\n\u5317\u4eac\u6821\u62db\u6b63\u5f0f\u4ea7\u54c1\u7c7b2027\u5c4a\u6821\u56ed\u62db\u8058\u8ba1\u5212\n\u4f60\u5c06\u6df1\u5ea6\u53c2\u4e0e\u5c0f\u7c73AI\u57fa\u5efa\u4e0e\u4e91\u670d\u52a1\u5e73\u53f0\u7684\u6838\u5fc3\u4ea7\u54c1\u5efa\u8bbe\uff0c\u8986\u76d6\u4ece\u9700\u6c42\u6d1e\u5bdf\u5230\u4ea7\u54c1\u843d\u5730\u7684\u5168\u94fe\u8def\uff0c\u76f4\u63a5\u5f71\u54cd\u96c6\u56e2\u7ea7\u6280\u672f\u5e73\u53f0\u7684\u6f14\u8fdb\u65b9\u5411\u3002\n\u6838\u5fc3\u804c\u8d23\n1\u3001\u8d1f\u8d23\u5c0f\u7c73AI\u5927\u6a21\u578b\u5546\u4e1a\u5316\u3001\u4e91\u5e73\u53f0\u3001\u6570\u636e\u5e73\u53f0\u3001\u7b49\u6838\u5fc3\u6a21\u5757\u7684\u4ea7\u54c1\u8bbe\u8ba1\u4e0e\u8fed\u4ee3\uff0c\u4ece\u9700\u6c42\u8c03\u7814\u3001\u529f\u80fd\u5b9a\u4e49\u3001\u539f\u578b\u8bbe\u8ba1\u5230\u9879\u76ee\u4ea4\u4ed8\u4e0e\u4e0a\u7ebf\u590d\u76d8\uff0c\u7aef\u5230\u7aef\u95ed\u73af\uff1b\n2\u3001\u5c06\u5927\u6a21\u578b\u80fd\u529b\u3001\u6570\u636e\u5de5\u7a0b\u3001\u4e91\u670d\u52a1\u7b49\u5e95\u5c42\u6280\u672f\u5c01\u88c5\u4e3a\u53ef\u590d\u7528\u7684\u5e73\u53f0\u4ea7\u54c1\uff0c\u8d4b\u80fd\u5c0f\u7c73\u5404\u4e1a\u52a1\u7ebf\u7684AI\u5e94\u7528\u843d\u5730\uff1b\n3\u3001\u53c2\u4e0e\u5c0f\u7c73\u81ea\u7814AI\u6a21\u578b\u7684\u5546\u4e1a\u5316\u4ea7\u54c1\u8bbe\u8ba1\uff0c\u63a2\u7d22ToB/To C\u573a\u666f\u7684\u53d8\u73b0\u8def\u5f84\uff1b\n4\u3001\u6301\u7eed\u8ddf\u8e2aAI\u3001\u4e91\u8ba1\u7b97\u3001\u5927\u6570\u636e\u9886\u57df\u7684\u6280\u672f\u8d8b\u52bf\u4e0e\u7ade\u54c1\u52a8\u6001\uff0c\u5c06\u884c\u4e1a\u5224\u65ad\u8f6c\u5316\u4e3a\u4ea7\u54c1\u7b56\u7565\uff1b\n5\u3001\u4e0e\u5de5\u7a0b\u3001\u7b97\u6cd5\u3001\u8bbe\u8ba1\u3001\u8fd0\u8425\u7b49\u591a\u56e2\u961f\u7d27\u5bc6\u534f\u4f5c\uff0c\u63a8\u52a8\u590d\u6742\u9879\u76ee\u9ad8\u8d28\u91cf\u4ea4\u4ed8\u3002\n\u540e\u53f0\u5f00\u53d1\u5de5\u7a0b\u5e08\n\u6b66\u6c49\u6821\u62db\u6b63\u5f0f\u8f6f\u4ef6\u7814\u53d1\u7c7b2027\u5c4a\u6821\u56ed\u62db\u8058\u8ba1\u5212\n1.\u53c2\u4e0e\u5c0f\u7231\u670d\u52a1\u7aef\u6d4b\u8bd5\u5e73\u53f0\u4e0e\u6d4b\u8bd5\u5de5\u5177\u7684\u8bbe\u8ba1\u3001\u5f00\u53d1\u548c\u7ef4\u62a4\uff0c\u63d0\u5347\u6d4b\u8bd5\u4ea4\u4ed8\u6548\u7387\u4e0e\u5e73\u53f0\u80fd\u529b\uff1b\n2.\u53c2\u4e0e\u670d\u52a1\u7aef\u6d4b\u8bd5 MCP \u670d\u52a1\u5efa\u8bbe\uff0c\u6c89\u6dc0\u6d4b\u8bd5\u9886\u57df Skill \u80fd\u529b\u5e93\uff0c\u6784\u5efa\u6d4b\u8bd5 Agent\uff0c\u5b8c\u5584\u6d4b\u8bd5\u667a\u80fd\u5316\u80fd\u529b\u4f53\u7cfb\uff1b\n3.\u53c2\u4e0e\u6d41\u91cf\u56de\u653e\u3001\u7cbe\u51c6\u6d4b\u8bd5\u3001\u7528\u4f8b\u667a\u80fd\u63a8\u8350\u3001AI\u95ee\u9898\u5b9a\u4f4d\u7b49\u6d4b\u8bd5\u5de5\u5177\u53ca\u5e73\u53f0\u80fd\u529b\u5efa\u8bbe\uff0c\u652f\u6301\u6d4b\u8bd5\u4f53\u7cfb\u6301\u7eed\u6f14\u8fdb\uff1b\n4.\u63a2\u7d22\u5e76\u843d\u5730 Vibe Coding \u5728\u5e73\u53f0\u5f00\u53d1\u3001\u5de5\u5177\u5f00\u53d1\u548c\u6d4b\u8bd5\u5f00\u53d1\u6d41\u7a0b\u4e2d\u7684\u5e94\u7528\uff0c\u63d0\u5347\u7814\u53d1\u6548\u7387\uff1b\n5.\u53c2\u4e0e\u6d4b\u8bd5\u76f8\u5173\u95ee\u9898\u7684\u5b9a\u4f4d\u3001\u5206\u6790\u548c\u8ddf\u8e2a\uff0c\u63a8\u52a8\u95ee\u9898\u95ed\u73af\u89e3\u51b3\uff0c\u5e76\u534f\u52a9\u603b\u7ed3\u95ee\u9898\u89c4\u5f8b\uff0c\u63a8\u52a8\u5e73\u53f0\u548c\u5de5\u5177\u6301\u7eed\u4f18\u5316\u3002\nAI\u5e73\u53f0\u5f00\u53d1\u5de5\u7a0b\u5e08-\u8bad\u63a8\u5e73\u53f0\n\u6b66\u6c49\u6821\u62db\u6b63\u5f0f\u8f6f\u4ef6\u7814\u53d1\u7c7b2027\u5c4a\u6821\u56ed\u62db\u8058\u8ba1\u5212\n1\u3001\u53c2\u4e0eAI\u5e73\u53f0K8S\u8bad\u7ec3\u548c\u63a8\u7406\u7ec4\u4ef6\u7684\u67b6\u6784\u8bbe\u8ba1\u3001\u4ea7\u54c1\u5f00\u53d1\uff1b\n2\u3001\u53c2\u4e0eAI\u6a21\u578b\u5927\u89c4\u6a21\u5206\u5e03\u5f0f\u8bad\u7ec3\u548c\u63a8\u7406\u67b6\u6784\u548c\u53ef\u89c2\u6d4b\u6027\u8bbe\u8ba1\u548c\u5f00\u53d1\uff1b\n3\u3001\u53c2\u4e0e\u5927\u8bed\u8a00\u6a21\u578b\u9884\u8bad\u7ec3\u548c\u540e\u8bad\u7ec3\uff0c\u5206\u5e03\u5f0f\u63a8\u7406\u6280\u672f\u8c03\u7814\u548c\u6d4b\u8bd5\u3002\n\u4f9b\u5e94\u94fe\u8fd0\u8425\u7ba1\u7406\u4e13\u5458-\u6210\u672c\u65b9\u5411\n\u5317\u4eac\u6821\u62db\u6b63\u5f0f\u4f9b\u5e94\u94fe\u7c7b2027\u5c4a\u6821\u56ed\u62db\u8058\u8ba1\u5212\n1\u3001\u4fe1\u606f\u5316\uff1a\u534f\u52a9\u5236\u5b9a\u91c7\u8d2d\u57df\u4fe1\u606f\u5316\u89c4\u5212\uff0c\u63a8\u52a8\u91c7\u8d2d\u4fe1\u606f\u7cfb\u7edf\u3001\u91c7\u8d2d\u6210\u672c\u7ba1\u7406\u7b49\u6838\u5fc3\u7cfb\u7edf\u7684\u5efa\u8bbe\u4e0e\u8fed\u4ee3\uff1b\n2\u3001\u6d41\u7a0b\u4f53\u7cfb\uff1a\u534f\u52a9\u68b3\u7406\u6838\u5fc3\u91c7\u8d2d\u6d41\u7a0b\u67b6\u6784\uff0c\u63a8\u52a8\u7ba1\u7406\u4f53\u7cfb\u4f18\u5316\uff1b\n3\u3001\u6307\u6807\u4f53\u7cfb\uff1a\u534f\u52a9\u5236\u5b9a\u91c7\u8d2d\u6210\u672c\u4e1a\u52a1\u6307\u6807\u4f53\u7cfb\uff0c\u8f85\u52a9\u4e1a\u52a1\u6301\u7eed\u6539\u5584\u4e0e\u95ee\u9898\u89e3\u51b3\uff1b\n4\u3001\u6570\u636e\u5206\u6790\uff1a\u534f\u52a9\u5efa\u7acb\u6210\u672c\u5206\u6790\u6a21\u578b\uff0c\u5f00\u5c55\u9884\u7b97\u4e0e\u5b9e\u9645\u5bf9\u6bd4\u5206\u6790\uff0c\u8f93\u51fa\u591a\u7ef4\u5ea6\u6210\u672c\u6d1e\u5bdf\u652f\u6301\u7ecf\u8425\u51b3\u7b56\uff1b\n5\u3001\u9879\u76ee\u7ba1\u7406\uff1a\u534f\u540c\u4f9b\u5e94\u94fe\u3001\u6210\u672c\u90e8\u3001\u8d22\u52a1\u7b49\u591a\u90e8\u95e8\u63a8\u8fdb\u6d41\u7a0b\u843d\u5730\u4e0e\u7cfb\u7edf\u4e0a\u7ebf\u3002\n\u4f9b\u5e94\u94fe\u8ba1\u5212\u4e13\u5458\n\u5317\u4eac\u6821\u62db\u6b63\u5f0f\u4f9b\u5e94\u94fe\u7c7b2027\u5c4a\u6821\u56ed\u62db\u8058\u8ba1\u5212\n1\u3001\u4e3b\u5bfc\u9700\u6c42\u9884\u6d4b\uff1a \u57fa\u4e8e\u7ec8\u7aef\u9500\u552e\u6570\u636e\u4e0e\u5e02\u573a\u52a8\u6001\u5206\u6790\uff0c\u4e3b\u5bfc\u5236\u5b9a\u5e76\u4f18\u5316\u4ea7\u54c1\u4e0e\u7269\u6599\u7684\u9700\u6c42\u8ba1\u5212\uff0c\u63d0\u5347\u9884\u6d4b\u51c6\u786e\u6027\u3002\n2\u3001\u9a71\u52a8\u8de8\u90e8\u95e8\u534f\u540c\uff1a \u534f\u8c03\u5e76\u9a71\u52a8\u91c7\u8d2d\u3001\u751f\u4ea7\u3001\u7814\u53d1\u7b49\u90e8\u95e8\u534f\u4f5c\uff0c\u786e\u4fdd\u9700\u6c42\u8ba1\u5212\u9ad8\u8d28\u91cf\u843d\u5730\u6267\u884c\u3002\n3\u3001\u7ba1\u7406\u5e93\u5b58\u7b56\u7565\uff1a \u4e3b\u5bfc\u5e93\u5b58\u5206\u6790\u4e0e\u9884\u8b66\uff0c\u4e3b\u52a8\u6c9f\u901a\u5e76\u5236\u5b9a\u5e93\u5b58\u7b56\u7565\uff0c\u5e73\u8861\u670d\u52a1\u4e0e\u6210\u672c\uff0c\u9884\u9632\u5446\u6ede\u3002\n4\u3001\u7edf\u7b79\u4ea7\u54c1\u751f\u547d\u5468\u671f\u4f9b\u9700\uff1a \u7ba1\u7406\u4ea7\u54c1\u5168\u751f\u547d\u5468\u671f\uff08\u722c\u5761\u81f3\u7ed3\u5355\uff09\u7684\u9700\u6c42\u4e0e\u4f9b\u5e94\u89c6\u56fe\uff0c\u63d0\u524d\u8bc6\u522b\u98ce\u9669\uff0c\u4fdd\u969c\u4f9b\u5e94\u8fde\u7eed\u6027\uff0c\u9884\u9632\u5446\u6ede\u7269\u6599\u4ea7\u751f\u3002\n5\u3001\u5206\u6790\u6570\u636e\u5f15\u5bfc\u51b3\u7b56\uff1a \u72ec\u7acb\u5206\u6790\u6570\u636e\u4e0e\u884c\u4e1a\u8d8b\u52bf\uff0c\u5efa\u7acb\u8bc4\u4f30\u4f53\u7cfb\uff0c\u6d1e\u5bdf\u8ba2\u8d27\u72b6\u51b5\u4e0e\u9700\u6c42\u8d70\u52bf\uff0c\u4e3a\u9500\u552e\u4e0e\u4f9b\u5e94\u94fe\u51b3\u7b56\u63d0\u4f9b\u4f9d\u636e\u3002\n1\n2\n3\n4\n5\n77",
+      "next_controls": [
+        {
+          "tag": "li",
+          "text": "5",
+          "title": "5",
+          "aria": "",
+          "className": "atsx-pagination-item atsx-pagination-item-5 atsx-pagination-item-before-jump-next",
+          "rel": "",
+          "form": false,
+          "type": "",
+          "target": "",
+          "visible": true,
+          "disabled": false,
+          "index": 54
+        },
+        {
+          "tag": "li",
+          "text": "",
+          "title": "\u5411\u540e 5 \u9875",
+          "aria": "",
+          "className": "atsx-pagination-jump-next atsx-pagination-jump-next-custom-icon",
+          "rel": "",
+          "form": false,
+          "type": "",
+          "target": "",
+          "visible": true,
+          "disabled": false,
+          "index": 56
+        },
+        {
+          "tag": "li",
+          "text": "",
+          "title": "\u4e0b\u4e00\u9875",
+          "aria": "",
+          "className": " atsx-pagination-next",
+          "rel": "",
+          "form": false,
+          "type": "",
+          "target": "",
+          "visible": true,
+          "disabled": false,
+          "index": 60
+        }
+      ],
+      "job_responses": [
+        {
+          "declared_total": 767,
+          "row_count": 10,
+          "ids": [
+            "7682606003493456169",
+            "7682605885697132842",
+            "7682605872665774399",
+            "7682605867656890675",
+            "7681256292644030726",
+            "7681256024946542857",
+            "7681255943951190335",
+            "7680394017603356978",
+            "7680376718741915958",
+            "7680376662261729577"
+          ],
+          "identity_complete": true,
+          "row_field_names": [
+            "city_info",
+            "city_list",
+            "code",
+            "department_id",
+            "description",
+            "id",
+            "job_category",
+            "job_function",
+            "job_hot_flag",
+            "job_post_info",
+            "job_process_id",
+            "job_subject",
+            "process_type",
+            "publish_time",
+            "recommend_id",
+            "recruit_type",
+            "requirement",
+            "storefront_list",
+            "storefront_mode",
+            "sub_title",
+            "title"
+          ],
+          "rows": [
+            {
+              "id": "7682606003493456169",
+              "title": "\u4ea4\u4ed8\u4f53\u9a8c\u52a9\u7406",
+              "job_category": null,
+              "recruit_type": {
+                "id": "202",
+                "name": "\u5b9e\u4e60",
+                "parent": {
+                  "id": "2",
+                  "name": "\u6821\u62db",
+                  "parent": null
+                }
+              },
+              "city_info": null
+            },
+            {
+              "id": "7682605885697132842",
+              "title": "\u4ea4\u4ed8\u4f53\u9a8c\u52a9\u7406",
+              "job_category": null,
+              "recruit_type": {
+                "id": "202",
+                "name": "\u5b9e\u4e60",
+                "parent": {
+                  "id": "2",
+                  "name": "\u6821\u62db",
+                  "parent": null
+                }
+              },
+              "city_info": null
+            },
+            {
+              "id": "7682605872665774399",
+              "title": "\u4ea4\u4ed8\u4f53\u9a8c\u52a9\u7406",
+              "job_category": null,
+              "recruit_type": {
+                "id": "202",
+                "name": "\u5b9e\u4e60",
+                "parent": {
+                  "id": "2",
+                  "name": "\u6821\u62db",
+                  "parent": null
+                }
+              },
+              "city_info": null
+            },
+            {
+              "id": "7682605867656890675",
+              "title": "\u4ea4\u4ed8\u4f53\u9a8c\u52a9\u7406",
+              "job_category": null,
+              "recruit_type": {
+                "id": "202",
+                "name": "\u5b9e\u4e60",
+                "parent": {
+                  "id": "2",
+                  "name": "\u6821\u62db",
+                  "parent": null
+                }
+              },
+              "city_info": {
+                "name": "\u6c55\u5934",
+                "code": "CT_123"
+              }
+            },
+            {
+              "id": "7681256292644030726",
+              "title": "AI\u80fd\u8017\u4f18\u5316\u7b97\u6cd5\u5de5\u7a0b\u5e08",
+              "job_category": null,
+              "recruit_type": {
+                "id": "201",
+                "name": "\u6b63\u5f0f",
+                "parent": {
+                  "id": "2",
+                  "name": "\u6821\u62db",
+                  "parent": null
+                }
+              },
+              "city_info": {
+                "name": "\u6b66\u6c49",
+                "code": "CT_154"
+              }
+            },
+            {
+              "id": "7681256024946542857",
+              "title": "\u5927\u6a21\u578b\u5e73\u53f0\u4ea7\u54c1\u7ecf\u7406",
+              "job_category": null,
+              "recruit_type": {
+                "id": "201",
+                "name": "\u6b63\u5f0f",
+                "parent": {
+                  "id": "2",
+                  "name": "\u6821\u62db",
+                  "parent": null
+                }
+              },
+              "city_info": {
+                "name": "\u5317\u4eac",
+                "code": "CT_11"
+              }
+            },
+            {
+              "id": "7681255943951190335",
+              "title": "\u540e\u53f0\u5f00\u53d1\u5de5\u7a0b\u5e08",
+              "job_category": null,
+              "recruit_type": {
+                "id": "201",
+                "name": "\u6b63\u5f0f",
+                "parent": {
+                  "id": "2",
+                  "name": "\u6821\u62db",
+                  "parent": null
+                }
+              },
+              "city_info": {
+                "name": "\u6b66\u6c49",
+                "code": "CT_154"
+              }
+            },
+            {
+              "id": "7680394017603356978",
+              "title": "AI\u5e73\u53f0\u5f00\u53d1\u5de5\u7a0b\u5e08-\u8bad\u63a8\u5e73\u53f0",
+              "job_category": null,
+              "recruit_type": {
+                "id": "201",
+                "name": "\u6b63\u5f0f",
+                "parent": {
+                  "id": "2",
+                  "name": "\u6821\u62db",
+                  "parent": null
+                }
+              },
+              "city_info": {
+                "name": "\u6b66\u6c49",
+                "code": "CT_154"
+              }
+            },
+            {
+              "id": "7680376718741915958",
+              "title": "\u4f9b\u5e94\u94fe\u8fd0\u8425\u7ba1\u7406\u4e13\u5458-\u6210\u672c\u65b9\u5411",
+              "job_category": null,
+              "recruit_type": {
+                "id": "201",
+                "name": "\u6b63\u5f0f",
+                "parent": {
+                  "id": "2",
+                  "name": "\u6821\u62db",
+                  "parent": null
+                }
+              },
+              "city_info": {
+                "name": "\u5317\u4eac",
+                "code": "CT_11"
+              }
+            },
+            {
+              "id": "7680376662261729577",
+              "title": "\u4f9b\u5e94\u94fe\u8ba1\u5212\u4e13\u5458",
+              "job_category": null,
+              "recruit_type": {
+                "id": "201",
+                "name": "\u6b63\u5f0f",
+                "parent": {
+                  "id": "2",
+                  "name": "\u6821\u62db",
+                  "parent": null
+                }
+              },
+              "city_info": {
+                "name": "\u5317\u4eac",
+                "code": "CT_11"
+              }
+            }
+          ],
+          "body_sha256": "b6071ad1b867d7b4991f725b9584dedc2be9c05e4780fb38bf10f0b7cce6123f"
+        }
+      ]
+    },
+    {
+      "stage": "newretailing:first",
+      "url": "https://xiaomi.jobs.f.mioffice.cn/newretailing/",
+      "http_status": 200,
+      "visible_text_excerpt": "\u804c\u4f4d\n\u5c0f\u7c73\u62db\u8058\n\u6295\u9012\u987b\u77e5\n\u767b\u5f55\n\u641c\u7d22\n\u7b5b\u9009\n\u6e05\u9664\n\u62db\u8058\u9879\u76ee\n2027\u5c4a\u65b0\u96f6\u552e\u62db\u8058\u8ba1\u5212\n\u57ce\u5e02\n\u5317\u4eac\n\u6b66\u6c49\n\u6df1\u5733\n\u6210\u90fd\n\u5357\u4eac\n\u5e7f\u5dde\n\u5170\u5dde\u5e02\n\u66f4\u591a\n\u804c\u80fd\u5206\u7c7b\n\u6574\u8f66\u4e0e\u7cfb\u7edf\u5de5\u7a0b\u7c7b\n\u670d\u52a1\u7c7b\n\u9500\u552e\u7c7b\n\u4ea4\u4ed8\u7c7b\n\u5f00\u542f\u65b0\u7684\u5de5\u4f5c\uff080\uff09\n\n\u6682\u65e0\u804c\u4f4d\uff0c\u8bf7\u5c1d\u8bd5\u5176\u4ed6\u641c\u7d22\u6761\u4ef6\u2026",
+      "next_controls": [],
+      "job_responses": []
+    }
+  ],
+  "state": "stopped",
+  "pagination_note": "unique_safe_next_control_not_identified",
+  "peak_process_tree_rss_mib": 525.2,
+  "elapsed_seconds": 10.58,
+  "endpoint_request_events": [
+    {
+      "endpoint": "POST https://vcs.snssdk.com/vc/setting",
+      "cumulative_count": 1
+    },
+    {
+      "endpoint": "POST https://mcs.snssdk.com/v1/user/webid",
+      "cumulative_count": 1
+    },
+    {
+      "endpoint": "GET https://mon.zijieapi.com/monitor_web/settings/browser-settings",
+      "cumulative_count": 1
+    },
+    {
+      "endpoint": "GET https://xiaomi.jobs.f.mioffice.cn/api/v1/ip/location",
+      "cumulative_count": 1
+    },
+    {
+      "endpoint": "GET https://xiaomi.jobs.f.mioffice.cn/api/v1/user/mobile/login_status",
+      "cumulative_count": 1
+    },
+    {
+      "endpoint": "GET https://xiaomi.jobs.f.mioffice.cn/api/v1/ip/location",
+      "cumulative_count": 2
+    },
+    {
+      "endpoint": "GET https://xiaomi.jobs.f.mioffice.cn/api/v1/user/mobile/login_status",
+      "cumulative_count": 2
+    },
+    {
+      "endpoint": "GET https://xiaomi.jobs.f.mioffice.cn/api/v1/common/setting",
+      "cumulative_count": 1
+    },
+    {
+      "endpoint": "GET https://starling.zijieapi.com/check_and_get_text/aff8e570233711eb96690bb0655fe40d/test/throne-biz",
+      "cumulative_count": 1
+    },
+    {
+      "endpoint": "GET https://starling.zijieapi.com/check_and_get_text/aff8e570233711eb96690bb0655fe40d/test/throne-biz",
+      "cumulative_count": 2
+    },
+    {
+      "endpoint": "GET https://lf-cdn-tos.bytescm.com/obj/rc-verifycenter/verifycenter/1.0.0.421/index.js",
+      "cumulative_count": 1
+    },
+    {
+      "endpoint": "POST https://verify.snssdk.com/captcha/reportFrontend",
+      "cumulative_count": 1
+    },
+    {
+      "endpoint": "POST https://xiaomi.jobs.f.mioffice.cn/api/v1/search/job/posts",
+      "cumulative_count": 2
+    },
+    {
+      "endpoint": "GET https://xiaomi.jobs.f.mioffice.cn/api/v1/config/job/filters/6",
+      "cumulative_count": 1
+    },
+    {
+      "endpoint": "POST https://verify.snssdk.com/captcha/reportFrontend",
+      "cumulative_count": 2
+    },
+    {
+      "endpoint": "POST https://mcs.snssdk.com/v1/list",
+      "cumulative_count": 1
+    },
+    {
+      "endpoint": "POST https://mcs.snssdk.com/v1/list",
+      "cumulative_count": 2
+    },
+    {
+      "endpoint": "POST https://mcs.snssdk.com/v1/list",
+      "cumulative_count": 3
+    },
+    {
+      "endpoint": "POST https://mcs.snssdk.com/v1/list",
+      "cumulative_count": 4
+    },
+    {
+      "endpoint": "POST https://xiaomi.jobs.f.mioffice.cn/api/v1/csrf/token",
+      "cumulative_count": 1
+    },
+    {
+      "endpoint": "POST https://mcs.snssdk.com/v1/list",
+      "cumulative_count": 5
+    },
+    {
+      "endpoint": "POST https://mon.zijieapi.com/monitor_browser/collect/batch/",
+      "cumulative_count": 1
+    },
+    {
+      "endpoint": "POST https://xiaomi.jobs.f.mioffice.cn/api/v1/search/job/posts",
+      "cumulative_count": 3
+    },
+    {
+      "endpoint": "POST https://mcs.snssdk.com/v1/list",
+      "cumulative_count": 6
+    },
+    {
+      "endpoint": "POST https://mon.zijieapi.com/monitor_browser/collect/batch/",
+      "cumulative_count": 2
+    },
+    {
+      "endpoint": "POST https://vcs.snssdk.com/vc/setting",
+      "cumulative_count": 2
+    },
+    {
+      "endpoint": "POST https://mcs.snssdk.com/v1/user/webid",
+      "cumulative_count": 2
+    },
+    {
+      "endpoint": "GET https://mon.zijieapi.com/monitor_web/settings/browser-settings",
+      "cumulative_count": 2
+    },
+    {
+      "endpoint": "GET https://xiaomi.jobs.f.mioffice.cn/api/v1/ip/location",
+      "cumulative_count": 3
+    },
+    {
+      "endpoint": "GET https://xiaomi.jobs.f.mioffice.cn/api/v1/user/mobile/login_status",
+      "cumulative_count": 3
+    },
+    {
+      "endpoint": "GET https://xiaomi.jobs.f.mioffice.cn/api/v1/ip/location",
+      "cumulative_count": 4
+    },
+    {
+      "endpoint": "GET https://xiaomi.jobs.f.mioffice.cn/api/v1/user/mobile/login_status",
+      "cumulative_count": 4
+    },
+    {
+      "endpoint": "GET https://xiaomi.jobs.f.mioffice.cn/api/v1/common/setting",
+      "cumulative_count": 2
+    },
+    {
+      "endpoint": "GET https://starling.zijieapi.com/check_and_get_text/aff8e570233711eb96690bb0655fe40d/test/throne-biz",
+      "cumulative_count": 3
+    },
+    {
+      "endpoint": "GET https://starling.zijieapi.com/check_and_get_text/aff8e570233711eb96690bb0655fe40d/test/throne-biz",
+      "cumulative_count": 4
+    },
+    {
+      "endpoint": "GET https://lf-cdn-tos.bytescm.com/obj/rc-verifycenter/verifycenter/1.0.0.421/index.js",
+      "cumulative_count": 2
+    },
+    {
+      "endpoint": "POST https://verify.snssdk.com/captcha/reportFrontend",
+      "cumulative_count": 3
+    },
+    {
+      "endpoint": "POST https://xiaomi.jobs.f.mioffice.cn/api/v1/search/job/posts",
+      "cumulative_count": 4
+    },
+    {
+      "endpoint": "GET https://xiaomi.jobs.f.mioffice.cn/api/v1/config/job/filters/6",
+      "cumulative_count": 2
+    },
+    {
+      "endpoint": "POST https://verify.snssdk.com/captcha/reportFrontend",
+      "cumulative_count": 4
+    }
+  ],
+  "cumulative_endpoint_counts": {
+    "POST https://xiaomi.jobs.f.mioffice.cn/api/v1/search/job/posts": 4,
+    "POST https://vcs.snssdk.com/vc/setting": 2,
+    "POST https://mcs.snssdk.com/v1/user/webid": 2,
+    "GET https://mon.zijieapi.com/monitor_web/settings/browser-settings": 2,
+    "GET https://xiaomi.jobs.f.mioffice.cn/api/v1/ip/location": 4,
+    "GET https://xiaomi.jobs.f.mioffice.cn/api/v1/user/mobile/login_status": 4,
+    "GET https://xiaomi.jobs.f.mioffice.cn/api/v1/common/setting": 2,
+    "GET https://starling.zijieapi.com/check_and_get_text/aff8e570233711eb96690bb0655fe40d/test/throne-biz": 4,
+    "GET https://lf-cdn-tos.bytescm.com/obj/rc-verifycenter/verifycenter/1.0.0.421/index.js": 2,
+    "POST https://verify.snssdk.com/captcha/reportFrontend": 4,
+    "GET https://xiaomi.jobs.f.mioffice.cn/api/v1/config/job/filters/6": 2,
+    "POST https://mcs.snssdk.com/v1/list": 6,
+    "POST https://xiaomi.jobs.f.mioffice.cn/api/v1/csrf/token": 1,
+    "POST https://mon.zijieapi.com/monitor_browser/collect/batch/": 2
+  },
+  "stop_reason": "endpoint_budget_exhausted",
+  "verdict": {
+    "two_distinct_campus_pages": false,
+    "full_collection_verified": false,
+    "project_coverage_verified": false,
+    "application_availability_verified": false,
+    "production_admitted": false
+  }
+}

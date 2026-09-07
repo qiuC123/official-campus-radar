@@ -1,5 +1,33 @@
 # Recruitment API discovery tool
 
+## Frozen Xiaomi browser sample — 2026-09-07
+
+`py -3.13 tools/validate_xiaomi_browser_sample.py` prints the frozen plan without
+network access. The one authorized live invocation has already completed with
+exit code 1; its fixed report is
+`work/company-expansion-xiaomi-browser-sample-20260907.json`. Do not delete the
+report or rerun this cycle. `--allow-live-browser` requires the report not to
+exist and is not permission for a new cycle.
+
+The development-only tool uses fresh Chromium contexts, preserves HTTPS
+verification, performs no API replay, reads no request headers or signed query
+values, and reserves endpoint request budget before forwarding browser traffic.
+It records only a bounded page excerpt and allow-listed job business fields.
+The first run consumed three new job-list requests (four including the prior
+known request), captured one ten-job sample, and stopped on a telemetry endpoint
+budget. It does not certify full collection, application availability or admission.
+Optional `psutil` provides local process-tree RSS sampling; absence is reported
+as null and does not add a production dependency. See the corresponding handoff
+for the one-shot failure, control limitations and remaining budget.
+
+Offline regression checks:
+
+```powershell
+py -3.13 -m unittest tools.tests.test_validate_xiaomi_browser_sample -v
+```
+
+## General discovery tool
+
 `tools/discover_api.py` is a development-only aid for finding candidate JSON
 job-list APIs used by official recruitment pages. It is not part of the
 runtime collection path: production collection continues to use `requests`,
