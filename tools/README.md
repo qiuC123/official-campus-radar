@@ -97,6 +97,13 @@ additional requests. Other material variants remain visible and are marked as
 not replayed. Only a non-empty equivalent result under the minimal compliant
 headers is labeled `可接入`.
 
+The ladder stops immediately on HTTP 401, 403, 412, or 429. Remaining
+endpoints and later targets for the same company in that invocation are not
+requested; other companies can continue. An interrupted ladder cannot qualify
+an endpoint. Keep the same company label across that company's target entries.
+Across separate invocations, the operator must preserve both the stop decision
+and the cumulative endpoint budget.
+
 Offset-style pairs such as `offset`/`limit` or `pageOffset`/`pageSize` are
 retained as `pagination_candidates` with an unsupported/manual-review note;
 they are not emitted as executable `page_index` pagination. A complete true
@@ -104,7 +111,7 @@ they are not emitted as executable `page_index` pagination. A complete true
 appears.
 
 Query or nested body keys matching signature/credential indicators such as
-`sign`, `token`, `payload`, `nonce`, `trace`, or `w-` are reported by path.
+`sign`, `token`, `csrf`, `xsrf`, `payload`, `nonce`, `trace`, or `w-` are reported by path.
 Their values are redacted from URLs and configuration drafts, and that request
 variant is conservatively marked non-integrable without replay, field removal,
 or reverse engineering. Human review must still confirm campus scope and add

@@ -996,6 +996,80 @@ class PureConfigurationAndReportingTests(unittest.TestCase):
         self.assertNotIn(secret, report)
 
 
+class ExpansionBoundaryTests(unittest.TestCase):
+    def test_csrf_query_and_body_are_redacted_without_replay(self):
+        from tools.discover_api import TargetSpec, render_markdown_report, run_target_sequence
+
+        for key in ("_csrf", "csrf", "XSRF"):
+            for location in ("query", "body"):
+                with self.subTest(key=key, location=location):
+                    secret = "temporary-session-value"
+                    url = "https://careers.example/jobs"
+                    request_url = url + (f"?{key}={secret}" if location == "query" else "")
+                    request_json = {key: secret} if location == "body" else None
+                    capture = {
+                        "entry_url": url,
+                        "exchanges": [{
+                            "request_url": request_url,
+                            "method": "POST",
+                            "request_headers": {},
+                            "request_json": request_json,
+                            "response_status": 200,
+                            "content_type": "application/json",
+                            "response_json": TENCENT_PAYLOAD,
+                        }],
+                    }
+                    requester = mock.Mock()
+                    results = run_target_sequence(
+                        [TargetSpec(url)], capture_func=lambda target: capture,
+                        requester=requester, sleep_fn=lambda seconds: None,
+                    )
+                    requester.assert_not_called()
+                    self.assertTrue(results[0]["candidates"])
+                    self.assertEqual(results[0]["candidates"][0]["verdict"]["status"], "不可接入")
+                    self.assertNotIn(secret, render_markdown_report(
+                        results, generated_at="2026-09-07T10:00:00+08:00",
+                    ))
+
+    def test_access_denial_stops_ladder_other_endpoints_and_same_company(self):
+        from tools.discover_api import TargetSpec, run_target_sequence
+
+        for status in (401, 403, 412, 429):
+            with self.subTest(status=status):
+                captures = []
+                calls = []
+
+                def capture(target):
+                    captures.append(target.company)
+                    return {"entry_url": target.url, "exchanges": [{
+                        "request_url": target.url + f"/api/{endpoint}",
+                        "method": "GET", "request_headers": {},
+                        "response_status": 200, "content_type": "application/json",
+                        "response_json": TENCENT_PAYLOAD,
+                    } for endpoint in ("jobs", "posts")]}
+
+                def requester(**kwargs):
+                    calls.append(kwargs["url"])
+                    return {"http_status": status if len(calls) == 2 else 200,
+                            "payload": TENCENT_PAYLOAD}
+
+                results = run_target_sequence([
+                    TargetSpec("https://careers.example/a", company="A"),
+                    TargetSpec("https://careers.example/b", company="A"),
+                    TargetSpec("https://other.example/jobs", company="B"),
+                ], capture_func=capture, requester=requester, sleep_fn=lambda seconds: None)
+                self.assertEqual(captures, ["A", "B"])
+                self.assertEqual(sum("careers.example" in url for url in calls), 2)
+                self.assertEqual(len(calls), 12)
+                first_candidates = results[0]["candidates"]
+                self.assertEqual(sorted(len(item["replays"]) for item in first_candidates), [0, 2])
+                blocked = next(item for item in first_candidates if item["replays"])
+                self.assertIn(f"HTTP {status}", blocked["verdict"]["reason"])
+                self.assertEqual(blocked["verdict"]["status"], "不可接入")
+                self.assertEqual(results[1]["candidates"], [])
+                self.assertIn("未打开", results[1]["block_reason"])
+
+
 class OfflineBoundaryTests(unittest.TestCase):
     def test_binary_request_body_is_omitted_instead_of_breaking_capture(self):
         safe_request_post_data = self.require_function("safe_request_post_data")

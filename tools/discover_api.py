@@ -21,6 +21,7 @@ USER_AGENT = "OfficialCampusRadar/0.1 (local low-frequency collector)"
 MAX_JSON_BODY_BYTES = 2 * 1024 * 1024
 MAX_REPLAYS_PER_ENDPOINT = 6
 REPLAY_LADDER_REQUESTS = 5
+BLOCKING_HTTP_STATUSES = frozenset({401, 403, 412, 429})
 REDACTED_VALUE = "[REDACTED]"
 
 TITLE_KEY = re.compile(r"title|name|job|post|position", re.IGNORECASE)
@@ -32,7 +33,7 @@ TIME_KEY = re.compile(r"date|time|update|publish", re.IGNORECASE)
 TOTAL_KEY = re.compile(r"total|count", re.IGNORECASE)
 SUCCESS_KEY = re.compile(r"code|status|ret", re.IGNORECASE)
 SIGNATURE_HEADER = re.compile(
-    r"sign|token|payload|nonce|trace|w-",
+    r"sign|token|csrf|xsrf|payload|nonce|trace|w-",
     re.IGNORECASE,
 )
 CREDENTIAL_HEADER_NAMES = frozenset(
@@ -948,6 +949,12 @@ def classify_replay_results(
 ) -> dict[str, str]:
     """Apply the strict rule that only the minimal compliant profile is admissible."""
 
+    for result in results:
+        if result.get("http_status") in BLOCKING_HTTP_STATUSES:
+            return {
+                "status": "不可接入",
+                "reason": f"HTTP {result['http_status']} 触发访问限制；已停止该企业后续探测",
+            }
     by_name = {str(result.get("name", "")): result for result in results}
     minimal = by_name.get("最简合规头", {})
     if minimal.get("equivalent") is True:
@@ -1454,6 +1461,8 @@ def _execute_replay_observations(
                 "response_note": str(response.get("note", "")).strip(),
             }
         )
+        if response.get("http_status") in BLOCKING_HTTP_STATUSES:
+            break
         if index + 1 < len(profiles):
             sleep_fn(1.0)
     return observations
@@ -1546,7 +1555,18 @@ def run_target_sequence(
 
     results: list[dict[str, object]] = []
     endpoint_replay_usage: dict[tuple[str, str], int] = {}
+    stopped_companies: set[str] = set()
     for index, target in enumerate(targets):
+        company_key = target.company or urlsplit(target.url).hostname or target.url
+        if company_key in stopped_companies:
+            results.append({
+                "target_id": target.target_id,
+                "company": target.company,
+                "entry_url": redact_request_url(target.url),
+                "block_reason": "此前同企业请求触发访问限制；未打开页面或重放接口",
+                "candidates": [],
+            })
+            continue
         if index:
             sleep_fn(3.0)
         capture = capture_func(target)
@@ -1599,7 +1619,14 @@ def run_target_sequence(
                     variants.setdefault(variant_key, []).append(candidate)
                 for variant_candidates in variants.values():
                     representative = variant_candidates[0]
-                    if representative.get("suspicious_inputs"):
+                    if company_key in stopped_companies:
+                        for candidate in variant_candidates:
+                            candidate["replays"] = []
+                            candidate["verdict"] = {
+                                "status": "未重放",
+                                "reason": "此前同企业请求触发访问限制；未继续探测",
+                            }
+                    elif representative.get("suspicious_inputs"):
                         for candidate in variant_candidates:
                             candidate["replays"] = []
                             candidate["verdict"] = {
@@ -1624,6 +1651,11 @@ def run_target_sequence(
                         replay_used += len(observations)
                         endpoint_replay_usage[endpoint_key] = replay_used
                         ladder_attempted = True
+                        if any(
+                            item.get("http_status") in BLOCKING_HTTP_STATUSES
+                            for item in observations
+                        ):
+                            stopped_companies.add(company_key)
                         for candidate in variant_candidates:
                             replays = _evaluate_replay_observations(
                                 observations,
