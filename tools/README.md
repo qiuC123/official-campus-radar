@@ -386,3 +386,18 @@ The default `crawl_site` mode remains HTML; JSON projection fields belong in
 scalar field projection contract, frozen offline reference and a zero-budget
 protocol-check example. Packaging the reader does not authorize another live
 Xiaomi run or replace recruitment admission checks.
+
+
+### Xiaomi offline admission candidate (2026-09-07)
+
+`prepare_xiaomi_admission.py` builds project candidates from the frozen browser
+sample. It keeps same-title jobs separate by ID, exposes missing/conflicting
+project identities, preserves unmapped navigation labels and leaves all four
+admission gates unverified. It never adds page totals across different portals,
+infers graduate cohorts, imports a crawler, or writes the database.
+
+The default invocation prints a summary; `--write` writes the deterministic
+`work/xiaomi-admission-candidate-20260907.json` with its LF-normalized source hash.
+See `docs/handoffs/xiaomi-admission-candidate-20260907.md` for the evidence gaps
+and the separately proposed internship request allocation. That proposal does
+not authorize a new run against the exhausted historical budget.

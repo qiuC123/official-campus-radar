@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "status": "proposed_not_authorized",
+  "company": "小米",
+  "purpose": "读取实习入口最多两页自然岗位响应，核对稳定项目编号、声明总数、重复岗位和已有校园样本的交集。",
+  "prior_evidence": "work/company-expansion-xiaomi-browser-followup-20260907.json",
+  "prior_budget": {
+    "approved_round_requests": 200,
+    "approved_round_limit": 200,
+    "remaining_total_requests": 0,
+    "known_job_requests": 9,
+    "known_job_limit": 12,
+    "by_endpoint": {
+      "lf-cdn-tos.bytescm.com/obj/rc-verifycenter/verifycenter/1.0.0.421/index.js": 3,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/lib/core.min.js": 4,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/lib/jsbridge.min.js": 4,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/lib/sentry.browser.min.js": 4,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/1702.9db529ae.js": 4,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/3231.d2ae429c.js": 4,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/5115.4112056d.js": 4,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/5615.64e881f9.js": 4,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/6218.437b4a52.js": 4,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/8825.1a2a6d3f.js": 4,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/9096.6a50bdeb.js": 4,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/async/1290.05599b90.js": 3,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/async/1516.c5130c33.js": 3,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/async/1682.68d607cd.js": 3,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/async/179.f7223c33.js": 3,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/async/3203.8320f975.js": 3,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/async/3730.a27f9bca.js": 3,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/async/3970.edade914.js": 3,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/async/5454.b5203caf.js": 3,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/async/6681.e28a68cb.js": 4,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/async/7653.d63bc940.js": 3,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/async/7938.c64c8f5d.js": 3,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/async/8021.26f9ad9c.js": 3,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/async/8058.161b1617.js": 3,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/async/8102.c136e7ba.js": 3,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/async/8827.6ef63d03.js": 3,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/async/8988.fa103a74.js": 3,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/async/9308.fbf23be6.js": 3,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/builder-runtime.e56aed51.js": 4,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/static/js/pc.ee0f1383.js": 4,
+      "lf-package-cn.feishucdn.com/obj/atsx-throne/hire-fe-prod/portal/saas-career/theme_pc_0f40cc00.js": 4,
+      "lf3-atsx-tob.feishucdn.com/obj/static-atsx-online-ee-tob/a25873e932e57ca3a604976abfc19f51/6c054152ab5cfb75d3524da5061e2087b8e57be388efcedc990e7b459e51e63a.png": 1,
+      "lf3-cdn-tos.bytescm.com/obj/ttfe/ATSX/saas_career/application-success_1582633048158.png": 1,
+      "lf3-cdn-tos.bytescm.com/obj/ttfe/ATSX/saas_career/page_not_found_1580702814305.png": 1,
+      "lf3-cdn-tos.bytescm.com/obj/ttfe/atsx/official/tinycolor-min_1583312799849.js": 4,
+      "mcs.snssdk.com/v1/user/webid": 2,
+      "mon.zijieapi.com/monitor_web/settings/browser-settings": 4,
+      "sf1-lark-tos.f.mioffice.cn/obj/static-atsx-online-ee-tob/3c46b0f71765aa018256901bcff58378/1166f30493da15a646e818401652a44fa0c5e500ddfc463d6d9639451599b219.png": 1,
+      "vcs.snssdk.com/vc/setting": 4,
+      "verify.snssdk.com/static/pc_slide.js": 4,
+      "xiaomi.jobs.f.mioffice.cn/api/v1/common/setting": 3,
+      "xiaomi.jobs.f.mioffice.cn/api/v1/config/job/filters/6": 3,
+      "xiaomi.jobs.f.mioffice.cn/api/v1/ip/location": 8,
+      "xiaomi.jobs.f.mioffice.cn/api/v1/search/job/posts": 5,
+      "xiaomi.jobs.f.mioffice.cn/api/v1/user/mobile/login_status": 8,
+      "xiaomi.jobs.f.mioffice.cn/campus/": 2,
+      "xiaomi.jobs.f.mioffice.cn/people-suite/next-sdk/api/notice": 4,
+      "xiaomi.jobs.f.mioffice.cn/robots.txt": 1,
+      "starling.zijieapi.com/check_and_get_text/aff8e570233711eb96690bb0655fe40d/test/throne-biz": 4,
+      "verify.snssdk.com/captcha/reportFrontend": 4,
+      "lf3-short.ibytedapm.com/slardar/fe/sdk-web/plugins/common-monitors.1.10.0.js": 2,
+      "mcs.snssdk.com/v1/list": 17,
+      "xiaomi.jobs.f.mioffice.cn/api/v1/csrf/token": 1,
+      "mon.zijieapi.com/monitor_browser/collect/batch/": 7,
+      "xiaomi.jobs.f.mioffice.cn/newretailing/": 1,
+      "xiaomi.jobs.f.mioffice.cn/internship/": 1
+    }
+  },
+  "requested_additional_total_requests": 200,
+  "requested_other_endpoint_additional_limit": 20,
+  "job_requests_allocated_from_remaining": 3,
+  "expanded_round_total_limit_if_approved": 400,
+  "known_job_limit_if_approved": 12,
+  "max_calls": 1,
+  "max_initial_navigations": 1,
+  "max_next_clicks": 1,
+  "timebox_seconds": 900,
+  "next_selector_evidence": {
+    "file": "work/company-expansion-xiaomi-browser-followup-20260907.json",
+    "stage": "campus:first",
+    "scope": "同一ATS已观察到的候选选择器；实习页必须重新通过唯一、可见、语义和非表单检查，否则停止。"
+  },
+  "tool": "crawl_site",
+  "arguments": {
+    "seed_url": "https://xiaomi.jobs.f.mioffice.cn/internship/",
+    "extraction_mode": "browser_json",
+    "json_response": {
+      "response_endpoint": "xiaomi.jobs.f.mioffice.cn/api/v1/search/job/posts",
+      "records_path": "data.job_post_list",
+      "fields": [
+        {
+          "name": "id",
+          "path": "id",
+          "required": true
+        },
+        {
+          "name": "title",
+          "path": "title",
+          "required": true
+        },
+        {
+          "name": "subject_id",
+          "path": "job_subject.id",
+          "required": true
+        },
+        {
+          "name": "recruit_type",
+          "path": "recruit_type.name",
+          "required": false
+        }
+      ],
+      "identity_path": "id",
+      "total_path": "data.count"
+    },
+    "pagination": {
+      "next_selector": "li.atsx-pagination-next[title=\"下一页\"]"
+    },
+    "page_limit": 2,
+    "endpoint_limit": 200,
+    "per_endpoint_limit": 20,
+    "business_endpoint_limits": {
+      "xiaomi.jobs.f.mioffice.cn/api/v1/search/job/posts": 3
+    }
+  },
+  "stop_on": [
+    "access_restriction",
+    "captcha_or_login",
+    "any_budget_exhausted",
+    "deadline",
+    "missing_or_unsafe_next_control",
+    "missing_response_or_identity",
+    "duplicate_or_unchanged_page",
+    "total_conflict"
+  ],
+  "retry_or_followup_allowed": false,
+  "production_admission_authorized": false,
+  "official_announcement_or_application_availability_proven_by_this_call": false,
+  "full_collection_proven_by_two_pages": false
+}

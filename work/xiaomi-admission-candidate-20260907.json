@@ -1,0 +1,550 @@
+{
+  "schema_version": 1,
+  "company": "小米",
+  "evidence_kind": "offline_sample_candidate",
+  "network_requests": 0,
+  "database_writes": 0,
+  "source_run_state": "stopped",
+  "source_stop_reason": "endpoint_budget_exhausted",
+  "sample_observations": 30,
+  "sample_unique_jobs": 30,
+  "project_candidates": [
+    {
+      "subject_id": "7618850506199533866",
+      "label_candidates": [
+        "实习生招聘计划"
+      ],
+      "unique_job_count": 4,
+      "observations_by_stage": {
+        "campus:first": 4
+      },
+      "job_ids": [
+        "7682605867656890675",
+        "7682605872665774399",
+        "7682605885697132842",
+        "7682606003493456169"
+      ],
+      "recruit_type_ids": [
+        "202"
+      ],
+      "recruit_type_names": [
+        "实习"
+      ],
+      "cohort": null,
+      "recruitment_phase": null,
+      "admitted": false
+    },
+    {
+      "subject_id": "7659311908839262514",
+      "label_candidates": [
+        "2027届校园招聘计划"
+      ],
+      "unique_job_count": 16,
+      "observations_by_stage": {
+        "campus:first": 6,
+        "campus:next": 10
+      },
+      "job_ids": [
+        "7677560509239036166",
+        "7677560924911438099",
+        "7677560971674274111",
+        "7678147882801678602",
+        "7679025822254401855",
+        "7679026007857236275",
+        "7680161598241655086",
+        "7680375700994869558",
+        "7680375795693488393",
+        "7680376662261729577",
+        "7680376718741915958",
+        "7680394017603356978",
+        "7681255943951190335",
+        "7681256024946542857",
+        "7681256292644030726",
+        "7681715814722816307"
+      ],
+      "recruit_type_ids": [
+        "201"
+      ],
+      "recruit_type_names": [
+        "正式"
+      ],
+      "cohort": null,
+      "recruitment_phase": null,
+      "admitted": false
+    },
+    {
+      "subject_id": "7659311908839360818",
+      "label_candidates": [
+        "2027届新零售招聘计划"
+      ],
+      "unique_job_count": 10,
+      "observations_by_stage": {
+        "newretailing:first": 10
+      },
+      "job_ids": [
+        "7671524803548203314",
+        "7671524830973774131",
+        "7671524835931932991",
+        "7671524858161383707",
+        "7671525032430422326",
+        "7671525064085752127",
+        "7675291324488599814",
+        "7675291789649578266",
+        "7675292155330169134",
+        "7675292173633341723"
+      ],
+      "recruit_type_ids": [
+        "201"
+      ],
+      "recruit_type_names": [
+        "正式"
+      ],
+      "cohort": null,
+      "recruitment_phase": null,
+      "admitted": false
+    }
+  ],
+  "pages": [
+    {
+      "stage": "campus:first",
+      "url": "https://xiaomi.jobs.f.mioffice.cn/campus/",
+      "http_status": 200,
+      "navigation_project_labels": [
+        "2027届境外招聘计划",
+        "2027届校园招聘计划",
+        "实习生招聘计划"
+      ],
+      "records_observed": 10,
+      "declared_total": 768,
+      "response_available": true
+    },
+    {
+      "stage": "campus:next",
+      "url": "https://xiaomi.jobs.f.mioffice.cn/campus/",
+      "http_status": 200,
+      "navigation_project_labels": [
+        "2027届境外招聘计划",
+        "2027届校园招聘计划",
+        "实习生招聘计划"
+      ],
+      "records_observed": 10,
+      "declared_total": 768,
+      "response_available": true
+    },
+    {
+      "stage": "newretailing:first",
+      "url": "https://xiaomi.jobs.f.mioffice.cn/newretailing/",
+      "http_status": 200,
+      "navigation_project_labels": [
+        "2027届新零售招聘计划"
+      ],
+      "records_observed": 10,
+      "declared_total": 121,
+      "response_available": true
+    },
+    {
+      "stage": "internship:first",
+      "url": "https://xiaomi.jobs.f.mioffice.cn/internship/",
+      "http_status": 200,
+      "navigation_project_labels": [],
+      "records_observed": 0,
+      "declared_total": null,
+      "response_available": false
+    }
+  ],
+  "records": [
+    {
+      "id": "7682606003493456169",
+      "title": "交付体验助理",
+      "subject_id": "7618850506199533866",
+      "recruit_type_id": "202",
+      "recruit_type_name": "实习",
+      "stage": "campus:first",
+      "title_occurrences_in_page": 4,
+      "label_candidates": [
+        "实习生招聘计划"
+      ]
+    },
+    {
+      "id": "7682605885697132842",
+      "title": "交付体验助理",
+      "subject_id": "7618850506199533866",
+      "recruit_type_id": "202",
+      "recruit_type_name": "实习",
+      "stage": "campus:first",
+      "title_occurrences_in_page": 4,
+      "label_candidates": [
+        "实习生招聘计划"
+      ]
+    },
+    {
+      "id": "7682605872665774399",
+      "title": "交付体验助理",
+      "subject_id": "7618850506199533866",
+      "recruit_type_id": "202",
+      "recruit_type_name": "实习",
+      "stage": "campus:first",
+      "title_occurrences_in_page": 4,
+      "label_candidates": [
+        "实习生招聘计划"
+      ]
+    },
+    {
+      "id": "7682605867656890675",
+      "title": "交付体验助理",
+      "subject_id": "7618850506199533866",
+      "recruit_type_id": "202",
+      "recruit_type_name": "实习",
+      "stage": "campus:first",
+      "title_occurrences_in_page": 4,
+      "label_candidates": [
+        "实习生招聘计划"
+      ]
+    },
+    {
+      "id": "7681715814722816307",
+      "title": "整车架构与集成工程师（AI方向）-汽车",
+      "subject_id": "7659311908839262514",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "campus:first",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届校园招聘计划"
+      ]
+    },
+    {
+      "id": "7681256292644030726",
+      "title": "AI能耗优化算法工程师",
+      "subject_id": "7659311908839262514",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "campus:first",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届校园招聘计划"
+      ]
+    },
+    {
+      "id": "7681256024946542857",
+      "title": "大模型平台产品经理",
+      "subject_id": "7659311908839262514",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "campus:first",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届校园招聘计划"
+      ]
+    },
+    {
+      "id": "7681255943951190335",
+      "title": "后台开发工程师",
+      "subject_id": "7659311908839262514",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "campus:first",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届校园招聘计划"
+      ]
+    },
+    {
+      "id": "7680394017603356978",
+      "title": "AI平台开发工程师-训推平台",
+      "subject_id": "7659311908839262514",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "campus:first",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届校园招聘计划"
+      ]
+    },
+    {
+      "id": "7680376718741915958",
+      "title": "供应链运营管理专员-成本方向",
+      "subject_id": "7659311908839262514",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "campus:first",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届校园招聘计划"
+      ]
+    },
+    {
+      "id": "7680376662261729577",
+      "title": "供应链计划专员",
+      "subject_id": "7659311908839262514",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "campus:next",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届校园招聘计划"
+      ]
+    },
+    {
+      "id": "7680375795693488393",
+      "title": "供应链采购专员",
+      "subject_id": "7659311908839262514",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "campus:next",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届校园招聘计划"
+      ]
+    },
+    {
+      "id": "7680375700994869558",
+      "title": "供应链运营管理专员-运营管理",
+      "subject_id": "7659311908839262514",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "campus:next",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届校园招聘计划"
+      ]
+    },
+    {
+      "id": "7680161598241655086",
+      "title": "车联网应用软件开发工程师-汽车",
+      "subject_id": "7659311908839262514",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "campus:next",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届校园招聘计划"
+      ]
+    },
+    {
+      "id": "7679026007857236275",
+      "title": "行政专员（海外行政）",
+      "subject_id": "7659311908839262514",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "campus:next",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届校园招聘计划"
+      ]
+    },
+    {
+      "id": "7679025822254401855",
+      "title": "行政专员（福利文化）",
+      "subject_id": "7659311908839262514",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "campus:next",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届校园招聘计划"
+      ]
+    },
+    {
+      "id": "7678147882801678602",
+      "title": "Agent Harness 开发工程师",
+      "subject_id": "7659311908839262514",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "campus:next",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届校园招聘计划"
+      ]
+    },
+    {
+      "id": "7677560971674274111",
+      "title": "中国区-研发工程师",
+      "subject_id": "7659311908839262514",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "campus:next",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届校园招聘计划"
+      ]
+    },
+    {
+      "id": "7677560924911438099",
+      "title": "中国区-供应链管培生",
+      "subject_id": "7659311908839262514",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "campus:next",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届校园招聘计划"
+      ]
+    },
+    {
+      "id": "7677560509239036166",
+      "title": "中国区-产品经理",
+      "subject_id": "7659311908839262514",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "campus:next",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届校园招聘计划"
+      ]
+    },
+    {
+      "id": "7675292173633341723",
+      "title": "中国区－汽车销交服管培生（全国轮岗）",
+      "subject_id": "7659311908839360818",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "newretailing:first",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届新零售招聘计划"
+      ]
+    },
+    {
+      "id": "7675292155330169134",
+      "title": "中国区-汽车交付顾问（全国轮岗）",
+      "subject_id": "7659311908839360818",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "newretailing:first",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届新零售招聘计划"
+      ]
+    },
+    {
+      "id": "7675291789649578266",
+      "title": "中国区-汽车线上技术专员",
+      "subject_id": "7659311908839360818",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "newretailing:first",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届新零售招聘计划"
+      ]
+    },
+    {
+      "id": "7675291324488599814",
+      "title": "中国区－汽车服务顾问（全国轮岗）",
+      "subject_id": "7659311908839360818",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "newretailing:first",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届新零售招聘计划"
+      ]
+    },
+    {
+      "id": "7671525064085752127",
+      "title": "中国区-网格/区经方向-广东",
+      "subject_id": "7659311908839360818",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "newretailing:first",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届新零售招聘计划"
+      ]
+    },
+    {
+      "id": "7671525032430422326",
+      "title": "中国区-网格/区经方向-江苏",
+      "subject_id": "7659311908839360818",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "newretailing:first",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届新零售招聘计划"
+      ]
+    },
+    {
+      "id": "7671524858161383707",
+      "title": "中国区-网格/区经方向-京津",
+      "subject_id": "7659311908839360818",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "newretailing:first",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届新零售招聘计划"
+      ]
+    },
+    {
+      "id": "7671524835931932991",
+      "title": "中国区-网格/区经方向-浙江",
+      "subject_id": "7659311908839360818",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "newretailing:first",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届新零售招聘计划"
+      ]
+    },
+    {
+      "id": "7671524830973774131",
+      "title": "中国区-网格/区经方向-陕西",
+      "subject_id": "7659311908839360818",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "newretailing:first",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届新零售招聘计划"
+      ]
+    },
+    {
+      "id": "7671524803548203314",
+      "title": "中国区-网格/区经方向-安徽",
+      "subject_id": "7659311908839360818",
+      "recruit_type_id": "201",
+      "recruit_type_name": "正式",
+      "stage": "newretailing:first",
+      "title_occurrences_in_page": 1,
+      "label_candidates": [
+        "2027届新零售招聘计划"
+      ]
+    }
+  ],
+  "partition_diagnostics": {
+    "missing_subject_job_ids": [],
+    "conflicting_subject_job_ids": [],
+    "sample_partition_consistent": true,
+    "repeated_job_ids_across_pages": [],
+    "navigation_labels_without_sample_mapping": [
+      "2027届境外招聘计划"
+    ]
+  },
+  "admission_gates": {
+    "official_announcement_and_cohort": {
+      "verified": false,
+      "reason": "official_original_and_project_specific_scope_not_frozen"
+    },
+    "complete_pagination": {
+      "verified": false,
+      "reason": "bounded_samples_only"
+    },
+    "exhaustive_project_coverage": {
+      "verified": false,
+      "reason": "incomplete_portals_and_unresolved_navigation_projects"
+    },
+    "current_application_availability": {
+      "verified": false,
+      "reason": "no_independent_application_state_evidence"
+    }
+  },
+  "production_admitted": false,
+  "source": {
+    "file": "work/company-expansion-xiaomi-browser-followup-20260907.json",
+    "sha256": "fa8c76817da365f0e65fcd8b01e059f504014bcfcfa56c21a18ab9f0d20b35bf",
+    "hash_normalization": "utf8_lf_line_endings"
+  }
+}
