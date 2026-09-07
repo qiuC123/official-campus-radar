@@ -1,0 +1,628 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "offline_official_notice_candidates",
+  "company": "小米",
+  "network_requests": 0,
+  "database_writes": 0,
+  "notices": [
+    {
+      "notice_id": 13,
+      "title": "小米集团2027届全球校园招聘计划",
+      "tag": "投递须知",
+      "official_url": "https://hr.xiaomi.com/website/campus-notice.html#id=13",
+      "legacy_api_link_hint": "",
+      "body_sha256": "3ce67c7629ed00d48e6dead19e949912c16bb4010359b0ed8394cdf0d4a8ad68",
+      "sections": [
+        {
+          "heading": "一、招聘对象",
+          "text": [
+            "2027 届海内外应届毕业生",
+            "毕业时间：2026 年 9 月 1 日 - 2027 年 8 月 31 日"
+          ]
+        },
+        {
+          "heading": "二、岗位类别",
+          "text": [
+            "算法类、软件研发类、硬件研发类、测试类、运维类、产品类、设计类、运营类、供应链类、市场类、职能类、外语外派类、服务类、销售类、交付类、生产制造类"
+          ]
+        },
+        {
+          "heading": "三、工作地点",
+          "text": [
+            "北京、南京、武汉、深圳、上海、西安等国内城市，以及海外城市"
+          ]
+        },
+        {
+          "heading": "四、应聘流程",
+          "text": [
+            "网申→测评→简历筛选→面试→offer"
+          ]
+        },
+        {
+          "heading": "五、网申时间",
+          "text": [
+            "2026 年 8 月 10 日 - 2027 年 6 月底"
+          ]
+        },
+        {
+          "heading": "六、面试轮次",
+          "text": [
+            "至少两轮"
+          ]
+        },
+        {
+          "heading": "七、注意事项",
+          "text": [
+            "1、每位同学最多可投递两个职位，但同时仅有一个投递申请可在应聘流程中，我们会默认优先处理最早投递的职位。投递成功后，不可修改投递职位。",
+            "2、参加实习生项目成功留用的同学不建议再次投递。"
+          ]
+        }
+      ],
+      "audience_evidence": [
+        {
+          "heading": "一、招聘对象",
+          "text": [
+            "2027 届海内外应届毕业生",
+            "毕业时间：2026 年 9 月 1 日 - 2027 年 8 月 31 日"
+          ]
+        }
+      ],
+      "application_window_evidence": [
+        {
+          "heading": "五、网申时间",
+          "text": [
+            "2026 年 8 月 10 日 - 2027 年 6 月底"
+          ]
+        }
+      ],
+      "official_original_observed": true,
+      "ats_subject_id": null,
+      "binding_verified": false,
+      "current_application_availability_verified": false
+    },
+    {
+      "notice_id": 2,
+      "title": "小米集团2027届新零售招聘计划",
+      "tag": "投递须知",
+      "official_url": "https://hr.xiaomi.com/website/campus-notice.html#id=2",
+      "legacy_api_link_hint": "campus-notice.html#id=retail",
+      "body_sha256": "ac4b4952d5a1482ef3e65b3617cc1f8d07d4c8138ac34b2e210f31a18c8be70e",
+      "sections": [
+        {
+          "heading": "一、岗位介绍",
+          "text": [
+            "新零售校招生是我们为应届毕业生打造的专属岗位。从店铺现场开始学习经营，通过优秀的导师帮带、完善的培训体系和多样化的晋升路径，快速成长为零售行业精英。",
+            "从汽车到多品类3C产品，学习并亲身体验、深入感受每一款产品的特性与卖点。玩转新型零售，探索行业革新。",
+            "初期学习掌握店铺各项基本业务（包括顾客接待、产品讲解、商品陈列、盘点整理、售后咨询、达成销售目标等），中后期学习经营管理（包括零售业经营管理、领导力提升与团队管理、战略目标管理、塑造未来国际化经营人才等）。"
+          ]
+        },
+        {
+          "heading": "二、培养计划",
+          "text": [
+            "成长快速：同时起跑，让优秀的人脱颖而出",
+            "培养赋能：根据不同阶段给予进阶级赋能课程和实践，创造多平台轮岗机会，拥有专属导师",
+            "路径清晰：店长/区域主管——城市/区域经理——分公司核心业务骨干——分公司业务线负责人",
+            "跨区域视野：跨区跨体系人才输出，在纵向（分公司）和横向（总部）均有明确且丰富的发展空间"
+          ]
+        },
+        {
+          "heading": "三、招聘对象",
+          "text": [
+            "2027 届海内外应届毕业生",
+            "毕业时间：2026 年 9 月 1 日 - 2027 年 8 月 31 日",
+            "专业不限"
+          ]
+        },
+        {
+          "heading": "四、工作地点",
+          "text": [
+            "全国"
+          ]
+        },
+        {
+          "heading": "五、招聘流程",
+          "text": [
+            "网申→测评→简历筛选→面试→offer"
+          ]
+        },
+        {
+          "heading": "六、网申时间",
+          "text": [
+            "即日起 - 2027年6月末"
+          ]
+        },
+        {
+          "heading": "七、面试时间",
+          "text": [
+            "2026年9月起"
+          ]
+        },
+        {
+          "heading": "八、面试轮次",
+          "text": [
+            "2-3轮"
+          ]
+        }
+      ],
+      "audience_evidence": [
+        {
+          "heading": "三、招聘对象",
+          "text": [
+            "2027 届海内外应届毕业生",
+            "毕业时间：2026 年 9 月 1 日 - 2027 年 8 月 31 日",
+            "专业不限"
+          ]
+        }
+      ],
+      "application_window_evidence": [
+        {
+          "heading": "六、网申时间",
+          "text": [
+            "即日起 - 2027年6月末"
+          ]
+        }
+      ],
+      "official_original_observed": true,
+      "ats_subject_id": null,
+      "binding_verified": false,
+      "current_application_availability_verified": false
+    },
+    {
+      "notice_id": 3,
+      "title": "小米集团实习生招聘",
+      "tag": "投递须知",
+      "official_url": "https://hr.xiaomi.com/website/campus-notice.html#id=3",
+      "legacy_api_link_hint": "campus-notice.html#id=intern",
+      "body_sha256": "afaf242348384a3590cc0c6d4f3ed8fae11122c43010399a39d1943260941f05",
+      "sections": [
+        {
+          "heading": "一、招聘对象",
+          "text": [
+            "海内外高校全体在校大学生"
+          ]
+        },
+        {
+          "heading": "二、岗位类别",
+          "text": [
+            "软件研发类、算法类、测试类、运维类、硬件研发类、产品类、设计类、运营类、供应链类、市场类、销售类、职能类、服务类、外语外派类、交付类、生产制造类"
+          ]
+        },
+        {
+          "heading": "三、工作地点",
+          "text": [
+            "北京、南京、武汉、深圳、上海、西安等国内城市，以及海外城市"
+          ]
+        },
+        {
+          "heading": "四、应聘流程",
+          "text": [
+            "网申→简历初筛→简历复筛→面试→offer"
+          ]
+        },
+        {
+          "heading": "五、网申时间",
+          "text": [
+            "全年招聘"
+          ]
+        },
+        {
+          "heading": "六、面试轮次",
+          "text": [
+            "至少2轮"
+          ]
+        },
+        {
+          "heading": "七、注意事项",
+          "text": [
+            "1. 每位同学最多可投递7个职位，但同时仅有一个投递申请可在应聘流程中，我们会默认优先处理最早投递的职位",
+            "2. 简历投递后不可修改，请谨慎提交"
+          ]
+        }
+      ],
+      "audience_evidence": [
+        {
+          "heading": "一、招聘对象",
+          "text": [
+            "海内外高校全体在校大学生"
+          ]
+        }
+      ],
+      "application_window_evidence": [
+        {
+          "heading": "五、网申时间",
+          "text": [
+            "全年招聘"
+          ]
+        }
+      ],
+      "official_original_observed": true,
+      "ats_subject_id": null,
+      "binding_verified": false,
+      "current_application_availability_verified": false
+    },
+    {
+      "notice_id": 4,
+      "title": "小米集团顶尖应届生计划",
+      "tag": "投递须知",
+      "official_url": "https://hr.xiaomi.com/website/campus-notice.html#id=4",
+      "legacy_api_link_hint": "campus-notice.html#id=top-fresh",
+      "body_sha256": "01407ae6b85914cea4e56cb32770c36c55a15528a6506a02a9eb78cc946bf4e2",
+      "sections": [
+        {
+          "heading": "一、招聘对象",
+          "text": [
+            "2023年1月-2026年12月毕业的硕博同学及26年出站的博士后"
+          ]
+        },
+        {
+          "heading": "二、项目开放时间",
+          "text": [
+            "顶尖应届生计划为全年招聘"
+          ]
+        },
+        {
+          "heading": "三、我们期待这样的你",
+          "text": [
+            "心怀热爱，敢于突破传统思维定式，在未知领域主动探索，以热情驱动创新实践。",
+            "实力硬核，在学术成果、专业竞赛、项目经历等方面有突出表现，展现扎实功底。",
+            "直面挑战，在复杂问题中保持积极的心态，快速吸收新知识，持续实现自我突破。",
+            "同频共创，愿以团队之力，以创新愿景为锚，与小米共赴硬核科技引领者的征程。"
+          ]
+        },
+        {
+          "heading": "四、应聘流程",
+          "text": [
+            "简历筛选-技术面试-HR面试-offer发放-入职"
+          ]
+        },
+        {
+          "heading": "五、我们为你提供",
+          "text": []
+        },
+        {
+          "heading": "战略级课题攻关",
+          "text": [
+            "锚定集团核心课题，主导关键技术领域的颠覆性研究，以首席科学家角色推动行业格局变革。"
+          ]
+        },
+        {
+          "heading": "贯通式研产融合",
+          "text": [
+            "自由的科研环境、活泼的团队氛围搭配丰富的落地场景，让技术突破成果直接对接市场需求。"
+          ]
+        },
+        {
+          "heading": "全球化协作平台",
+          "text": [
+            "直通全球产研合作网络，参与多领域国际顶会。依托全球市场，与跨洲团队协同，站在全球创新最前沿。"
+          ]
+        },
+        {
+          "heading": "高价值激励体系",
+          "text": [
+            "行业TOP薪资，不设天花板。搭配 \"学术贡献 + 商业价值\" 双轨认可机制，共享价值增长红利。"
+          ]
+        },
+        {
+          "heading": "FAQ常见问题",
+          "text": [
+            "Q：小米集团顶尖应届生计划的岗位会有笔试吗？",
+            "A：不设单独笔试环节。",
+            "Q：投递了小米集团顶尖应届生计划但没有成功，还可以继续投递秋招正式批的岗位吗？",
+            "A：可以再次投递，小米集团顶尖应届生计划的招聘结果不影响正式批的投递。",
+            "Q：每个人可以同时投递几个顶尖应届生计划职位呢？",
+            "A：每位同学每个项目可投递2个职位，职位投递成功后，不可修改意向职位及部门，请优先选择自己最感兴趣或者最适合的岗位。",
+            "Q：如果想要加入小米博士后工作站应该如何申请？",
+            "A：可以投递感兴趣技术课题的顶尖应届生岗位，并在投递和面试过程中与部门说明博士后意愿。"
+          ]
+        }
+      ],
+      "audience_evidence": [
+        {
+          "heading": "一、招聘对象",
+          "text": [
+            "2023年1月-2026年12月毕业的硕博同学及26年出站的博士后"
+          ]
+        }
+      ],
+      "application_window_evidence": [
+        {
+          "heading": "二、项目开放时间",
+          "text": [
+            "顶尖应届生计划为全年招聘"
+          ]
+        }
+      ],
+      "official_original_observed": true,
+      "ats_subject_id": null,
+      "binding_verified": false,
+      "current_application_availability_verified": false
+    },
+    {
+      "notice_id": 5,
+      "title": "小米集团顶尖实习生",
+      "tag": "投递须知",
+      "official_url": "https://hr.xiaomi.com/website/campus-notice.html#id=5",
+      "legacy_api_link_hint": "campus-notice.html#id=top-intern",
+      "body_sha256": "dbc099da57018bee14a894aedcb52ae3e35503b788021342937e35ae960bc14a",
+      "sections": [
+        {
+          "heading": "一、招聘对象",
+          "text": [
+            "海内外高校相关技术专业顶尖在读同学"
+          ]
+        },
+        {
+          "heading": "二、岗位类别",
+          "text": [
+            "算法类、软件研发类、硬件研发类"
+          ]
+        },
+        {
+          "heading": "三、工作地点",
+          "text": [
+            "以岗位实际标注为准"
+          ]
+        },
+        {
+          "heading": "四、应聘流程",
+          "text": [
+            "网申→简历筛选→面试→offer"
+          ]
+        },
+        {
+          "heading": "五、网申时间",
+          "text": [
+            "全年招聘"
+          ]
+        },
+        {
+          "heading": "六、面试轮次",
+          "text": [
+            "至少2轮"
+          ]
+        },
+        {
+          "heading": "七、注意事项",
+          "text": [
+            "每位同学最多可投递两个职位，但同时仅有一个投递申请可在应聘流程中，我们会默认优先处理最早投递的职位。",
+            "简历投递成功后，不可以修改投递职位，请谨慎提交。"
+          ]
+        }
+      ],
+      "audience_evidence": [
+        {
+          "heading": "一、招聘对象",
+          "text": [
+            "海内外高校相关技术专业顶尖在读同学"
+          ]
+        }
+      ],
+      "application_window_evidence": [
+        {
+          "heading": "五、网申时间",
+          "text": [
+            "全年招聘"
+          ]
+        }
+      ],
+      "official_original_observed": true,
+      "ats_subject_id": null,
+      "binding_verified": false,
+      "current_application_availability_verified": false
+    },
+    {
+      "notice_id": 12,
+      "title": "小米集团博士后工作站",
+      "tag": "投递须知",
+      "official_url": "https://hr.xiaomi.com/website/campus-notice.html#id=12",
+      "legacy_api_link_hint": "https://hr.xiaomi.com/postdoc-faq",
+      "body_sha256": "2cef34834d8f057cfff3d6e8a027b7a425a9d80761628acf08a8b11a54162a5a",
+      "sections": [
+        {
+          "heading": "",
+          "text": [
+            "小米博士后科研工作站旨在引进、培养和使用高层次创新型优秀博士人才，推进产学研结合，着眼国内外科技前沿，增强小米持续不断的创新能力，促进小米健康、持续、快速、高位发展。",
+            "工作站与清华大学、北京大学、武汉大学等多所国内高校建立联合培养机制，招收人工智能、自动驾驶、机器人、先进材料等相关领域优秀博士毕业生加入小米，实行企业、高校双导师培养，不断增强小米前沿技术开发实力，同时利用小米产业化优势加速科技成果落地转化。"
+          ]
+        },
+        {
+          "heading": "研究领域",
+          "text": [
+            "人工智能、自动驾驶、机器人、先进材料等。"
+          ]
+        },
+        {
+          "heading": "招募对象/招收条件",
+          "text": [
+            "申请人需满足即将获得博士学位或博士毕业后三年内，且符合国家博士后招聘要求等条件。"
+          ]
+        },
+        {
+          "heading": "福利待遇",
+          "text": [
+            "符合相关要求的博士后可以落户北京。",
+            "提供极具竞争力的薪酬及长期激励。",
+            "灵活完善的覆盖家庭的保险及福利计划。",
+            "提供贴近产业实践的科研条件，提供国际化的科研交流环境，并有机会带领研发团队完成科研课题。"
+          ]
+        },
+        {
+          "heading": "申请流程",
+          "text": [
+            "候选人需通过顶尖/常规校招面试流程后申请进站。",
+            "小米科研工作站将对以下材料进行审核：",
+            "申请人个人简历（需包含可以进站的时间）；",
+            "博士研究生毕业证书和学位证书扫描件（如有）；海外学校毕业，需要在进站前提供留服认证；",
+            "博士学位论文（或摘要）和其他代表性的学术材料；",
+            "身份证或护照复印件，或具有同等效力的证件扫描件；",
+            "其它能够证明申请人科研能力的材料；",
+            "审核通过后，签署招收协议。",
+            "办理进站手续并报到，开展研究工作。"
+          ]
+        }
+      ],
+      "audience_evidence": [
+        {
+          "heading": "招募对象/招收条件",
+          "text": [
+            "申请人需满足即将获得博士学位或博士毕业后三年内，且符合国家博士后招聘要求等条件。"
+          ]
+        }
+      ],
+      "application_window_evidence": [],
+      "official_original_observed": true,
+      "ats_subject_id": null,
+      "binding_verified": false,
+      "current_application_availability_verified": false
+    },
+    {
+      "notice_id": 6,
+      "title": "FAQ 常见问题",
+      "tag": "FAQ",
+      "official_url": "https://hr.xiaomi.com/website/campus-notice.html#id=6",
+      "legacy_api_link_hint": "campus-faq.html",
+      "body_sha256": "a85952d5de9d1978af7f56e50d4b50dd3f377b2516f59aec401768fd083aa5ff",
+      "sections": [
+        {
+          "heading": "1、应聘流程是什么？",
+          "text": [
+            "网申→测评→简历筛选→面试→Offer"
+          ]
+        },
+        {
+          "heading": "2、如何查询招聘进展？",
+          "text": [
+            "在个人中心可查看应聘记录，同时我们也会以邮件、短信的形式发送后续流程安排通知，请确保投递简历时的手机号和邮箱填写正确"
+          ]
+        },
+        {
+          "heading": "3、网申截止时间？",
+          "text": [
+            "2027届校园招聘计划：2027年6月末",
+            "2027届新零售招聘计划：2027年6月末"
+          ]
+        },
+        {
+          "heading": "4、各校招项目分别可以投递几个职位？",
+          "text": [
+            "2027届校园招聘计划：",
+            "*每位同学最多可投递2个职位，但同时仅有1个投递申请可在应聘流程中，当前投递申请流程结束后，会自动开始处理后续投递申请。",
+            "*投递过实习生项目的同学仍可投递2027届校园招聘项目，但已收到27届校招offer的同学不建议再次投递。",
+            "*如不设置志愿顺序，我们会默认优先处理最早投递的职位。请同学们谨慎选择投递顺序。",
+            "2027届新零售招聘计划：",
+            "*每位同学仅可投递3个职位，投递成功后，不可修改意向职位及部门，请务必谨慎选择。",
+            "顶尖应届生招聘：",
+            "每位同学每个项目可投递2个职位，职位投递成功后，不可修改意向职位及部门，请优先选择自己最感兴趣或者最适合的岗位。"
+          ]
+        },
+        {
+          "heading": "5、能否同时投递校招其他项目的职位？",
+          "text": [
+            "各校招项目间可以同时投递，但每次只有一个申请在应聘流程中，请谨慎选择意向职位的投递顺序"
+          ]
+        },
+        {
+          "heading": "6、如何进行内推？",
+          "text": [
+            "可联系在职小米员工，获取校招内推码/内推链接，在投递页面输入内推码进行投递或者点击链接进行投递，即可完成内推。",
+            "*每个职位仅可投递一次，如该职位已自行通过官网投递成功，则此职位不可再被内推"
+          ]
+        },
+        {
+          "heading": "7、修改面试时间，应该联系谁？",
+          "text": [
+            "如因不可抗力因素导致无法按原定时间参加面试的同学，请优先联系面试邀约邮件中的联系人进行修改。",
+            "若无法与其取得联系，请发送邮件至hr-campus@xiaomi.com邮箱，邮件内容需写明“个人姓名+简历手机号+遇到的问题”，我们将会有HR及时跟进"
+          ]
+        },
+        {
+          "heading": "8、面试通过了，多久会收到HR的电话？",
+          "text": [
+            "一般会根据面试评价进行评估，offer沟通要以招聘部门实际情况安排为准，需要一定时间进行内部沟通，确定offer后我们会第一时间与您联系，还请耐心等待"
+          ]
+        }
+      ],
+      "audience_evidence": [],
+      "application_window_evidence": [],
+      "official_original_observed": true,
+      "ats_subject_id": null,
+      "binding_verified": false,
+      "current_application_availability_verified": false
+    }
+  ],
+  "program_navigation": [
+    {
+      "official_program_id": 2,
+      "title": "2027届全球校园招聘计划",
+      "target_audience_text": "2027届海内外应届毕业生\n毕业时间：2026年9月1日-2027年8月31日",
+      "buttons": [
+        {
+          "label": "立即加入",
+          "url": "https://xiaomi.jobs.f.mioffice.cn/campus/",
+          "omitted_query_keys": [
+            "spread"
+          ]
+        },
+        {
+          "label": "查看海外岗位",
+          "url": "https://career.mi.com/career",
+          "omitted_query_keys": []
+        }
+      ],
+      "ats_subject_id": null,
+      "notice_binding_verified": false
+    },
+    {
+      "official_program_id": 5,
+      "title": "2027届新零售招聘计划",
+      "target_audience_text": "2027届海内外应届毕业生\n毕业时间：2026年9月1日-2027年8月31日",
+      "buttons": [
+        {
+          "label": "立即加入",
+          "url": "https://xiaomi.jobs.f.mioffice.cn/newretailing/",
+          "omitted_query_keys": [
+            "spread"
+          ]
+        }
+      ],
+      "ats_subject_id": null,
+      "notice_binding_verified": false
+    },
+    {
+      "official_program_id": 3,
+      "title": "实习生招聘计划",
+      "target_audience_text": "应届实习：面向2027届毕业生（毕业时间 2026.09-2027.08）\n非应届实习：面向全体在校大学生（不限毕业时间）",
+      "buttons": [
+        {
+          "label": "立即加入",
+          "url": "https://xiaomi.jobs.f.mioffice.cn/internship/",
+          "omitted_query_keys": [
+            "spread"
+          ]
+        },
+        {
+          "label": "查看海外岗位",
+          "url": "https://career.mi.com/career",
+          "omitted_query_keys": []
+        }
+      ],
+      "ats_subject_id": null,
+      "notice_binding_verified": false
+    }
+  ],
+  "notice_count": 7,
+  "official_navigation_program_count": 3,
+  "production_admitted": false,
+  "gaps": [
+    "notice_to_ats_project_binding",
+    "complete_pagination",
+    "exhaustive_project_coverage_including_overseas",
+    "independent_application_availability"
+  ],
+  "source": {
+    "file": "work/xiaomi-official-announcement-evidence-20260907.json",
+    "sha256": "36e8af325e708b4c075a253c1cf79254efcaa99acc08b2a153aff5d32c57489b",
+    "hash_normalization": "utf8_lf_line_endings"
+  }
+}

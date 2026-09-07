@@ -1,0 +1,222 @@
+{
+  "schema_version": 1,
+  "authorization_context": "User requested project continuation; existing five-company public official-source validation scope. Independent announcement read; no retry of stopped ATS experiment.",
+  "max_requests": 6,
+  "max_per_endpoint": 1,
+  "timebox_seconds": 180,
+  "automatic_retry": false,
+  "browser": false,
+  "prior_ats_ledger": {
+    "total_used": 257,
+    "total_limit": 400,
+    "job_used": 10,
+    "job_limit": 12,
+    "further_calls_authorized": false
+  },
+  "started_at": "2026-09-07T07:59:08.402194+00:00",
+  "elapsed_seconds": 62.119,
+  "ended_at": "2026-09-07T08:00:10.521671+00:00",
+  "state": "stopped_after_announcement_read",
+  "further_calls_authorized": false,
+  "evidence_kind": "official_http_announcement_projection",
+  "response_capture": "Selected public fields and exact rendering excerpts; full response digests retained, full response bodies not retained.",
+  "requests": [
+    {
+      "url": "https://hr.xiaomi.com/website/campus.html",
+      "method": "GET",
+      "http_status": 200,
+      "body_sha256": "f45015ce0a672e1a01e574c14b875f6a9649decfd76de5a97ff97d8eb5d78935",
+      "response_bytes": 28700
+    },
+    {
+      "url": "https://hr.xiaomi.com/website/cli/api/hrportal/domestic/campusNews/list",
+      "method": "GET",
+      "http_status": 200,
+      "body_sha256": "d698ecfa2cfd9b0395390d10613ee3c8f2a2ebbfd7763f992928438b6d10dda7",
+      "response_bytes": 17496
+    },
+    {
+      "url": "https://hr.xiaomi.com/website/assets/js/api.js",
+      "method": "GET",
+      "http_status": 200,
+      "body_sha256": "869710353d9eaae770ef1c87346958df10f518648afb0460a761ba7b9fdeb780",
+      "response_bytes": 13400
+    },
+    {
+      "url": "https://hr.xiaomi.com/website/cli/api/hrportal/domestic/programs/list",
+      "method": "GET",
+      "http_status": 200,
+      "body_sha256": "f94d0a4048d6c207182268bfbf82c729d2ffb053eb5535c14a79b0658e8b066e",
+      "response_bytes": 2265
+    },
+    {
+      "url": "https://hr.xiaomi.com/website/campus-notice.html",
+      "method": "GET",
+      "http_status": 200,
+      "body_sha256": "c084e2651ed4b26a02c543b0380471905ba4128fcdff7a528e295dfbc487f378",
+      "response_bytes": 7785
+    }
+  ],
+  "request_count": 5,
+  "ats_requests": 0,
+  "database_writes": 0,
+  "production_admitted": false,
+  "historical_announcement_endpoint_counts_complete": false,
+  "historical_note": "These official page/list endpoints were read in prior discovery; exact prior counts were not retained. This independent bounded read adds one per endpoint and does not reset or consume the frozen ATS allocation.",
+  "rendering_evidence": {
+    "homepage_script_reference": "document.write('<script src=\"'+_b+'assets/js/api.js\"><\\/script>')",
+    "api_base_and_paths": "/**\n * 小米招聘官网 - 后台 API 数据加载器\n * 从 portal 后台管理系统实时获取配置数据，替换页面硬编码内容\n * 后台地址可通过 window.ADMIN_API 配置，默认指向 portal 后端\n */\n(function () {\n  const API_BASE = window.ADMIN_API || (location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? '' : '/website');\n\n  function resolveUrl(url) {\n    if (!url) return '';\n    if (url.startsWith('http') || url.startsWith('assets/')) return url;\n    return API_BASE + url;\n  }\n\n  // 路径映射：官网模块名 → portal 后端接口（/cli/ 前缀免鉴权）\n  const PATH_MAP = {\n    'news': '/cli/api/hrportal/domestic/news/list',\n    'voices': '/cli/api/hrportal/domestic/voices/list',\n    'campus-news': '/cli/api/hrportal/domestic/campusNews/list',\n    'research': '/cli/api/hrportal/domestic/research/list',\n    'programs': '/cli/api/hrportal/domestic/programs/list',\n    'schedule': '/cli/api/hrportal/domestic/schedule/list',\n    'talent-cards': '/cli/api/hrportal/domestic/talentCards/list',\n    'research-domain': '/cli/api/hrportal/domestic/researchDomain/list',\n  };",
+    "fetch_data": "async function fetchData(path) {\n    try {\n      const apiPath = PATH_MAP[path] || ('/api/hrportal/domestic/' + path + '/list');\n      const res = await fetch(API_BASE + apiPath);\n      console.log({res});\n      \n      if (!res.ok) throw new Error('API error');\n      const json = await res.json();\n      // portal 后端返回 { success, data, paging }，官网只需要 data 数组\n      return json.data || json;\n    } catch (e) {\n      // API 不可用时 fallback 到静态 JSON\n      try {\n        const staticPath = 'assets/data/' + path.split('/')[0] + '.json';\n        const res = await fetch(staticPath);\n        if (!res.ok) return null;\n        return await res.json();\n      } catch (e) { return null; }\n    }\n  }",
+    "campus_news": "async function loadCampusNews() {\n    const container = document.getElementById('campusNewsTrack');\n    if (!container) return;\n    const data = await fetchData('campus-news');\n    if (!data || !data.length) return;\n    container.innerHTML = data.map(item => {\n      const href = `campus-notice.html#id=${item.id}`;\n      return `<a class=\"cn-card\" href=\"${href}\" data-tag=\"${item.tag || ''}\">\n        <div class=\"cn-card-meta\"><span class=\"tag\" ${item.tag ? '' : 'style=\"visibility:hidden\"'}>${item.tag || '占位'}</span></div>\n        <h4>${item.title}</h4>\n        <p>${item.description || ''}</p>\n        <span class=\"cn-card-link\">查看详情</span>\n      </a>`;\n    }).join('');\n    window.dispatchEvent(new Event('resize'));\n  }",
+    "programs": "async function loadPrograms() {\n    const container = document.querySelector('.program-grid');\n    if (!container) return;\n    const data = await fetchData('programs');\n    if (!data || !data.length) return;\n    container.innerHTML = data.map(item => {\n      let buttons = item.buttons;\n      if (typeof buttons === 'string') { try { buttons = JSON.parse(buttons); } catch(e) { buttons = []; } }\n      const targetAudience = item.targetAudience || item.target_audience || '';\n      const actionsHtml = (buttons && buttons.length) ? buttons.map(btn =>\n        `<a class=\"hero-cta-glass\" href=\"${btn.url || '#'}\" ${btn.url && btn.url.startsWith('http') ? 'target=\"_blank\" rel=\"noopener\"' : ''} onclick=\"trackClickEvent('校园招聘-${item.title}-${btn.label}')\"><span class=\"hero-cta-label\">${btn.label}</span></a>`\n      ).join('') : '';\n      return `<div class=\"program-card\">\n        <h3>${item.title || ''}</h3>\n        <p class=\"program-intro\">${item.description || ''}</p>\n        <div class=\"program-bottom\">\n          ${targetAudience ? `<div class=\"program-meta\"><div class=\"program-meta-item\"><div class=\"program-meta-label\">投递对象</div><div class=\"program-meta-value\" style=\"font-size:14px;\">${targetAudience.replace(/\\n/g, '<br>')}</div></div></div>` : ''}\n          ${actionsHtml ? `<div class=\"program-actions\">${actionsHtml}</div>` : ''}\n        </div>\n      </div>`;\n    }).join('');\n  }",
+    "notice_detail": "(function () {\n  var API_BASE = window.ADMIN_API || (location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? '' : '/website');\n  // 支持 ?id=x 查询参数和 #id=x hash 两种方式\n  var params = {};\n  var searchStr = location.search.slice(1) || '';\n  var hashStr = (location.href.split('#')[1]) || '';\n  (searchStr || hashStr).split('&').forEach(function(part) {\n    var kv = part.split('=');\n    if (kv.length === 2) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);\n  });\n  var id = params.id;\n\n  function renderDetail(data) {\n    if (!data) return;\n    document.getElementById('noticeTitle').innerHTML = data.title;\n    document.getElementById('noticeBody').innerHTML = data.body || '';\n    document.title = data.title + ' | 小米招聘';\n  }\n\n  if (id) {\n    var apiUrl = API_BASE + '/cli/api/hrportal/domestic/campusNews/list';\n    console.log('[notice] fetching:', apiUrl, 'id:', id);\n    fetch(apiUrl, { cache: 'no-store' })\n      .then(function(res) { console.log('[notice] response status:', res.status); if (!res.ok) throw new Error('status ' + res.status); return res.json(); })\n      .then(function(json) {\n        var list = json.data || json;\n        console.log('[notice] list length:', list.length);\n        var item = list.find(function(d) { return String(d.id) === String(id); });\n        console.log('[notice] found item:', !!item);\n        renderDetail(item);\n      })\n      .catch(function(err) {\n        console.error('[notice] fetch error:', err);\n        fetch('assets/data/campus-news.json')\n          .then(function(res) { return res.ok ? res.json() : null; })\n          .then(function(list) {\n            if (!list) return;\n            var item = list.find(function(d) { return String(d.id) === String(id); });\n            renderDetail(item);\n          })\n          .catch(function() {});\n      });\n  } else {\n    console.log('[notice] no id found. hash:', hashStr, 'params:', JSON.stringify(params));\n  }\n\n  // 返回逻辑：根据来源决定返回位置\n  var backEl = document.getElementById('noticeBack');\n  if (params.from === 'programs') {\n    backEl.href = 'campus.html#programs';\n    backEl.textContent = '返回';\n  } else if (params.from === 'talent') {\n    backEl.href = 'top-talent.html#apply';\n    backEl.textContent = '返回顶尖人才';\n  }\n})();"
+  },
+  "announcements": {
+    "code": 200,
+    "success": true,
+    "paging": "",
+    "rows": [
+      {
+        "id": 13,
+        "title": "小米集团2027届全球校园招聘计划",
+        "tag": "投递须知",
+        "body": "<h2 style=\"text-align:left;\" size=\"0\" _root=\"undefined\" __ownerid=\"undefined\" __hash=\"undefined\" __altered=\"false\"><strong><span style=\"font-size:24px\"><span style=\"line-height:1\">一、招聘对象</span></span></strong></h2><p><span style=\"line-height:1\">2027 届海内外应届毕业生  </span></p><p><span style=\"line-height:1\">毕业时间：2026 年 9 月 1 日 - 2027 年 8 月 31 日</span></p><h2><span style=\"font-size:24px\"><strong><span style=\"line-height:1\">二、岗位类别  </span></strong></span></h2><p><span style=\"line-height:1\">算法类、软件研发类、硬件研发类、测试类、运维类、产品类、设计类、运营类、供应链类、市场类、职能类、外语外派类、服务类、销售类、交付类、生产制造类</span></p><h2><span style=\"font-size:24px\"><strong><span style=\"line-height:1\">三、工作地点  </span></strong></span></h2><p><span style=\"line-height:1\">北京、南京、武汉、深圳、上海、西安等国内城市，以及海外城市</span></p><h2><span style=\"font-size:24px\"><strong><span style=\"line-height:1\">四、应聘流程  </span></strong></span></h2><p><span style=\"line-height:1\">网申→测评→简历筛选→面试→offer</span></p><h2><span style=\"font-size:24px\"><strong><span style=\"line-height:1\">五、网申时间  </span></strong></span></h2><p><span style=\"line-height:1\">2026 年 8 月 10 日 - 2027 年 6 月底</span></p><h2><strong><span style=\"font-size:24px\"><span style=\"line-height:1\">六、面试轮次  </span></span></strong></h2><p><span style=\"line-height:1\">至少两轮</span></p><h2><strong><span style=\"font-size:24px\"><span style=\"line-height:1\">七、注意事项  </span></span></strong></h2><p><span style=\"line-height:1\">1、每位同学最多可投递两个职位，但同时仅有一个投递申请可在应聘流程中，我们会默认优先处理最早投递的职位。投递成功后，不可修改投递职位。  </span></p><p><span style=\"line-height:1\">2、参加实习生项目成功留用的同学不建议再次投递。</span></p>",
+        "linkUrl": "",
+        "updateTime": "2026-08-10 09:58:05",
+        "status": 1,
+        "isDel": false
+      },
+      {
+        "id": 2,
+        "title": "小米集团2027届新零售招聘计划",
+        "tag": "投递须知",
+        "body": "<h3><strong>一、岗位介绍</strong></h3><p><span style=\"color:#808080\">新零售校招生是我们为应届毕业生打造的专属岗位。从店铺现场开始学习经营，通过优秀的导师帮带、完善的培训体系和多样化的晋升路径，快速成长为零售行业精英。</span></p><p><span style=\"color:#808080\">从汽车到多品类3C产品，学习并亲身体验、深入感受每一款产品的特性与卖点。玩转新型零售，探索行业革新。</span></p><p><span style=\"color:#808080\">初期学习掌握店铺各项基本业务（包括顾客接待、产品讲解、商品陈列、盘点整理、售后咨询、达成销售目标等），中后期学习经营管理（包括零售业经营管理、领导力提升与团队管理、战略目标管理、塑造未来国际化经营人才等）。</span></p><h3>二、培养计划</h3><p><span style=\"color:#808080\">成长快速：同时起跑，让优秀的人脱颖而出</span></p><p><span style=\"color:#808080\">培养赋能：根据不同阶段给予进阶级赋能课程和实践，创造多平台轮岗机会，拥有专属导师</span></p><p><span style=\"color:#808080\">路径清晰：店长/区域主管——城市/区域经理——分公司核心业务骨干——分公司业务线负责人</span></p><p><span style=\"color:#808080\">跨区域视野：跨区跨体系人才输出，在纵向（分公司）和横向（总部）均有明确且丰富的发展空间</span></p><h3>三、招聘对象</h3><p><span style=\"color:#666666\">2027 届海内外应届毕业生</span> </p><p><span style=\"color:#666666\">毕业时间：2026 年 9 月 1 日 - 2027 年 8 月 31 日</span></p><p><span style=\"color:#808080\">专业不限</span></p><h3>四、工作地点</h3><p><span style=\"color:#808080\">全国</span></p><h3>五、招聘流程</h3><p><span style=\"color:#808080\">网申→测评→简历筛选→面试→offer</span></p><h3>六、网申时间</h3><p><span style=\"color:#808080\">即日起 - 2027年6月末</span></p><h3>七、面试时间</h3><p><span style=\"color:#808080\">2026年9月起</span></p><h3>八、面试轮次</h3><p><span style=\"color:#808080\">2-3轮</span></p><p><br/></p>",
+        "linkUrl": "campus-notice.html#id=retail",
+        "updateTime": "2026-08-10 09:58:07",
+        "status": 1,
+        "isDel": false
+      },
+      {
+        "id": 3,
+        "title": "小米集团实习生招聘",
+        "tag": "投递须知",
+        "body": "<h3>一、招聘对象</h3><p><span style=\"color:#808080\">海内外高校全体在校大学生</span></p><h3>二、岗位类别</h3><p><span style=\"color:#808080\">软件研发类、算法类、测试类、运维类、硬件研发类、产品类、设计类、运营类、供应链类、市场类、销售类、职能类、服务类、外语外派类、交付类、生产制造类</span></p><h3>三、工作地点</h3><p><span style=\"color:#808080\">北京、南京、武汉、深圳、上海、西安等国内城市，以及海外城市</span></p><h3>四、应聘流程</h3><p><span style=\"color:#808080\">网申→简历初筛→简历复筛→面试→offer</span></p><h3>五、网申时间</h3><p><span style=\"color:#808080\">全年招聘</span></p><h3>六、面试轮次</h3><p><span style=\"color:#808080\">至少2轮</span></p><h3>七、注意事项</h3><p><span style=\"color:#808080\">1. 每位同学最多可投递7个职位，但同时仅有一个投递申请可在应聘流程中，我们会默认优先处理最早投递的职位</span></p><p><span style=\"color:#808080\">2. 简历投递后不可修改，请谨慎提交</span></p><p><br/></p>",
+        "linkUrl": "campus-notice.html#id=intern",
+        "updateTime": "2026-06-10 17:37:02",
+        "status": 1,
+        "isDel": false
+      },
+      {
+        "id": 4,
+        "title": "小米集团顶尖应届生计划",
+        "tag": "投递须知",
+        "body": "<h2><span style=\"color:#000000\">一、招聘对象</span></h2><p><span style=\"color:#000000\">2023年1月-2026年12月毕业的硕博同学及26年出站的博士后</span></p><h2><span style=\"color:#000000\">二、项目开放时间</span></h2><p><span style=\"color:#000000\">顶尖应届生计划为全年招聘</span></p><h2><span style=\"color:#000000\">三、我们期待这样的你</span></h2><ol><li><strong>心怀热爱</strong><span style=\"color:#000000\">，敢于突破传统思维定式，在未知领域主动探索，以热情驱动创新实践。</span></li><li><strong>实力硬核</strong><span style=\"color:#000000\">，在学术成果、专业竞赛、项目经历等方面有突出表现，展现扎实功底。</span></li><li><strong>直面挑战</strong><span style=\"color:#000000\">，在复杂问题中保持积极的心态，快速吸收新知识，持续实现自我突破。</span></li><li><strong>同频共创</strong><span style=\"color:#000000\">，愿以团队之力，以创新愿景为锚，与小米共赴硬核科技引领者的征程。</span></li></ol><h2><span style=\"color:#000000\">四、应聘流程</span></h2><p><span style=\"color:#000000\">简历筛选-技术面试-HR面试-offer发放-入职</span></p><h2><span style=\"color:#000000\">五、我们为你提供</span></h2><h3><span style=\"color:#000000\">战略级课题攻关</span></h3><p><span style=\"color:#000000\">锚定集团核心课题，主导关键技术领域的颠覆性研究，以首席科学家角色推动行业格局变革。</span></p><h3><span style=\"color:#000000\">贯通式研产融合</span></h3><p><span style=\"color:#000000\">自由的科研环境、活泼的团队氛围搭配丰富的落地场景，让技术突破成果直接对接市场需求。</span></p><h3><span style=\"color:#000000\">全球化协作平台</span></h3><p><span style=\"color:#000000\">直通全球产研合作网络，参与多领域国际顶会。依托全球市场，与跨洲团队协同，站在全球创新最前沿。</span></p><h3><span style=\"color:#000000\">高价值激励体系</span></h3><p><span style=\"color:#000000\">行业TOP薪资，不设天花板。搭配 &quot;学术贡献 + 商业价值&quot; 双轨认可机制，共享价值增长红利。</span></p><h2><span style=\"color:#000000\">FAQ常见问题</span></h2><p><span style=\"color:#000000\">Q：小米集团顶尖应届生计划的岗位会有笔试吗？</span></p><p><span style=\"color:#000000\">A：不设单独笔试环节。</span></p><p><span style=\"color:#000000\">Q：投递了小米集团顶尖应届生计划但没有成功，还可以继续投递秋招正式批的岗位吗？</span></p><p><span style=\"color:#000000\">A：可以再次投递，小米集团顶尖应届生计划的招聘结果不影响正式批的投递。</span></p><p><span style=\"color:#000000\">Q：每个人可以同时投递几个顶尖应届生计划职位呢？</span></p><p><span style=\"color:#000000\">A：每位同学每个项目可投递2个职位，职位投递成功后，不可修改意向职位及部门，请优先选择自己最感兴趣或者最适合的岗位。</span></p><p><span style=\"color:#000000\">Q：如果想要加入小米博士后工作站应该如何申请？</span></p><p><span style=\"color:#000000\">A：可以投递感兴趣技术课题的顶尖应届生岗位，并在投递和面试过程中与部门说明博士后意愿。</span></p><p><br/></p><p><br/></p>",
+        "linkUrl": "campus-notice.html#id=top-fresh",
+        "updateTime": "2026-08-05 22:05:40",
+        "status": 1,
+        "isDel": false
+      },
+      {
+        "id": 5,
+        "title": "小米集团顶尖实习生",
+        "tag": "投递须知",
+        "body": "<h3>一、招聘对象</h3><p>海内外高校相关技术专业顶尖在读同学</p><h3>二、岗位类别</h3><p>算法类、软件研发类、硬件研发类</p><h3>三、工作地点</h3><p>以岗位实际标注为准</p><h3>四、应聘流程</h3><p><span style=\"color:#808080\">网申→简历筛选→面试→offer</span></p><h3>五、网申时间</h3><p><span style=\"color:#808080\">全年招聘</span></p><h3>六、面试轮次</h3><p><span style=\"color:#808080\">至少2轮</span></p><h3>七、注意事项</h3><p><span style=\"color:#808080\">每位同学最多可投递两个职位，但同时仅有一个投递申请可在应聘流程中，我们会默认优先处理最早投递的职位。</span></p><p><span style=\"color:#808080\">简历投递成功后，不可以修改投递职位，请谨慎提交。</span></p>",
+        "linkUrl": "campus-notice.html#id=top-intern",
+        "updateTime": "2026-08-05 22:05:45",
+        "status": 1,
+        "isDel": false
+      },
+      {
+        "id": 12,
+        "title": "小米集团博士后工作站",
+        "tag": "投递须知",
+        "body": "<p class=\"postdoc-faq-h5__text\" _nk=\"XADF61\">小米博士后科研工作站旨在引进、培养和使用高层次创新型优秀博士人才，推进产学研结合，着眼国内外科技前沿，增强小米持续不断的创新能力，促进小米健康、持续、快速、高位发展。</p><p class=\"postdoc-faq-h5__text\" _nk=\"XADF62\">工作站与清华大学、北京大学、武汉大学等多所国内高校建立联合培养机制，招收人工智能、自动驾驶、机器人、先进材料等相关领域优秀博士毕业生加入小米，实行企业、高校双导师培养，不断增强小米前沿技术开发实力，同时利用小米产业化优势加速科技成果落地转化。</p><h2 class=\"postdoc-faq-h5__section-title\" _nk=\"XADF71\">研究领域</h2><p class=\"postdoc-faq-h5__text\" _nk=\"XADF63\">人工智能、自动驾驶、机器人、先进材料等。</p><h2 class=\"postdoc-faq-h5__section-title\" _nk=\"XADF72\">招募对象/招收条件</h2><p class=\"postdoc-faq-h5__text\" _nk=\"XADF64\">申请人需满足即将获得博士学位或博士毕业后三年内，且符合国家博士后招聘要求等条件。</p><h2 class=\"postdoc-faq-h5__section-title\" _nk=\"XADF73\">福利待遇</h2><ul><li>符合相关要求的博士后可以落户北京。</li><li>提供极具竞争力的薪酬及长期激励。</li><li>灵活完善的覆盖家庭的保险及福利计划。</li><li>提供贴近产业实践的科研条件，提供国际化的科研交流环境，并有机会带领研发团队完成科研课题。</li></ul><h2 class=\"postdoc-faq-h5__section-title\" _nk=\"XADF74\">申请流程</h2><ul><li>候选人需通过顶尖/常规校招面试流程后申请进站。</li><li>小米科研工作站将对以下材料进行审核：</li><ul><li>申请人个人简历（需包含可以进站的时间）；</li><li>博士研究生毕业证书和学位证书扫描件（如有）；海外学校毕业，需要在进站前提供留服认证；</li><li>博士学位论文（或摘要）和其他代表性的学术材料；</li><li>身份证或护照复印件，或具有同等效力的证件扫描件；</li><li>其它能够证明申请人科研能力的材料；</li></ul></ul><p></p><ul><li>审核通过后，签署招收协议。</li><li>办理进站手续并报到，开展研究工作。</li></ul>",
+        "linkUrl": "https://hr.xiaomi.com/postdoc-faq",
+        "updateTime": "2026-08-05 22:06:03",
+        "status": 1,
+        "isDel": false
+      },
+      {
+        "id": 6,
+        "title": "FAQ 常见问题",
+        "tag": "FAQ",
+        "body": "<h2><strong>1、应聘流程是什么？</strong></h2><p><span style=\"color:#808080\">网申→测评→简历筛选→面试→Offer</span></p><h2><strong>2、如何查询招聘进展？</strong></h2><p><span style=\"color:#808080\">在个人中心可查看应聘记录，同时我们也会以邮件、短信的形式发送后续流程安排通知，请确保投递简历时的手机号和邮箱填写正确</span></p><h2><strong>3、网申截止时间？</strong></h2><p><span style=\"color:#808080\">2027届校园招聘计划：2027年6月末</span></p><p><span style=\"color:#808080\">2027届新零售招聘计划：2027年6月末</span></p><h2><strong>4、各校招项目分别可以投递几个职位？</strong></h2><ul><li><strong>2027届校园招聘计划：</strong></li></ul><p><span style=\"color:#808080\">*每位同学最多可投递2个职位，但同时仅有1个投递申请可在应聘流程中，当前投递申请流程结束后，会自动开始处理后续投递申请。</span></p><p><span style=\"color:#808080\">*投递过实习生项目的同学仍可投递2027届校园招聘项目，但已收到27届校招offer的同学不建议再次投递。</span></p><p><span style=\"color:#808080\">*如不设置志愿顺序，我们会默认优先处理最早投递的职位。请同学们谨慎选择投递顺序。</span></p><ul><li><strong>2027届新零售招聘计划：</strong></li></ul><p><span style=\"color:#808080\">*每位同学仅可投递3个职位，投递成功后，不可修改意向职位及部门，请务必谨慎选择。</span></p><ul><li><strong>顶尖应届生招聘：</strong></li></ul><p><span style=\"color:#808080\">每位同学每个项目可投递2个职位，职位投递成功后，不可修改意向职位及部门，请优先选择自己最感兴趣或者最适合的岗位。</span></p><h2><strong>5、能否同时投递校招其他项目的职位？</strong></h2><p><span style=\"color:#808080\">各校招项目间可以同时投递，但每次只有一个申请在应聘流程中，请谨慎选择意向职位的投递顺序</span></p><h2><strong>6、如何进行内推？</strong></h2><p><span style=\"color:#808080\">可联系在职小米员工，获取校招内推码/内推链接，在投递页面输入内推码进行投递或者点击链接进行投递，即可完成内推。</span></p><p><span style=\"color:#808080\">*每个职位仅可投递一次，如该职位已自行通过官网投递成功，则此职位不可再被内推</span></p><h2><strong>7、修改面试时间，应该联系谁？</strong></h2><p><span style=\"color:#808080\">如因不可抗力因素导致无法按原定时间参加面试的同学，请优先联系面试邀约邮件中的联系人进行修改。</span></p><p><span style=\"color:#808080\">若无法与其取得联系，请发送邮件至hr-campus@xiaomi.com邮箱，邮件内容需写明“个人姓名+简历手机号+遇到的问题”，我们将会有HR及时跟进</span></p><h2><strong>8、面试通过了，多久会收到HR的电话？</strong></h2><p><span style=\"color:#808080\">一般会根据面试评价进行评估，offer沟通要以招聘部门实际情况安排为准，需要一定时间进行内部沟通，确定offer后我们会第一时间与您联系，还请耐心等待</span></p><p><br/></p>",
+        "linkUrl": "campus-faq.html",
+        "updateTime": "2026-08-10 09:58:21",
+        "status": 1,
+        "isDel": false
+      }
+    ]
+  },
+  "programs": {
+    "code": 200,
+    "success": true,
+    "paging": "",
+    "rows": [
+      {
+        "id": 2,
+        "title": "2027届全球校园招聘计划",
+        "description": "面向应届毕业生开放机会，覆盖AI大模型、软硬件、汽车、供应链、产品、设计、新零售等全方向岗位，来小米和同频伙伴一起成长，共同定义下一代产品。",
+        "targetAudience": "2027届海内外应届毕业生\n毕业时间：2026年9月1日-2027年8月31日",
+        "updateTime": "2026-08-05 22:19:28",
+        "status": 1,
+        "isDel": false,
+        "buttons": [
+          {
+            "label": "立即加入",
+            "url": "https://xiaomi.jobs.f.mioffice.cn/campus/",
+            "omitted_query_keys": [
+              "spread"
+            ]
+          },
+          {
+            "label": "查看海外岗位",
+            "url": "https://career.mi.com/career",
+            "omitted_query_keys": []
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "2027届新零售招聘计划",
+        "description": "面向全体应届毕业生开放新零售全链路岗位，涵盖线下门店、全域零售、用户经营、零售创新等多元发展方向，加入小米与优秀同行者共同成长，携手构建全球领先的智慧零售体系。",
+        "targetAudience": "2027届海内外应届毕业生\n毕业时间：2026年9月1日-2027年8月31日",
+        "updateTime": "2026-08-05 21:53:19",
+        "status": 1,
+        "isDel": false,
+        "buttons": [
+          {
+            "label": "立即加入",
+            "url": "https://xiaomi.jobs.f.mioffice.cn/newretailing/",
+            "omitted_query_keys": [
+              "spread"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "实习生招聘计划",
+        "description": "面向在校生开放机会，在真实业务场景里动手，和导师一起完成从0到1的项目。实习期间表现优秀，即有机会实习转正，拿到下一届的校招offer加入小米。",
+        "targetAudience": "应届实习：面向2027届毕业生（毕业时间 2026.09-2027.08）\n非应届实习：面向全体在校大学生（不限毕业时间）",
+        "updateTime": "2026-08-05 22:07:39",
+        "status": 1,
+        "isDel": false,
+        "buttons": [
+          {
+            "label": "立即加入",
+            "url": "https://xiaomi.jobs.f.mioffice.cn/internship/",
+            "omitted_query_keys": [
+              "spread"
+            ]
+          },
+          {
+            "label": "查看海外岗位",
+            "url": "https://career.mi.com/career",
+            "omitted_query_keys": []
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -410,3 +410,17 @@ and cumulative request accounting (257/400 total, 10/12 known job requests).
 The raw MCP result is retained in `xiaomi-internship-mcp-response-20260907.json`.
 Unused budget does not permit retries under this one-call authorization. The
 missing HTTP status is a diagnostic gap, not evidence of blocking or closure.
+
+### Xiaomi official announcement evidence (2026-09-07)
+
+`prepare_xiaomi_announcements.py` reads the separately frozen official HTTP
+evidence and creates notice candidates. It preserves numeric announcement IDs,
+keeps cohorts within their own notices, and does not equate official navigation
+IDs with ATS project IDs. The official detail renderer uses numeric IDs instead
+of the stale English anchors still present in some API link fields.
+
+The command is offline only; default output is a summary and `--write` creates
+`work/xiaomi-official-announcement-candidates-20260907.json`. No live rerun
+command is provided. See `docs/handoffs/xiaomi-official-announcements-20260907.md`
+for the five-request receipt, overseas-link discovery, current MCP connection
+check, and remaining announcement-to-project and admission requirements.
