@@ -352,3 +352,27 @@ The OPPO candidate is not replayed because the captured request contains an
 authorization header. Amazon's inferred facet count is not a valid job total,
 and ICBC announcement rows are not position rows. These remain recorded
 failures rather than integration claims.
+
+### Xiaomi original-browser follow-up (2026-09-07)
+
+`validate_xiaomi_browser_followup.py` is a one-shot development experiment
+authorized after the MCP sample stopped. It reuses the original Playwright
+reader and job parser, inherits the MCP ledger, and allows only the unspent
+150 total requests / 7 job requests, three navigations and one natural next
+click within 180 seconds. Every forwarded resource request counts. Images,
+fonts and media blocked before sending are recorded separately.
+
+The default command only displays its frozen plan:
+
+```powershell
+py -3.13 tools/validate_xiaomi_browser_followup.py
+py -3.13 -m unittest tools.tests.test_validate_xiaomi_browser_followup -v
+```
+
+The authorized live invocation has already run and its report must not be
+deleted or rerun. Read `work/company-expansion-xiaomi-browser-followup-20260907.json`
+and the separate `company-expansion-xiaomi-browser-followup-analysis-20260907.json`
+in the same directory. `summarize_evidence(report)` deterministically separates
+the observed campus next-page pair from whole-experiment acceptance. The
+internship stage stopped at the total budget; no production adapter or database
+changes are part of this tool.

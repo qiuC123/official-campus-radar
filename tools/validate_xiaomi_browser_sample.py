@@ -87,7 +87,8 @@ def job_sample(payload: dict) -> dict:
         raise ValueError("job_list_shape_changed")
     allowed = ("id", "title", "job_id", "job_post_id", "job_category", "job_category_id",
                "recruit_type", "job_type", "city_info", "work_location_list", "project_id",
-               "project_name", "recruitment_project", "recruitment_type")
+               "project_name", "recruitment_project", "recruitment_type",
+               "job_subject", "job_process_id", "process_type")
     retained = [{key: business_value(row[key]) for key in allowed if key in row} for row in rows]
     ids = [str(row.get("id") or row.get("job_post_id") or "") for row in rows]
     return {"declared_total": data.get("count"), "row_count": len(rows), "ids": ids,

@@ -1,0 +1,87 @@
+{
+  "source_report": "company-expansion-xiaomi-browser-followup-20260907.json",
+  "analysis": {
+    "stages": {
+      "campus:first": {
+        "http_status": 200,
+        "rows": 10,
+        "declared_total": 768,
+        "ids": [
+          "7682606003493456169",
+          "7682605885697132842",
+          "7682605872665774399",
+          "7682605867656890675",
+          "7681715814722816307",
+          "7681256292644030726",
+          "7681256024946542857",
+          "7681255943951190335",
+          "7680394017603356978",
+          "7680376718741915958"
+        ],
+        "all_titles_visible": true,
+        "subject_id_counts": {
+          "7618850506199533866": 4,
+          "7659311908839262514": 6
+        }
+      },
+      "campus:next": {
+        "http_status": 200,
+        "rows": 10,
+        "declared_total": 768,
+        "ids": [
+          "7680376662261729577",
+          "7680375795693488393",
+          "7680375700994869558",
+          "7680161598241655086",
+          "7679026007857236275",
+          "7679025822254401855",
+          "7678147882801678602",
+          "7677560971674274111",
+          "7677560924911438099",
+          "7677560509239036166"
+        ],
+        "all_titles_visible": true,
+        "subject_id_counts": {
+          "7659311908839262514": 10
+        }
+      },
+      "newretailing:first": {
+        "http_status": 200,
+        "rows": 10,
+        "declared_total": 121,
+        "ids": [
+          "7675292173633341723",
+          "7675292155330169134",
+          "7675291789649578266",
+          "7675291324488599814",
+          "7671525064085752127",
+          "7671525032430422326",
+          "7671524858161383707",
+          "7671524835931932991",
+          "7671524830973774131",
+          "7671524803548203314"
+        ],
+        "all_titles_visible": true,
+        "subject_id_counts": {
+          "7659311908839360818": 10
+        }
+      },
+      "internship:first": {
+        "http_status": 200,
+        "rows": 0,
+        "declared_total": null,
+        "ids": [],
+        "all_titles_visible": false,
+        "subject_id_counts": {}
+      }
+    },
+    "campus_natural_next_observed": true,
+    "captured_unique_jobs": 30,
+    "whole_experiment_complete": false,
+    "stop_reason": "endpoint_budget_exhausted",
+    "full_collection_verified": false,
+    "project_coverage_verified": false,
+    "application_availability_verified": false,
+    "production_admitted": false
+  }
+}
