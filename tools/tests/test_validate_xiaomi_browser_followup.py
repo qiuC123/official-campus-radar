@@ -1,5 +1,6 @@
 from contextlib import redirect_stdout
 from io import StringIO
+import hashlib
 import json
 import unittest
 from unittest.mock import patch
@@ -84,6 +85,51 @@ class XiaomiBrowserFollowupTests(unittest.TestCase):
         self.assertFalse(summarize_evidence(report)["campus_natural_next_observed"])
         report["pagination_clicks"] = 0
         self.assertFalse(summarize_evidence(report)["campus_natural_next_observed"])
+
+    def test_mcp_reference_is_only_a_projection_of_frozen_two_page_evidence(self):
+        reference = json.loads(REPORT.with_name("xiaomi-natural-json-mcp-reference-20260907.json").read_text(encoding="utf-8"))
+        # Git may check text files out as CRLF on Windows; the evidence hash is LF-normalized.
+        raw = REPORT.read_bytes().replace(b"\r\n", b"\n")
+        self.assertEqual(reference["source_hash_normalization"], "utf8_lf_line_endings")
+        self.assertEqual(reference["source_sha256"], hashlib.sha256(raw).hexdigest())
+        source = json.loads(raw)
+        ids = []
+        for page, original in zip(reference["pages"], source["pages"][:2], strict=True):
+            self.assertEqual(page["stage"], original["stage"])
+            response = original["job_responses"][0]
+            self.assertEqual(page["declared_total"], response["declared_total"])
+            expected = [{"id": row["id"], "title": row["title"], "subject_id": row["job_subject"]["id"],
+                         "recruit_type": row["recruit_type"]["name"]} for row in response["rows"]]
+            self.assertEqual(page["records"], expected)
+            ids.extend(row["id"] for row in page["records"])
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertEqual(len(ids), reference["expected_unique_ids"])
+        self.assertFalse(reference["complete_collection"])
+        self.assertEqual(reference["network_requests"], 0)
+
+    def test_mcp_zero_budget_example_cannot_allocate_new_requests(self):
+        args = json.loads(REPORT.with_name("xiaomi-observe-browser-json-zero-budget-20260907.json").read_text(encoding="utf-8"))
+        self.assertEqual(args["endpoint_limit"], 0)
+        self.assertEqual(args["per_endpoint_limit"], 0)
+        self.assertEqual(args["business_endpoint_limits"], {JOB_KEY: 0})
+        reference = json.loads(REPORT.with_name("xiaomi-natural-json-mcp-reference-20260907.json").read_text(encoding="utf-8"))
+        self.assertEqual({field["name"]: field["path"] for field in args["fields"]}, reference["field_paths"])
+
+    def test_mcp_stdio_evidence_matches_zero_budget_example_and_bounds(self):
+        evidence = json.loads(REPORT.with_name("xiaomi-observe-browser-json-protocol-20260907.json").read_text(encoding="utf-8"))
+        args = json.loads(REPORT.with_name("xiaomi-observe-browser-json-zero-budget-20260907.json").read_text(encoding="utf-8"))
+        self.assertEqual(evidence["arguments"], args)
+        props = evidence["tool_schema"]["properties"]
+        for name, maximum in (("page_limit", 20), ("endpoint_limit", 200), ("per_endpoint_limit", 20)):
+            self.assertEqual(props[name]["maximum"], maximum)
+        result = evidence["result"]
+        self.assertEqual(result["tool"], "observe_browser_json")
+        self.assertEqual(result["stop_reason"], "endpoint_budget_exhausted")
+        self.assertEqual(result["endpoint_requests"]["used"], 0)
+        self.assertEqual(result["pages_completed"], 0)
+        self.assertEqual(result["records_count"], 0)
+        self.assertFalse(result["complete"])
+        self.assertFalse(evidence["verification"]["live_company_collection_tested"])
 
 
 if __name__ == "__main__":

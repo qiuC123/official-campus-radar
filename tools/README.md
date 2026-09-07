@@ -376,3 +376,10 @@ in the same directory. `summarize_evidence(report)` deterministically separates
 the observed campus next-page pair from whole-experiment acceptance. The
 internship stage stopped at the total budget; no production adapter or database
 changes are part of this tool.
+
+The same natural-response method is now exposed as `observe_browser_json` in
+the separate Web-Crawler-Agent MCP project. See
+`docs/handoffs/browser-natural-json-mcp-20260907.md` for the ownership boundary,
+scalar field projection contract, frozen offline reference and a zero-budget
+protocol-check example. Packaging the reader does not authorize another live
+Xiaomi run or replace recruitment admission checks.

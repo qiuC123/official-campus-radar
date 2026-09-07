@@ -1,0 +1,149 @@
+{
+  "kind": "offline_projection_of_saved_browser_evidence",
+  "source_hash_normalization": "utf8_lf_line_endings",
+  "source_report": "company-expansion-xiaomi-browser-followup-20260907.json",
+  "source_sha256": "fa8c76817da365f0e65fcd8b01e059f504014bcfcfa56c21a18ab9f0d20b35bf",
+  "network_requests": 0,
+  "field_paths": {
+    "id": "id",
+    "title": "title",
+    "subject_id": "job_subject.id",
+    "recruit_type": "recruit_type.name"
+  },
+  "pages": [
+    {
+      "stage": "campus:first",
+      "declared_total": 768,
+      "records": [
+        {
+          "id": "7682606003493456169",
+          "title": "\u4ea4\u4ed8\u4f53\u9a8c\u52a9\u7406",
+          "subject_id": "7618850506199533866",
+          "recruit_type": "\u5b9e\u4e60"
+        },
+        {
+          "id": "7682605885697132842",
+          "title": "\u4ea4\u4ed8\u4f53\u9a8c\u52a9\u7406",
+          "subject_id": "7618850506199533866",
+          "recruit_type": "\u5b9e\u4e60"
+        },
+        {
+          "id": "7682605872665774399",
+          "title": "\u4ea4\u4ed8\u4f53\u9a8c\u52a9\u7406",
+          "subject_id": "7618850506199533866",
+          "recruit_type": "\u5b9e\u4e60"
+        },
+        {
+          "id": "7682605867656890675",
+          "title": "\u4ea4\u4ed8\u4f53\u9a8c\u52a9\u7406",
+          "subject_id": "7618850506199533866",
+          "recruit_type": "\u5b9e\u4e60"
+        },
+        {
+          "id": "7681715814722816307",
+          "title": "\u6574\u8f66\u67b6\u6784\u4e0e\u96c6\u6210\u5de5\u7a0b\u5e08\uff08AI\u65b9\u5411\uff09-\u6c7d\u8f66",
+          "subject_id": "7659311908839262514",
+          "recruit_type": "\u6b63\u5f0f"
+        },
+        {
+          "id": "7681256292644030726",
+          "title": "AI\u80fd\u8017\u4f18\u5316\u7b97\u6cd5\u5de5\u7a0b\u5e08",
+          "subject_id": "7659311908839262514",
+          "recruit_type": "\u6b63\u5f0f"
+        },
+        {
+          "id": "7681256024946542857",
+          "title": "\u5927\u6a21\u578b\u5e73\u53f0\u4ea7\u54c1\u7ecf\u7406",
+          "subject_id": "7659311908839262514",
+          "recruit_type": "\u6b63\u5f0f"
+        },
+        {
+          "id": "7681255943951190335",
+          "title": "\u540e\u53f0\u5f00\u53d1\u5de5\u7a0b\u5e08",
+          "subject_id": "7659311908839262514",
+          "recruit_type": "\u6b63\u5f0f"
+        },
+        {
+          "id": "7680394017603356978",
+          "title": "AI\u5e73\u53f0\u5f00\u53d1\u5de5\u7a0b\u5e08-\u8bad\u63a8\u5e73\u53f0",
+          "subject_id": "7659311908839262514",
+          "recruit_type": "\u6b63\u5f0f"
+        },
+        {
+          "id": "7680376718741915958",
+          "title": "\u4f9b\u5e94\u94fe\u8fd0\u8425\u7ba1\u7406\u4e13\u5458-\u6210\u672c\u65b9\u5411",
+          "subject_id": "7659311908839262514",
+          "recruit_type": "\u6b63\u5f0f"
+        }
+      ]
+    },
+    {
+      "stage": "campus:next",
+      "declared_total": 768,
+      "records": [
+        {
+          "id": "7680376662261729577",
+          "title": "\u4f9b\u5e94\u94fe\u8ba1\u5212\u4e13\u5458",
+          "subject_id": "7659311908839262514",
+          "recruit_type": "\u6b63\u5f0f"
+        },
+        {
+          "id": "7680375795693488393",
+          "title": "\u4f9b\u5e94\u94fe\u91c7\u8d2d\u4e13\u5458",
+          "subject_id": "7659311908839262514",
+          "recruit_type": "\u6b63\u5f0f"
+        },
+        {
+          "id": "7680375700994869558",
+          "title": "\u4f9b\u5e94\u94fe\u8fd0\u8425\u7ba1\u7406\u4e13\u5458-\u8fd0\u8425\u7ba1\u7406",
+          "subject_id": "7659311908839262514",
+          "recruit_type": "\u6b63\u5f0f"
+        },
+        {
+          "id": "7680161598241655086",
+          "title": "\u8f66\u8054\u7f51\u5e94\u7528\u8f6f\u4ef6\u5f00\u53d1\u5de5\u7a0b\u5e08-\u6c7d\u8f66",
+          "subject_id": "7659311908839262514",
+          "recruit_type": "\u6b63\u5f0f"
+        },
+        {
+          "id": "7679026007857236275",
+          "title": "\u884c\u653f\u4e13\u5458\uff08\u6d77\u5916\u884c\u653f\uff09",
+          "subject_id": "7659311908839262514",
+          "recruit_type": "\u6b63\u5f0f"
+        },
+        {
+          "id": "7679025822254401855",
+          "title": "\u884c\u653f\u4e13\u5458\uff08\u798f\u5229\u6587\u5316\uff09",
+          "subject_id": "7659311908839262514",
+          "recruit_type": "\u6b63\u5f0f"
+        },
+        {
+          "id": "7678147882801678602",
+          "title": "Agent Harness \u5f00\u53d1\u5de5\u7a0b\u5e08",
+          "subject_id": "7659311908839262514",
+          "recruit_type": "\u6b63\u5f0f"
+        },
+        {
+          "id": "7677560971674274111",
+          "title": "\u4e2d\u56fd\u533a-\u7814\u53d1\u5de5\u7a0b\u5e08",
+          "subject_id": "7659311908839262514",
+          "recruit_type": "\u6b63\u5f0f"
+        },
+        {
+          "id": "7677560924911438099",
+          "title": "\u4e2d\u56fd\u533a-\u4f9b\u5e94\u94fe\u7ba1\u57f9\u751f",
+          "subject_id": "7659311908839262514",
+          "recruit_type": "\u6b63\u5f0f"
+        },
+        {
+          "id": "7677560509239036166",
+          "title": "\u4e2d\u56fd\u533a-\u4ea7\u54c1\u7ecf\u7406",
+          "subject_id": "7659311908839262514",
+          "recruit_type": "\u6b63\u5f0f"
+        }
+      ]
+    }
+  ],
+  "expected_unique_ids": 20,
+  "complete_collection": false
+}
