@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "verified_at": "2026-09-07T07:31:17.226095+00:00",
+  "client_mcp_version": "1.28.1",
+  "arguments": {
+    "seed_url": "https://example.invalid/list/",
+    "extraction_mode": "browser_json",
+    "json_response": {
+      "response_endpoint": "example.invalid/api/items",
+      "records_path": "data.items",
+      "fields": [
+        {
+          "name": "title",
+          "path": "title",
+          "required": true
+        }
+      ],
+      "identity_path": "id"
+    },
+    "page_limit": 2,
+    "endpoint_limit": 0,
+    "per_endpoint_limit": 0,
+    "business_endpoint_limits": {
+      "example.invalid/api/items": 0
+    }
+  },
+  "result": {
+    "schema_version": 1,
+    "tool": "crawl_site",
+    "extraction_mode": "browser_json",
+    "run_id": "20260907-073117-45e215",
+    "seed_url": "https://example.invalid/list/",
+    "response_endpoint": "example.invalid/api/items",
+    "started_at": "2026-09-07T07:31:17+00:00",
+    "updated_at": "2026-09-07T07:31:17+00:00",
+    "pages_completed": 0,
+    "records_count": 0,
+    "unique_ids": [],
+    "declared_total": null,
+    "stop_reason": "endpoint_budget_exhausted",
+    "completeness": "partial",
+    "complete": false,
+    "endpoint_requests": {
+      "limit": 0,
+      "used": 0,
+      "remaining": 0,
+      "per_endpoint_limit": 0,
+      "business_limits": {
+        "example.invalid/api/items": 0
+      },
+      "by_purpose": {},
+      "by_endpoint": {},
+      "by_method_endpoint": {},
+      "method_history_complete": true,
+      "blocked_before_send": {
+        "total": 0,
+        "by_resource_type": {}
+      },
+      "observed_request_attempts": 0,
+      "unclassified_api_endpoints": []
+    },
+    "pages": [],
+    "resumable": false,
+    "error_facts": [],
+    "artifacts": {
+      "summary": "E:\\devlop\\Pi-devlop\\Web-Crawler-Agent\\runs\\20260907-073117-45e215\\observation-summary.json",
+      "request_budget": "E:\\devlop\\Pi-devlop\\Web-Crawler-Agent\\runs\\20260907-073117-45e215\\request-budget.json",
+      "pages": "E:\\devlop\\Pi-devlop\\Web-Crawler-Agent\\runs\\20260907-073117-45e215\\pages.jsonl",
+      "errors": "E:\\devlop\\Pi-devlop\\Web-Crawler-Agent\\runs\\20260907-073117-45e215\\errors.jsonl"
+    }
+  },
+  "source_files": {
+    "src/web_crawler_agent/browser_json.py": "2dae5e137e1fa27e40ed9cb7829dc2a36ddbdb62c013add3524e25560d46f734",
+    "tests/test_browser_json_errors.py": "d684093a536e0964aa899b4e6402c1eefc7b28f187464e8aebc9f6a240c92b56",
+    "docs/OBSERVE_BROWSER_JSON.md": "de89f153f9994d356a9dc5250d49243fceaa7710f0692e6edcbc82af50c58583"
+  },
+  "hash_normalization": "utf8_lf_line_endings",
+  "historical_run_id": "20260907-071447-593708",
+  "historical_summary_sha256": "4867cd413a4470296a649aa0c951b8c41ad2d528693809565a004db01b64b57f",
+  "historical_errors_bytes": 0,
+  "historical_http_status_recovered": false,
+  "primary_error_regression": {
+    "tests_run": 15,
+    "exit_code": 0,
+    "external_network": false
+  },
+  "maintainer_report": {
+    "python_tests_passed": 119,
+    "typescript_tests_passed": 5,
+    "typecheck_exit_code": 0,
+    "reported_by_thread": "01a06503-3fc6-7351-9342-88e27bcd48dd"
+  },
+  "verification": {
+    "new_fields_available_in_fresh_stdio": true,
+    "persisted_summary_matches": true,
+    "historical_summary_unchanged": true,
+    "network_requests": 0,
+    "live_company_retried": false
+  }
+}

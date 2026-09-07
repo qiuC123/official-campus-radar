@@ -179,6 +179,25 @@ class XiaomiAdmissionCandidateTests(unittest.TestCase):
             self.assertFalse(run["verification"][field])
         self.assertIsNone(run["verification"]["response_http_status"])
 
+    def test_diagnostic_upgrade_is_zero_network_and_does_not_rewrite_old_failure(self):
+        receipt = json.loads(SOURCE.with_name("xiaomi-mcp-error-diagnostics-verification-20260907.json").read_text(encoding="utf-8"))
+        old = json.loads(SOURCE.with_name("xiaomi-internship-mcp-run-20260907.json").read_text(encoding="utf-8"))
+        self.assertEqual(receipt["historical_run_id"], old["result"]["run_id"])
+        self.assertEqual(receipt["historical_summary_sha256"], old["persisted_summary_sha256"])
+        self.assertEqual(receipt["historical_errors_bytes"], 0)
+        self.assertFalse(receipt["historical_http_status_recovered"])
+        self.assertEqual(receipt["arguments"]["endpoint_limit"], 0)
+        result = receipt["result"]
+        self.assertEqual(result["tool"], "crawl_site")
+        self.assertEqual(result["stop_reason"], "endpoint_budget_exhausted")
+        self.assertEqual(result["error_facts"], [])
+        self.assertIn("errors", result["artifacts"])
+        self.assertEqual(result["endpoint_requests"]["used"], 0)
+        self.assertFalse(result["complete"])
+        self.assertFalse(receipt["verification"]["live_company_retried"])
+        self.assertTrue(receipt["verification"]["persisted_summary_matches"])
+        self.assertNotIn("error_facts", old["result"])
+
 
 if __name__ == "__main__":
     unittest.main()
