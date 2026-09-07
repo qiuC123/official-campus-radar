@@ -1,0 +1,41 @@
+{
+  "seed_url": "https://xiaomi.jobs.f.mioffice.cn/campus/",
+  "extraction_mode": "browser_json",
+  "json_response": {
+    "response_endpoint": "xiaomi.jobs.f.mioffice.cn/api/v1/search/job/posts",
+    "records_path": "data.job_post_list",
+    "fields": [
+      {
+        "name": "id",
+        "path": "id",
+        "required": true
+      },
+      {
+        "name": "title",
+        "path": "title",
+        "required": true
+      },
+      {
+        "name": "subject_id",
+        "path": "job_subject.id",
+        "required": false
+      },
+      {
+        "name": "recruit_type",
+        "path": "recruit_type.name",
+        "required": false
+      }
+    ],
+    "identity_path": "id",
+    "total_path": "data.count"
+  },
+  "pagination": {
+    "next_selector": "li.atsx-pagination-next[title=\"下一页\"]"
+  },
+  "page_limit": 2,
+  "endpoint_limit": 0,
+  "per_endpoint_limit": 0,
+  "business_endpoint_limits": {
+    "xiaomi.jobs.f.mioffice.cn/api/v1/search/job/posts": 0
+  }
+}

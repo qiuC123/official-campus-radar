@@ -131,6 +131,45 @@ class XiaomiBrowserFollowupTests(unittest.TestCase):
         self.assertFalse(result["complete"])
         self.assertFalse(evidence["verification"]["live_company_collection_tested"])
 
+    def test_unified_mcp_example_preserves_projection_and_exhausted_budget(self):
+        old = json.loads(REPORT.with_name("xiaomi-observe-browser-json-zero-budget-20260907.json").read_text(encoding="utf-8"))
+        new = json.loads(REPORT.with_name("xiaomi-crawl-site-json-zero-budget-20260907.json").read_text(encoding="utf-8"))
+        self.assertEqual(new["extraction_mode"], "browser_json")
+        for name in ("seed_url", "page_limit", "endpoint_limit", "per_endpoint_limit", "business_endpoint_limits"):
+            self.assertEqual(new[name], old[name])
+        self.assertEqual(new["json_response"], {
+            name: old[name] for name in ("response_endpoint", "records_path", "fields", "identity_path", "total_path")
+        })
+        self.assertEqual(new["pagination"], {"next_selector": old["next_selector"]})
+        self.assertNotIn("fields", new)
+
+    def test_unified_stdio_evidence_preserves_alias_and_zero_request_stops(self):
+        evidence = json.loads(REPORT.with_name("xiaomi-crawl-site-json-protocol-20260907.json").read_text(encoding="utf-8"))
+        args = json.loads(REPORT.with_name("xiaomi-crawl-site-json-zero-budget-20260907.json").read_text(encoding="utf-8"))
+        self.assertEqual(evidence["calls"]["browser_json"]["arguments"], args)
+        props = evidence["tool_schemas"]["crawl_site"]["properties"]
+        self.assertEqual(props["extraction_mode"]["default"], "html")
+        self.assertEqual(set(props["extraction_mode"]["enum"]), {"html", "browser_json"})
+        self.assertIn("json_response", props)
+        self.assertEqual(props["page_limit"]["default"], 20)
+        self.assertEqual(evidence["tool_schemas"]["observe_browser_json"]["properties"]["page_limit"]["default"], 2)
+        for name, maximum in (("page_limit", 20), ("endpoint_limit", 200), ("per_endpoint_limit", 20)):
+            self.assertEqual(props[name]["maximum"], maximum)
+        for name in ("browser_json", "legacy_alias"):
+            call = evidence["calls"][name]
+            result = call["result"]
+            self.assertEqual(result, call["persisted_summary"])
+            self.assertEqual(result["tool"], "crawl_site")
+            self.assertEqual(result["extraction_mode"], "browser_json")
+            self.assertEqual(result["stop_reason"], "endpoint_budget_exhausted")
+            self.assertEqual(result["endpoint_requests"]["used"], 0)
+            self.assertEqual(result["pages_completed"], 0)
+            self.assertEqual(result["records_count"], 0)
+            self.assertFalse(result["complete"])
+            self.assertFalse(result["resumable"])
+        self.assertTrue(evidence["verification"]["html_default_unchanged"])
+        self.assertFalse(evidence["verification"]["live_company_collection_tested"])
+
 
 if __name__ == "__main__":
     unittest.main()
