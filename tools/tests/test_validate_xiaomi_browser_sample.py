@@ -27,6 +27,17 @@ class XiaomiBrowserSampleTests(unittest.TestCase):
         self.assertEqual(dict(used), report["cumulative_endpoint_counts"])
         self.assertEqual(report["verdict"], sample_verdict(report["pages"], report["stop_reason"]))
 
+    def test_mcp_http_inspection_did_not_spend_job_or_telemetry_budget(self):
+        record = json.loads(REPORT.with_name("company-expansion-xiaomi-mcp-http-20260907.json").read_text(encoding="utf-8"))
+        actual = record["result"]["endpoint_requests"]
+        self.assertEqual(actual["used"], 2)
+        self.assertEqual(actual["by_method_endpoint"], {
+            "GET xiaomi.jobs.f.mioffice.cn/campus/": 1,
+            "GET xiaomi.jobs.f.mioffice.cn/robots.txt": 1,
+        })
+        self.assertEqual(record["interpretation"]["known_cumulative_job_requests"], 4)
+        self.assertFalse(record["interpretation"]["full_collection_verified"])
+
     def test_previous_request_leaves_five_and_stops_all_endpoints(self):
         budget = Budget()
         self.assertTrue(all(budget.allow(JOB_ENDPOINT) for _ in range(5)))

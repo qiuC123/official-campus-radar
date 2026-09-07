@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "observed_at_utc": "2026-09-07 05:02:29 UTC",
+  "tool": "web-crawler.inspect_page",
+  "input": {
+    "url": "https://xiaomi.jobs.f.mioffice.cn/campus/",
+    "fetch_mode": "http",
+    "endpoint_limit": 2,
+    "per_endpoint_limit": 1,
+    "business_endpoint_limits": {
+      "xiaomi.jobs.f.mioffice.cn/api/v1/search/job/posts": 0,
+      "mcs.snssdk.com/v1/list": 0
+    }
+  },
+  "result": {
+    "url": "https://xiaomi.jobs.f.mioffice.cn/campus/",
+    "title": "小米校园招聘",
+    "fetch_mode": "http",
+    "status": 200,
+    "inspection_status": "complete",
+    "content_excerpt": "",
+    "sanitized_html_excerpt": "<body>\n              \n              \n              \n            <div id=\"bd\"></div></body>",
+    "candidate_links": [],
+    "content_is_untrusted": true,
+    "endpoint_requests": {
+      "limit": 2,
+      "used": 2,
+      "remaining": 0,
+      "per_endpoint_limit": 1,
+      "business_limits": {
+        "mcs.snssdk.com/v1/list": 0,
+        "xiaomi.jobs.f.mioffice.cn/api/v1/search/job/posts": 0
+      },
+      "by_purpose": {
+        "page_http": 1,
+        "robots": 1
+      },
+      "by_endpoint": {
+        "xiaomi.jobs.f.mioffice.cn/campus/": 1,
+        "xiaomi.jobs.f.mioffice.cn/robots.txt": 1
+      },
+      "by_method_endpoint": {
+        "GET xiaomi.jobs.f.mioffice.cn/campus/": 1,
+        "GET xiaomi.jobs.f.mioffice.cn/robots.txt": 1
+      },
+      "method_history_complete": true,
+      "unclassified_api_endpoints": []
+    }
+  },
+  "interpretation": {
+    "html_shell_only": true,
+    "job_endpoint_new_requests": 0,
+    "known_cumulative_job_requests": 4,
+    "remaining_job_requests_under_prior_limit": 2,
+    "browser_started": false,
+    "full_collection_verified": false
+  }
+}
