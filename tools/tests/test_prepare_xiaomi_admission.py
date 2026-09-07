@@ -1,5 +1,6 @@
 from contextlib import redirect_stdout
 import copy
+from datetime import datetime
 import hashlib
 from io import StringIO
 import json
@@ -119,6 +120,64 @@ class XiaomiAdmissionCandidateTests(unittest.TestCase):
         self.assertEqual(proposal["timebox_seconds"], 900)
         self.assertFalse(proposal["retry_or_followup_allowed"])
         self.assertFalse(proposal["production_admission_authorized"])
+
+    def test_confirmed_internship_run_matches_frozen_proposal_and_single_call(self):
+        proposal_path = SOURCE.with_name("xiaomi-internship-mcp-proposal-20260907.json")
+        proposal = json.loads(proposal_path.read_text(encoding="utf-8"))
+        run = json.loads(SOURCE.with_name("xiaomi-internship-mcp-run-20260907.json").read_text(encoding="utf-8"))
+        response = json.loads(SOURCE.with_name("xiaomi-internship-mcp-response-20260907.json").read_text(encoding="utf-8"))
+        self.assertEqual(run["authorization"]["user_message"], "确认")
+        self.assertEqual(run["authorization"]["proposal_sha256"], hashlib.sha256(proposal_path.read_bytes().replace(b"\r\n", b"\n")).hexdigest())
+        self.assertEqual(run["arguments"], proposal["arguments"])
+        self.assertEqual(run["prior_budget"], proposal["prior_budget"])
+        self.assertEqual(run["result"], response["result"])
+        self.assertEqual(run["caller_calls_reserved"], proposal["max_calls"])
+        self.assertEqual(run["state"], "stopped_after_single_call")
+        self.assertFalse(run["retry_or_followup_allowed"])
+        result = run["result"]
+        elapsed = datetime.fromisoformat(result["updated_at"]) - datetime.fromisoformat(result["started_at"])
+        self.assertLessEqual(elapsed.total_seconds(), proposal["timebox_seconds"])
+
+    def test_internship_failure_budget_keeps_prior_requests_and_unused_balance(self):
+        run = json.loads(SOURCE.with_name("xiaomi-internship-mcp-run-20260907.json").read_text(encoding="utf-8"))
+        budget = run["result"]["endpoint_requests"]
+        aggregate = run["aggregate_budget"]
+        self.assertEqual(budget["used"], 57)
+        for view in ("by_endpoint", "by_method_endpoint", "by_purpose"):
+            self.assertEqual(sum(budget[view].values()), budget["used"])
+        self.assertEqual(budget["observed_request_attempts"], budget["used"] + budget["blocked_before_send"]["total"])
+        self.assertEqual(budget["blocked_before_send"]["by_resource_type"], {"image": 4})
+        before = run["prior_budget"]["by_endpoint"]
+        keys = before.keys() | budget["by_endpoint"].keys()
+        expected = {key: before.get(key, 0) + budget["by_endpoint"].get(key, 0) for key in keys}
+        self.assertEqual(aggregate["expanded_round_by_endpoint"], expected)
+        self.assertEqual(sum(expected.values()), 257)
+        self.assertEqual(aggregate["expanded_round_requests"], 257)
+        self.assertEqual(aggregate["unspent_total_requests"], 143)
+        job_key = run["arguments"]["json_response"]["response_endpoint"]
+        self.assertEqual(budget["by_endpoint"][job_key], 1)
+        self.assertEqual(aggregate["known_cumulative_job_requests"], run["prior_budget"]["known_job_requests"] + 1)
+        self.assertEqual(aggregate["known_cumulative_job_requests"], 10)
+        self.assertEqual(aggregate["unspent_job_requests"], 2)
+        self.assertFalse(aggregate["further_calls_authorized"])
+        for key, count in budget["by_endpoint"].items():
+            self.assertLessEqual(count, budget["business_limits"].get(key, budget["per_endpoint_limit"]))
+
+    def test_internship_http_error_cannot_prove_blocking_empty_jobs_or_admission(self):
+        run = json.loads(SOURCE.with_name("xiaomi-internship-mcp-run-20260907.json").read_text(encoding="utf-8"))
+        result = run["result"]
+        self.assertFalse(run["protocol_is_error"])  # MCP delivery succeeded, collection did not.
+        self.assertEqual(result["stop_reason"], "response_http_error")
+        self.assertEqual(result["pages_completed"], 0)
+        self.assertEqual(result["records_count"], 0)
+        self.assertIsNone(result["declared_total"])
+        self.assertEqual(result["pages"], [])
+        self.assertFalse(result["complete"])
+        for field in ("response_http_status_retained", "response_object_presence_retained",
+                      "website_access_restriction_proven", "empty_or_closed_internship_proven",
+                      "sample_goal_complete", "production_admitted"):
+            self.assertFalse(run["verification"][field])
+        self.assertIsNone(run["verification"]["response_http_status"])
 
 
 if __name__ == "__main__":

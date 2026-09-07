@@ -401,3 +401,12 @@ The default invocation prints a summary; `--write` writes the deterministic
 See `docs/handoffs/xiaomi-admission-candidate-20260907.md` for the evidence gaps
 and the separately proposed internship request allocation. That proposal does
 not authorize a new run against the exhausted historical budget.
+
+
+The internship proposal was subsequently confirmed and executed exactly once.
+`work/xiaomi-internship-mcp-run-20260907.json` links that confirmation to the
+frozen proposal hash and records `response_http_error`, zero completed pages,
+and cumulative request accounting (257/400 total, 10/12 known job requests).
+The raw MCP result is retained in `xiaomi-internship-mcp-response-20260907.json`.
+Unused budget does not permit retries under this one-call authorization. The
+missing HTTP status is a diagnostic gap, not evidence of blocking or closure.
